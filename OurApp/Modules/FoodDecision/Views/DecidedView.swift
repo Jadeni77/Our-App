@@ -4,6 +4,7 @@ struct DecidedView: View {
     let flow: FoodDecisionFlow
     let cuisine: Cuisine
     @State private var celebrate = false
+    @Environment(\.locale) private var locale
 
     var body: some View {
         VStack(spacing: 32) {
@@ -12,7 +13,7 @@ struct DecidedView: View {
                 Text(cuisine.emoji)
                     .font(.system(size: 96))
                     .scaleEffect(celebrate ? 1 : 0.3)
-                Text("\(cuisine.displayName) it is! 🎉")
+                Text("\(cuisine.name(for: locale)) it is! 🎉")
                     .font(Theme.display(36))
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)

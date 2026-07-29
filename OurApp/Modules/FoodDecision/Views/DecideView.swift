@@ -4,6 +4,7 @@ struct DecideView: View {
     let flow: FoodDecisionFlow
     let cuisine: Cuisine
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.locale) private var locale
 
     var body: some View {
         VStack(spacing: 32) {
@@ -14,7 +15,7 @@ struct DecideView: View {
             Spacer()
             VStack(spacing: 16) {
                 Text(cuisine.emoji).font(.system(size: 96))
-                Text(cuisine.displayName)
+                Text(cuisine.name(for: locale))
                     .font(Theme.display(44))
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)

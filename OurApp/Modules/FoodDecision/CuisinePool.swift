@@ -20,6 +20,17 @@ struct Cuisine: Equatable, Hashable {
         namesByLanguage[language] ?? namesByLanguage["en"] ?? id
     }
 
+    /// View-layer resolution that follows the \.locale environment, so the
+    /// in-app language override (P9) switches cuisine names live. A bare
+    /// "zh" carries no script — the maximal identifier supplies Hans/Hant.
+    func name(for locale: Locale) -> String {
+        guard locale.language.languageCode?.identifier == "zh" else {
+            return name(for: locale.language.languageCode?.identifier ?? "en")
+        }
+        let maximal = locale.language.maximalIdentifier
+        return name(for: maximal.contains("Hant") ? "zh-Hant" : "zh-Hans")
+    }
+
     var isCustom: Bool { id.hasPrefix("custom:") }
 
     /// A free-form typed cuisine: the typed text is the name in every language

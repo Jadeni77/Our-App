@@ -4,6 +4,7 @@ import UIKit
 struct RestaurantListView: View {
     @State private var search: RestaurantSearch
     @Environment(\.openURL) private var openURL
+    @Environment(\.locale) private var locale
 
     init(cuisine: Cuisine, provider: any RestaurantProvider = MapKitRestaurantProvider()) {
         _search = State(initialValue: RestaurantSearch(cuisine: cuisine, provider: provider))
@@ -13,7 +14,7 @@ struct RestaurantListView: View {
         Group {
             switch search.state {
             case .loading:
-                ProgressView("Finding \(search.cuisine.displayName) near you…")
+                ProgressView("Finding \(search.cuisine.name(for: locale)) near you…")
                     .tint(.white)
                     .foregroundStyle(.white)
             case .loaded(let restaurants):
@@ -29,7 +30,7 @@ struct RestaurantListView: View {
                 statusView(
                     emoji: "📍",
                     title: "We can't see where you are",
-                    message: "Allow location access in Settings and we'll find \(search.cuisine.displayName) nearby."
+                    message: "Allow location access in Settings and we'll find \(search.cuisine.name(for: locale)) nearby."
                 ) {
                     Button("Open Settings") {
                         if let url = URL(string: UIApplication.openSettingsURLString) {
@@ -41,7 +42,7 @@ struct RestaurantListView: View {
             case .noResults:
                 statusView(
                     emoji: "🤷",
-                    title: "Nothing nearby for \(search.cuisine.displayName)",
+                    title: "Nothing nearby for \(search.cuisine.name(for: locale))",
                     message: "Go back and try another cuisine — maybe re-roll?"
                 ) {
                     EmptyView()
@@ -61,7 +62,7 @@ struct RestaurantListView: View {
         }
         .background(Theme.duskGradient.ignoresSafeArea())
         .tint(Theme.rose)
-        .navigationTitle("\(search.cuisine.emoji) \(search.cuisine.displayName)")
+        .navigationTitle(Text(verbatim: "\(search.cuisine.emoji) \(search.cuisine.name(for: locale))"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbarColorScheme(.dark, for: .navigationBar)
         .task { await search.run() }

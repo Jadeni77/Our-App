@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import OurApp
 
@@ -25,6 +26,15 @@ struct CuisinePoolTests {
         #expect(hotpot.name(for: "fr") == "Hotpot") // unknown language → English
         let bare = Cuisine(id: "mystery", emoji: "❓", namesByLanguage: [:], searchTerms: ["x", "y"])
         #expect(bare.name(for: "en") == "mystery") // no names at all → id
+    }
+
+    @Test func nameForLocaleFollowsScriptAndFallsBack() {
+        let hotpot = CuisinePool.all.first { $0.id == "hotpot" }!
+        #expect(hotpot.name(for: Locale(identifier: "zh-Hans")) == "火锅")
+        #expect(hotpot.name(for: Locale(identifier: "zh-Hant")) == "火鍋")
+        #expect(hotpot.name(for: Locale(identifier: "zh_TW")) == "火鍋")
+        #expect(hotpot.name(for: Locale(identifier: "en_US")) == "Hotpot")
+        #expect(hotpot.name(for: Locale(identifier: "fr_FR")) == "Hotpot")
     }
 
     @Test func drawReturnsAPoolMemberAndHonorsExclusion() {
