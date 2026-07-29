@@ -1177,7 +1177,9 @@ struct ModuleHostView: View {
                     Image(systemName: "xmark")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(.primary)
-                        .padding(11)
+                        // 44×44 = HIG minimum hit target; this is the only way
+                        // out of a module. (Amended 2026-07-28 — Task 7 review.)
+                        .frame(width: 44, height: 44)
                 }
                 .glassCard(cornerRadius: 22)
                 .padding(.trailing, 16)
