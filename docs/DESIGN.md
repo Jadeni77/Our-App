@@ -46,7 +46,7 @@ The app opens into **our space** — a themed couples home that feels like it be
 - **Module launcher** — the shell's generic mechanism for mounting modules: a **frosted-glass rail on the trailing edge** that swaps open to reveal **module tiles**, keeping the home's vertical space for the couple hero (P8, supersedes the bottom drawer); tapping a tile mounts that module's entry view. Food Decision is tile #1.
 - **Couple identity** — names, photos, anniversary date, stored in **local settings for now** (no pairing/sync — principle 2). Becomes synced core data if/when two-phone sync lands (§7).
 - **Theme system** — the shared dreamy design language (principle 9) exposed as core tokens/components (colors, gradients, glass materials, motion curves, haptic patterns) that shell and modules consume.
-- **Localization infrastructure** — one String Catalog covering en / zh-Hans / zh-Hant (principle 8).
+- **Localization infrastructure** — one String Catalog covering en / zh-Hans / zh-Hant (principle 8). Language is switchable **both** ways: iOS's per-app language setting, and an in-app picker in the couple settings (System / English / 简体中文 / 繁體中文 — P9). The in-app override re-renders the UI live via the SwiftUI locale environment and aligns bundle lookups on next launch.
 - **Not yet built (seams only):** pairing, cross-device sync, notifications. Left as clear extension points, not implemented.
 
 ### The Module Contract *(derived from module #1 — will firm up as #2 arrives; don't over-specify ahead of real need)*
@@ -76,6 +76,7 @@ Keep this to genuinely contested, cross-cutting decisions. Feature-level choices
 | P6 | Couple identity (names, photos, anniversary) in **local settings** for now | Unblocks the shell while honoring local-first (principle 2); the data model is tiny and migrates cleanly into sync later | Building pairing/sync first just to share three fields (heavy, unproven need — the classic empty room) |
 | P7 | Shared **theme system in the core** (gradient/glass/spring/haptic tokens) | One place to tune the feel; shell and modules stay visually coherent as the module count grows | Per-module ad-hoc styling (drifts apart within two modules); a third-party design system (needless dependency, less native feel) |
 | P8 | Shell layout v2 (supersedes P4's layout, not its substance): launcher as a **trailing-edge side rail**; avatars in top corners; centered day-counter hero with anniversary date; **brighter** moonlit palette with a code-drawn full moon | The bottom drawer ate the vertical space the couple hero needs; structure loosely follows a reference app the user shared (2026-07-29) while all art stays original per principle 9 | Bottom drawer (shell v1); copying the reference's art (forbidden — layout inspiration only) |
+| P9 | **In-app language picker** (System / English / 简体中文 / 繁體中文) in couple settings, alongside iOS's per-app language setting | Switching languages is part of this couple's daily reality; burying it in the Settings app adds friction — live `\.locale` override + AppleLanguages alignment gives instant switching with system consistency | System-setting-only localization (works, but invisible and slow to reach); a custom re-bundling scheme (needless complexity) |
 
 *(Principles in §3 are not repeated here — the log is for forks with a rejected alternative worth remembering.)*
 

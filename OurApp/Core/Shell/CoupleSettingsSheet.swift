@@ -13,6 +13,7 @@ struct CoupleSettingsSheet: View {
     // target from the isPresented setter races the selection write and can drop
     // the picked photo (review ruling — do not merge these).
     @State private var isPickerPresented = false
+    @AppStorage(AppLanguage.storageKey) private var languageRaw = AppLanguage.system.rawValue
 
     var body: some View {
         NavigationStack {
@@ -30,6 +31,21 @@ struct CoupleSettingsSheet: View {
                         in: ...Date.now,
                         displayedComponents: .date
                     )
+                }
+
+                Section("Language") {
+                    Picker(selection: $languageRaw) {
+                        ForEach(AppLanguage.allCases) { language in
+                            language.label.tag(language.rawValue)
+                        }
+                    } label: {
+                        Text("Language")
+                    }
+                    .onChange(of: languageRaw) {
+                        // Keep bundle lookups/formatters aligned on next launch;
+                        // the visible UI switches immediately via \.locale.
+                        AppLanguage(rawValue: languageRaw)?.applyToBundleDomain()
+                    }
                 }
             }
             .navigationTitle(Text("Our details"))
