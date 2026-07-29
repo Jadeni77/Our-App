@@ -55,7 +55,7 @@ On every completed decision (Agree), persist `{ date, cuisineChosen }` via the c
 - Manual entry accepts input in any of the three languages; if it matches a pool entry's display name or search term in *any* language, it resolves to that entry (keeping emoji + searchTerms), else it's kept as a free-form string, exactly like v1.
 
 ### Chinese-capable restaurant search (F7)
-- `RestaurantProvider` contract unchanged from the UI's point of view — the strategy is internal to the MapKit implementation.
+- `RestaurantProvider` now takes the whole `Cuisine` (`search(for:)`); the multi-term strategy stays internal to the MapKit implementation — the UI just passes its cuisine through.
 - Query strategy: order the cuisine's `searchTerms` by user region/locale fit (e.g. zh-Hans-tagged regions try 火锅 first), query in order, **merge + dedupe** results until the existing cap (8); fall back through remaining terms when a term returns nothing. Fixed ~5 km region and fail-soft states carry over from v1 unchanged.
 - Typed free-form cuisines search with the typed string, as today.
 
@@ -78,7 +78,7 @@ On every completed decision (Agree), persist `{ date, cuisineChosen }` via the c
 **v2 — current milestone:**
 7. ~~Localized cuisine data model (`id` + per-language names + `searchTerms` + emoji) replacing the string pool; `DecisionRecord` gains cuisine `id` (additive migration).~~ ✅ (2026-07-29)
 8. ~~String Catalog: every module string in en / zh-Hans / zh-Hant; manual entry resolves across languages.~~ ✅ (2026-07-29)
-9. ~~Region-aware multi-term search inside the MapKit provider (query order, merge/dedupe, fallback); protocol surface unchanged.~~ ✅ (2026-07-29)
+9. ~~Region-aware multi-term search inside the MapKit provider (query order, merge/dedupe, fallback); protocol takes the whole `Cuisine`.~~ ✅ (2026-07-29)
 10. ~~Launcher tile metadata~~ ✅ shipped with the platform-shell milestone (2026-07-28). ~~Theme adoption~~ ✅ (2026-07-29)
 
 ## Definition of done (v1) — ✅ met 2026-07-28
