@@ -39,7 +39,7 @@ struct DreamyBackground: View {
 }
 
 /// Drifting soft dots. Each particle's path is a pure function of (seed, time),
-/// wrapping vertically — no per-frame state, no allocations in the draw loop.
+/// wrapping vertically — no per-frame state kept between frames.
 private struct ParticleField: View {
     let time: TimeInterval
     private static let seeds: [(x: Double, speed: Double, size: Double, phase: Double)] =

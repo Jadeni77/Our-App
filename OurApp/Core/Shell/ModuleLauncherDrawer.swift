@@ -39,6 +39,9 @@ struct ModuleLauncherDrawer: View {
                 withAnimation(Theme.springy) { isOpen = value.translation.height < 0 }
             }
         )
+        .accessibilityElement(children: .contain)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction { toggle() }
         .onAppear { if startsOpen { isOpen = true } }
     }
 

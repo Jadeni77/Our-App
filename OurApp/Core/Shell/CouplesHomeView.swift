@@ -66,7 +66,7 @@ struct CouplesHomeView: View {
             } label: {
                 Image(systemName: "gearshape.fill")
                     .foregroundStyle(.white.opacity(0.85))
-                    .padding(11)
+                    .frame(width: 44, height: 44)
             }
             .glassCard(cornerRadius: 22)
             .padding(.trailing, 16)

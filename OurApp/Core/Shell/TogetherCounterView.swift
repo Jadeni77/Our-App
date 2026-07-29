@@ -15,10 +15,12 @@ struct TogetherCounterView: View {
             .padding(.horizontal, 24)
             .padding(.vertical, 12)
             .glassCard(cornerRadius: 22)
-            .task { await countUp() }
+            .task(id: anniversary) { await countUp() }
     }
 
     private func countUp() async {
+        let hadCounted = shown > 0
+        shown = 0
         let target = DaysTogether.days(from: anniversary)
         let frames = 36
         for frame in 1...frames {
@@ -34,7 +36,7 @@ struct TogetherCounterView: View {
         }
         guard !Task.isCancelled else { return }
         withAnimation(Theme.springy) { shown = target }
-        Haptics.success()
+        if !hadCounted { Haptics.success() } // no repeat buzz on re-appear/edit
     }
 }
 

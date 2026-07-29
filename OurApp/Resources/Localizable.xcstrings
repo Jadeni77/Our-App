@@ -52,14 +52,6 @@
         "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "名字" } }
       }
     },
-    "Photo" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Photo" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "照片" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "照片" } }
-      }
-    },
     "Anniversary" : {
       "extractionState" : "manual",
       "localizations" : {

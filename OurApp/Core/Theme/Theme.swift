@@ -19,7 +19,6 @@ enum Theme {
 
     // MARK: Motion
     static let springy = Animation.spring(duration: 0.45, bounce: 0.35)
-    static let gentle = Animation.easeInOut(duration: 0.8)
 
     // MARK: Type
     static func display(_ size: CGFloat) -> Font {

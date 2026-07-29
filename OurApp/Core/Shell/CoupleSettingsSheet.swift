@@ -9,6 +9,9 @@ struct CoupleSettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var pickedItem: PhotosPickerItem?
     @State private var pickingFor: Partner?
+    // Presentation is deliberately separate state from pickingFor: clearing the
+    // target from the isPresented setter races the selection write and can drop
+    // the picked photo (review ruling — do not merge these).
     @State private var isPickerPresented = false
 
     var body: some View {

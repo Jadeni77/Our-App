@@ -9,4 +9,8 @@ struct ModuleDescriptorTests {
         #expect(descriptor.emoji == "🍽️")
         #expect(String(localized: descriptor.name) == "What should we eat?")
     }
+
+    @Test func foodDecisionEntryViewIsBuildable() {
+        _ = FoodDecisionModule.descriptor.makeEntryView()
+    }
 }
