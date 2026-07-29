@@ -62,6 +62,7 @@ Keep this to genuinely contested, cross-cutting decisions. Feature-level choices
 |---|----------|-----------|----------------------|
 | P1 | Native iOS + SwiftUI, iOS-only | Best native UI/feel; I already know SwiftUI; we only need iOS | React Native — only wins on cross-platform (not needed); adds a JS bridge and worse native feel |
 | P2 | Modules over a thin core; build modules first, let the platform emerge | "Platform first" is the classic solo-dev trap — an empty framework has zero value until a loved feature runs on it | Building plugin/extension scaffolding before any module exists |
+| P3 | Hand-written `.xcodeproj` with Xcode 16 synchronized folder groups; shared scheme committed | No tool dependency, $0; folders auto-sync so sessions add files without ever editing the project file; headless `xcodebuild` works | XcodeGen (extra Homebrew dependency); scaffolding via the Xcode GUI (blocks CLI-driven sessions) |
 
 *(Principles in §3 are not repeated here — the log is for forks with a rejected alternative worth remembering.)*
 
@@ -71,7 +72,7 @@ Keep this to genuinely contested, cross-cutting decisions. Feature-level choices
 
 | Module | Status | Doc |
 |--------|--------|-----|
-| Food decision ("what should we eat") | 🚧 In progress (v1) | `docs/modules/food-decision.md` |
+| Food decision ("what should we eat") | 🚧 v1 built — in real-use trial | `docs/modules/food-decision.md` |
 | History / home page | 📋 Planned | — |
 | Two-phone sync (shared core capability) | 📋 Planned | — |
 | Home-screen Widget | 📋 Planned | — |

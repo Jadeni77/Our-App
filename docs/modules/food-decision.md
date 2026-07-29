@@ -59,5 +59,5 @@ On one phone: get a cuisine (random or typed) → agree/re-roll → land on a de
 Two-phone sync / backend · accounts / pairing · Google Places / photos / ratings · history or home-page UI (persist data only) · widgets · notifications.
 
 ## Module open questions
-- Bias the random pick by history from the start, or stay purely random until the history module lands?
-- `MKLocalSearch` region/radius — fixed, or adapt to how spread out results are?
+- ~~Bias the random pick by history from the start, or stay purely random until the history module lands?~~ **Resolved for v1 (2026-07-28): purely random.** History is recorded from day one, so nothing is lost; bias arrives with the history module.
+- ~~`MKLocalSearch` region/radius — fixed, or adapt to how spread out results are?~~ **Resolved for v1 (2026-07-28): fixed ~5 km region, capped at 8 results.** Revisit if real use shows sparse/dense areas need adaptation.
