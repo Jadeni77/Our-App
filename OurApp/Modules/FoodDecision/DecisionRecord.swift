@@ -7,9 +7,13 @@ import SwiftData
 final class DecisionRecord {
     var date: Date
     var cuisineChosen: String
+    /// Stable pool id (F6) so history survives language switches; nil for
+    /// free-form typed cuisines and for all v1-era records (additive migration).
+    var cuisineID: String?
 
-    init(date: Date = .now, cuisineChosen: String) {
+    init(date: Date = .now, cuisineChosen: String, cuisineID: String? = nil) {
         self.date = date
         self.cuisineChosen = cuisineChosen
+        self.cuisineID = cuisineID
     }
 }

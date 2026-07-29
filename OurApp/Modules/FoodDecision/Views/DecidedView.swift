@@ -4,6 +4,7 @@ struct DecidedView: View {
     let flow: FoodDecisionFlow
     let cuisine: Cuisine
     @State private var celebrate = false
+    @Environment(\.locale) private var locale
 
     var body: some View {
         VStack(spacing: 32) {
@@ -12,8 +13,9 @@ struct DecidedView: View {
                 Text(cuisine.emoji)
                     .font(.system(size: 96))
                     .scaleEffect(celebrate ? 1 : 0.3)
-                Text("\(cuisine.name) it is! 🎉")
-                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                Text("\(cuisine.name(for: locale)) it is! 🎉")
+                    .font(Theme.display(36))
+                    .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
                     .minimumScaleFactor(0.5)
             }
@@ -39,6 +41,8 @@ struct DecidedView: View {
             .padding(.bottom, 24)
         }
         .padding(.horizontal, 24)
+        .background(Theme.duskGradient.ignoresSafeArea())
+        .tint(Theme.rose)
         .sensoryFeedback(.success, trigger: celebrate)
         .onAppear {
             withAnimation(.spring(duration: 0.5, bounce: 0.5)) {
@@ -50,6 +54,6 @@ struct DecidedView: View {
 
 #Preview {
     NavigationStack {
-        DecidedView(flow: FoodDecisionFlow(), cuisine: Cuisine(name: "Hotpot", emoji: "🍲"))
+        DecidedView(flow: FoodDecisionFlow(), cuisine: CuisinePool.all.first ?? .custom("Hotpot"))
     }
 }

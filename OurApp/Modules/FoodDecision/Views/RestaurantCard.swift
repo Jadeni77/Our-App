@@ -9,21 +9,22 @@ struct RestaurantCard: View {
             HStack(alignment: .firstTextBaseline) {
                 Text(restaurant.name)
                     .font(.headline)
+                    .foregroundStyle(.white)
                 Spacer()
                 Text(distanceText)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white.opacity(0.7))
             }
             if let address = restaurant.address {
                 Label(address, systemImage: "mappin.and.ellipse")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white.opacity(0.7))
                     .lineLimit(2)
             }
             if let phone = restaurant.phone {
                 Label(phone, systemImage: "phone")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white.opacity(0.7))
             }
             Button(action: openDirections) {
                 Label("Directions", systemImage: "arrow.triangle.turn.up.right.circle.fill")
@@ -32,7 +33,7 @@ struct RestaurantCard: View {
             .buttonStyle(.borderedProminent)
         }
         .padding()
-        .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 16))
+        .glassCard(cornerRadius: 16)
     }
 
     /// Locale-aware road distance ("350 m" / "0.9 mi" depending on region).

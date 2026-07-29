@@ -36,4 +36,11 @@ struct LocalizationTests {
         #expect(localizedValue("day", language: "zh-Hans") == "天")
         #expect(localizedValue("days", language: "zh-Hant") == "天")
     }
+
+    @Test func foodModuleStringsAreTranslated() {
+        #expect(localizedValue("Agree", language: "zh-Hans") == "同意")
+        #expect(localizedValue("Re-roll", language: "zh-Hant") == "換一個")
+        #expect(localizedValue("Find places near us", language: "zh-Hans") == "找找附近的店")
+        #expect(localizedValue("Unnamed spot", language: "zh-Hant") == "無名小店")
+    }
 }

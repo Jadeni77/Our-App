@@ -4,14 +4,14 @@ import Foundation
 
 private struct MockProvider: RestaurantProvider {
     let result: Result<[Restaurant], Error>
-    func search(cuisine: String) async throws -> [Restaurant] {
+    func search(for cuisine: Cuisine) async throws -> [Restaurant] {
         try result.get()
     }
 }
 
 @MainActor
 struct RestaurantSearchTests {
-    private let cuisine = Cuisine(name: "Hotpot", emoji: "🍲")
+    private let cuisine = CuisinePool.all.first ?? .custom("Hotpot")
     private let sample = [
         Restaurant(
             id: UUID(), name: "Haidilao", distanceMeters: 320,

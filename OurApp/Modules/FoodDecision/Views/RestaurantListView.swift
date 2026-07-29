@@ -4,6 +4,7 @@ import UIKit
 struct RestaurantListView: View {
     @State private var search: RestaurantSearch
     @Environment(\.openURL) private var openURL
+    @Environment(\.locale) private var locale
 
     init(cuisine: Cuisine, provider: any RestaurantProvider = MapKitRestaurantProvider()) {
         _search = State(initialValue: RestaurantSearch(cuisine: cuisine, provider: provider))
@@ -13,7 +14,9 @@ struct RestaurantListView: View {
         Group {
             switch search.state {
             case .loading:
-                ProgressView("Finding \(search.cuisine.name) near you…")
+                ProgressView("Finding \(search.cuisine.name(for: locale)) near you…")
+                    .tint(.white)
+                    .foregroundStyle(.white)
             case .loaded(let restaurants):
                 ScrollView {
                     LazyVStack(spacing: 12) {
@@ -27,7 +30,7 @@ struct RestaurantListView: View {
                 statusView(
                     emoji: "📍",
                     title: "We can't see where you are",
-                    message: "Allow location access in Settings and we'll find \(search.cuisine.name) nearby."
+                    message: "Allow location access in Settings and we'll find \(search.cuisine.name(for: locale)) nearby."
                 ) {
                     Button("Open Settings") {
                         if let url = URL(string: UIApplication.openSettingsURLString) {
@@ -39,7 +42,7 @@ struct RestaurantListView: View {
             case .noResults:
                 statusView(
                     emoji: "🤷",
-                    title: "Nothing nearby for \(search.cuisine.name)",
+                    title: "Nothing nearby for \(search.cuisine.name(for: locale))",
                     message: "Go back and try another cuisine — maybe re-roll?"
                 ) {
                     EmptyView()
@@ -57,23 +60,26 @@ struct RestaurantListView: View {
                 }
             }
         }
-        .navigationTitle("\(search.cuisine.emoji) \(search.cuisine.name)")
+        .background(Theme.duskGradient.ignoresSafeArea())
+        .tint(Theme.rose)
+        .navigationTitle(Text(verbatim: "\(search.cuisine.emoji) \(search.cuisine.name(for: locale))"))
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarColorScheme(.dark, for: .navigationBar)
         .task { await search.run() }
     }
 
     private func statusView(
         emoji: String,
-        title: String,
-        message: String,
+        title: LocalizedStringKey,
+        message: LocalizedStringKey,
         @ViewBuilder actions: () -> some View
     ) -> some View {
         VStack(spacing: 16) {
             Text(emoji).font(.system(size: 64))
-            Text(title).font(.title3.bold())
+            Text(title).font(.title3.bold()).foregroundStyle(.white)
             Text(message)
                 .font(.body)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.white.opacity(0.7))
                 .multilineTextAlignment(.center)
             actions()
         }
@@ -83,6 +89,6 @@ struct RestaurantListView: View {
 
 #Preview {
     NavigationStack {
-        RestaurantListView(cuisine: Cuisine(name: "Hotpot", emoji: "🍲"))
+        RestaurantListView(cuisine: CuisinePool.all.first ?? .custom("Hotpot"))
     }
 }
