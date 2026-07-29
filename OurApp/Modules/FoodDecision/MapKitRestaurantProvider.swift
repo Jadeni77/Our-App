@@ -60,21 +60,43 @@ struct MapKitRestaurantProvider {
 }
 
 extension MapKitRestaurantProvider: RestaurantProvider {
-    /// Fixed ~5 km region, capped at 8 results (open question resolved for v1;
-    /// adaptive radius deferred until real use demands it).
-    /// @MainActor matches the protocol requirement — without it this witness is
-    /// nonisolated and calling the @MainActor `LocationFetcher()` init won't compile.
-    /// Temporary: uses single term for v2 alpha (Task 5 implements multi-term strategy).
+    /// F7: sequential multi-term search with early exit (open question resolved
+    /// 2026-07-29). Region fit comes from where the user actually stands
+    /// (reverse-geocoded country), falling back to the device locale — device
+    /// language alone breaks when traveling.
     @MainActor
     func search(for cuisine: Cuisine) async throws -> [Restaurant] {
         let fetcher = LocationFetcher()
         let userLocation = try await fetcher.currentLocation()
 
+        let chineseSpeaking = await Self.isChineseSpeakingRegion(around: userLocation)
+        let terms = Self.orderedTerms(for: cuisine, chineseSpeakingRegion: chineseSpeaking)
+
+        var batches: [[Restaurant]] = []
+        var sawError: Error?
+        for term in terms {
+            do {
+                batches.append(try await results(for: term, near: userLocation))
+            } catch {
+                sawError = error // a term can fail while another succeeds — fail soft
+            }
+            if Self.merge(batches).count >= 8 { break } // early exit at the cap
+        }
+
+        let merged = Self.merge(batches)
+        if merged.isEmpty {
+            if sawError != nil { throw RestaurantSearchError.searchFailed }
+            throw RestaurantSearchError.noResults
+        }
+        return merged
+    }
+
+    private func results(for term: String, near userLocation: CLLocation) async throws -> [Restaurant] {
         let request = MKLocalSearch.Request()
-        request.naturalLanguageQuery = cuisine.searchTerms.first ?? cuisine.displayName
+        request.naturalLanguageQuery = term
         request.resultTypes = .pointOfInterest
-        // Food-adjacent categories included so pool entries like Brunch, Banh Mi,
-        // and Dim Sum (tagged cafe/bakery/market by MapKit) don't false-negative.
+        // Food-adjacent categories so cafe/bakery/market-tagged cuisines
+        // don't false-negative (final-review ruling, v1).
         request.pointOfInterestFilter = MKPointOfInterestFilter(including: [
             .restaurant, .cafe, .bakery, .brewery, .winery, .foodMarket,
         ])
@@ -83,21 +105,27 @@ extension MapKitRestaurantProvider: RestaurantProvider {
             latitudinalMeters: 5_000,
             longitudinalMeters: 5_000
         )
-
-        let response: MKLocalSearch.Response
         do {
-            response = try await MKLocalSearch(request: request).start()
+            let response = try await MKLocalSearch(request: request).start()
+            return Self.restaurants(from: response.mapItems, userLocation: userLocation, limit: 8)
         } catch {
-            // MKLocalSearch reports "no results" as an MKError; treat anything
-            // else as a plain failure the UI can offer a retry for.
             if let mkError = error as? MKError, mkError.code == .placemarkNotFound {
-                throw RestaurantSearchError.noResults
+                return [] // this term found nothing; keep trying the others
             }
             throw RestaurantSearchError.searchFailed
         }
+    }
 
-        let restaurants = Self.restaurants(from: response.mapItems, userLocation: userLocation)
-        guard !restaurants.isEmpty else { throw RestaurantSearchError.noResults }
-        return restaurants
+    private static let chineseSpeakingCountries: Set<String> = ["CN", "TW", "HK", "MO", "SG"]
+
+    /// Reverse-geocode the country the user is standing in; fall back to the
+    /// device region if geocoding fails (offline, rate-limited).
+    private static func isChineseSpeakingRegion(around location: CLLocation) async -> Bool {
+        if let country = try? await CLGeocoder().reverseGeocodeLocation(location)
+            .first?.isoCountryCode {
+            return chineseSpeakingCountries.contains(country)
+        }
+        let fallback = Locale.current.region?.identifier ?? ""
+        return chineseSpeakingCountries.contains(fallback)
     }
 }
