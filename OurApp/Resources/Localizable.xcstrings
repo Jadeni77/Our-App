@@ -1,0 +1,113 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Together for %lld days" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "variations" : { "plural" : {
+          "one" : { "stringUnit" : { "state" : "translated", "value" : "Together for %lld day" } },
+          "other" : { "stringUnit" : { "state" : "translated", "value" : "Together for %lld days" } }
+        } } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "在一起 %lld 天" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "在一起 %lld 天" } }
+      }
+    },
+    "Set your anniversary" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Set your anniversary" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "设置纪念日" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "設定紀念日" } }
+      }
+    },
+    "Add your names" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add your names" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "填写我们的名字" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "填寫我們的名字" } }
+      }
+    },
+    "Our space" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Our space" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "我们的空间" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "我們的空間" } }
+      }
+    },
+    "Our details" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Our details" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "我们的资料" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "我們的資料" } }
+      }
+    },
+    "Name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Name" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "名字" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "名字" } }
+      }
+    },
+    "Anniversary" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Anniversary" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "纪念日" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "紀念日" } }
+      }
+    },
+    "Done" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Done" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "完成" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "完成" } }
+      }
+    },
+    "Close" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Close" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "关闭" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "關閉" } }
+      }
+    },
+    "Choose a photo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Choose a photo" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "选择照片" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "選擇照片" } }
+      }
+    },
+    "Me" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Me" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "我" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "我" } }
+      }
+    },
+    "My love" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "My love" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "我的爱人" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "我的愛人" } }
+      }
+    },
+    "What should we eat?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "What should we eat?" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "吃点什么好？" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "吃點什麼好？" } }
+      }
+    }
+  },
+  "version" : "1.0"
+}
