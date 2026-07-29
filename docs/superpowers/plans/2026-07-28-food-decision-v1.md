@@ -1067,10 +1067,11 @@ struct RestaurantMappingTests {
     }
 
     @Test func fallsBackToPlaceholderNameAndKeepsCoordinates() {
+        // Empty string, not nil: MapKit synthesizes a placeholder name for
+        // coordinate-only items, so a nil name can't occur with real items.
+        // (Amended 2026-07-28 by human ruling during Task 5 review.)
         let items = [mapItem(name: "", latitude: 42.3408, longitude: -71.0902)]
-        var unnamed = items
-        unnamed[0].name = nil
-        let result = MapKitRestaurantProvider.restaurants(from: unnamed, userLocation: userLocation)
+        let result = MapKitRestaurantProvider.restaurants(from: items, userLocation: userLocation)
         #expect(result[0].name == "Unnamed spot")
         #expect(abs(result[0].latitude - 42.3408) < 0.0001)
         #expect(abs(result[0].longitude - -71.0902) < 0.0001)
@@ -1136,9 +1137,13 @@ struct MapKitRestaurantProvider {
             let coordinate = item.placemark.coordinate
             let distance = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
                 .distance(from: userLocation)
+            // MapKit synthesizes a name for coordinate-only items, so nil is
+            // defensive; the empty check is the realistic missing-name path.
+            // (Amended 2026-07-28 by human ruling during Task 5 review.)
+            let name = item.name.flatMap { $0.isEmpty ? nil : $0 } ?? "Unnamed spot"
             return Restaurant(
                 id: UUID(),
-                name: item.name ?? "Unnamed spot",
+                name: name,
                 distanceMeters: distance,
                 address: item.placemark.title,
                 phone: item.phoneNumber,
