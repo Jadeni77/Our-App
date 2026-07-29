@@ -929,8 +929,15 @@ struct TogetherCounterView: View {
             let progress = 1 - pow(1 - Double(frame) / Double(frames), 3)
             let value = Int(Double(target) * progress)
             withAnimation(.snappy(duration: 0.05)) { shown = value }
-            try? await Task.sleep(for: .milliseconds(33))
+            do {
+                try await Task.sleep(for: .milliseconds(33))
+            } catch {
+                return // view disappeared — stop counting, no stray haptic
+                // (Amended 2026-07-28: try? swallowed CancellationError, racing
+                // the loop and firing a haptic after disappear — Task 6 review.)
+            }
         }
+        guard !Task.isCancelled else { return }
         withAnimation(Theme.springy) { shown = target }
         Haptics.success()
     }
@@ -957,6 +964,10 @@ struct CoupleSettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var pickedItem: PhotosPickerItem?
     @State private var pickingFor: Partner?
+    // Presentation is deliberately separate state from pickingFor: clearing the
+    // target from the isPresented setter races the selection write and can drop
+    // the picked photo. (Amended 2026-07-28 — Task 6 review.)
+    @State private var isPickerPresented = false
 
     var body: some View {
         NavigationStack {
@@ -983,14 +994,7 @@ struct CoupleSettingsSheet: View {
                     Button("Done") { dismiss() }
                 }
             }
-            .photosPicker(
-                isPresented: Binding(
-                    get: { pickingFor != nil },
-                    set: { if !$0 { pickingFor = nil } }
-                ),
-                selection: $pickedItem,
-                matching: .images
-            )
+            .photosPicker(isPresented: $isPickerPresented, selection: $pickedItem, matching: .images)
             .onChange(of: pickedItem) {
                 guard let item = pickedItem, let partner = pickingFor else { return }
                 Task {
@@ -1011,6 +1015,7 @@ struct CoupleSettingsSheet: View {
             TextField("Name", text: name)
             Button {
                 pickingFor = partner
+                isPickerPresented = true
             } label: {
                 HStack {
                     Text("Choose a photo")
