@@ -40,9 +40,7 @@ struct RestaurantMappingTests {
 
     @Test func fallsBackToPlaceholderNameAndKeepsCoordinates() {
         let items = [mapItem(name: "", latitude: 42.3408, longitude: -71.0902)]
-        var unnamed = items
-        unnamed[0].name = nil
-        let result = MapKitRestaurantProvider.restaurants(from: unnamed, userLocation: userLocation)
+        let result = MapKitRestaurantProvider.restaurants(from: items, userLocation: userLocation)
         #expect(result[0].name == "Unnamed spot")
         #expect(abs(result[0].latitude - 42.3408) < 0.0001)
         #expect(abs(result[0].longitude - -71.0902) < 0.0001)

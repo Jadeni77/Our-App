@@ -15,12 +15,12 @@ struct MapKitRestaurantProvider {
             let coordinate = item.placemark.coordinate
             let distance = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
                 .distance(from: userLocation)
-            // Handle nil, empty, or default name by falling back to placeholder
-            let itemName = item.name ?? ""
-            let displayName = (itemName.isEmpty || itemName == "Unknown Location") ? "Unnamed spot" : itemName
+            // MapKit synthesizes a name (e.g., "Unknown Location") for coordinate-only items.
+            // The nil branch is defensive; the realistic path is non-empty name check.
+            let name = item.name.flatMap { $0.isEmpty ? nil : $0 } ?? "Unnamed spot"
             return Restaurant(
                 id: UUID(),
-                name: displayName,
+                name: name,
                 distanceMeters: distance,
                 address: item.placemark.title,
                 phone: item.phoneNumber,
