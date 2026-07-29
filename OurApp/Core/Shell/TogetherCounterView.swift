@@ -26,8 +26,13 @@ struct TogetherCounterView: View {
             let progress = 1 - pow(1 - Double(frame) / Double(frames), 3)
             let value = Int(Double(target) * progress)
             withAnimation(.snappy(duration: 0.05)) { shown = value }
-            try? await Task.sleep(for: .milliseconds(33))
+            do {
+                try await Task.sleep(for: .milliseconds(33))
+            } catch {
+                return // view disappeared — stop counting, no stray haptic
+            }
         }
+        guard !Task.isCancelled else { return }
         withAnimation(Theme.springy) { shown = target }
         Haptics.success()
     }

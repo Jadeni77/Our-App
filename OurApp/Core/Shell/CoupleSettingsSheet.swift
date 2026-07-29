@@ -9,6 +9,7 @@ struct CoupleSettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var pickedItem: PhotosPickerItem?
     @State private var pickingFor: Partner?
+    @State private var isPickerPresented = false
 
     var body: some View {
         NavigationStack {
@@ -35,14 +36,7 @@ struct CoupleSettingsSheet: View {
                     Button("Done") { dismiss() }
                 }
             }
-            .photosPicker(
-                isPresented: Binding(
-                    get: { pickingFor != nil },
-                    set: { if !$0 { pickingFor = nil } }
-                ),
-                selection: $pickedItem,
-                matching: .images
-            )
+            .photosPicker(isPresented: $isPickerPresented, selection: $pickedItem, matching: .images)
             .onChange(of: pickedItem) {
                 guard let item = pickedItem, let partner = pickingFor else { return }
                 Task {
@@ -63,6 +57,7 @@ struct CoupleSettingsSheet: View {
             TextField("Name", text: name)
             Button {
                 pickingFor = partner
+                isPickerPresented = true
             } label: {
                 HStack {
                     Text("Choose a photo")
