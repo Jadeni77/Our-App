@@ -28,7 +28,7 @@ The app opens into **our space** — a themed couples home that feels like it be
 
 1. **iOS-native first** — Swift/SwiftUI, native APIs, native feel. No cross-platform layer.
 2. **Local-first until proven** — no backend / sync / accounts until a feature clearly needs it *and* daily use has justified the cost.
-3. **Ultra-short interactions** — minimize taps; each module is a quick ritual, not a form. (Shell ambience may be lush, but it never adds taps to a ritual.)
+3. **Ultra-short interactions** — minimize taps; each module is a quick ritual, not a form. (The shell adds at most the launcher's lightweight open-and-tap to reach a module, and never taps inside a ritual.)
 4. **Free until ship** — \$0 to build and test; pay only when earned (App Store / permanent install).
 5. **Modules over a thin core** — features are self-contained, talk through narrow interfaces; the core stays small and holds only what's genuinely shared.
 6. **Build the feature, grow the platform** — never scaffold platform ahead of a real module. Leave clean seams; don't build empty rooms.
@@ -56,7 +56,7 @@ A module is a self-contained feature. To plug into the platform it:
 - **Must not** depend on another module directly — modules are siblings, never a chain.
 - **Hides external data sources behind a protocol** so the source is swappable without touching UI (e.g. module #1's `RestaurantProvider`).
 - **Speaks the platform's languages** — all its user-facing strings live in the String Catalog; user-readable data is localized data.
-- **Wears the platform's theme** — consumes core theme tokens rather than defining its own look.
+- **Wears the platform's theme** — consumes core theme tokens rather than defining its own look. *(Food-decision adopts this in its v2 milestone; the contract binds new modules from day one.)*
 
 That's the whole contract for now. It is intentionally minimal; we extend it only when a second module reveals a genuinely shared need.
 

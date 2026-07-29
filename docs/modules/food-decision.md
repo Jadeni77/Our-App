@@ -79,7 +79,7 @@ On every completed decision (Agree), persist `{ date, cuisineChosen }` via the c
 7. Localized cuisine data model (`id` + per-language names + `searchTerms` + emoji) replacing the string pool; `DecisionRecord` gains cuisine `id` (additive migration).
 8. String Catalog: every module string in en / zh-Hans / zh-Hant; manual entry resolves across languages.
 9. Region-aware multi-term search inside the MapKit provider (query order, merge/dedupe, fallback); protocol surface unchanged.
-10. Theme adoption + launcher tile metadata (lands with the platform shell milestone — coordinate, don't couple).
+10. ~~Launcher tile metadata~~ ✅ shipped with the platform-shell milestone (2026-07-28). Theme adoption remains in this v2 milestone.
 
 ## Definition of done (v1) — ✅ met 2026-07-28
 On one phone: get a cuisine (random or typed) → agree/re-roll → land on a decision → see real nearby restaurants with directions, and each decision is silently recorded. **Then use it for real for a week before adding anything.**
