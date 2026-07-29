@@ -12,7 +12,7 @@
 
 A small, native iOS app my partner and I use daily — **not** a big app, but a growing set of tiny, high-quality **modules** sharing a thin common **core**. The platform grows *out of* building real modules; we never build framework ahead of a feature that needs it.
 
-Module #1 (current work) helps us decide what to eat. Future modules are listed in §6.
+The app opens into **our space** — a themed couples home that feels like it belongs to the two of us — and modules launch from there. Module #1 (v1 built) helps us decide what to eat. Future modules are listed in §6.
 
 ---
 
@@ -28,27 +28,35 @@ Module #1 (current work) helps us decide what to eat. Future modules are listed 
 
 1. **iOS-native first** — Swift/SwiftUI, native APIs, native feel. No cross-platform layer.
 2. **Local-first until proven** — no backend / sync / accounts until a feature clearly needs it *and* daily use has justified the cost.
-3. **Ultra-short interactions** — minimize taps; each module is a quick ritual, not a form.
+3. **Ultra-short interactions** — minimize taps; each module is a quick ritual, not a form. (Shell ambience may be lush, but it never adds taps to a ritual.)
 4. **Free until ship** — \$0 to build and test; pay only when earned (App Store / permanent install).
 5. **Modules over a thin core** — features are self-contained, talk through narrow interfaces; the core stays small and holds only what's genuinely shared.
 6. **Build the feature, grow the platform** — never scaffold platform ahead of a real module. Leave clean seams; don't build empty rooms.
 7. **Fail soft** — permission denials and empty states degrade to friendly messages, never dead ends.
+8. **Localized from the first line** — every user-facing string ships in **English, 简体中文 (zh-Hans), and 繁體中文 (zh-Hant)** via String Catalog. No hardcoded user-facing strings anywhere; module data that users read (e.g. cuisine names) is localized data, not code strings. (Logged as P5.)
+9. **One dreamy design language** — soft gradients, glassmorphism, spring animations, tasteful haptics — defined once in the core theme and inherited by shell and modules alike. Original/generated art only; never lifted from another app. (Logged as P7.)
 
 ---
 
 ## 4. Platform Architecture
 
 ### Shared core (only what's actually shared)
-- **Local persistence** — a store modules can read/write (e.g. a module's records).
-- **App shell / navigation** — where modules mount and how the user moves between them.
+- **Local persistence** — a store modules can read/write (e.g. a module's records). *(Built in v1: SwiftData container factory.)*
+- **Themed shell (homepage)** — *evolved from the original "app shell / navigation" item.* The app opens into a lush couples space: full-bleed dreamy background, the two partner avatars + names, an animated **"together for N days"** counter computed from our anniversary date, and ambient motion (gentle parallax, drifting particles).
+- **Module launcher** — the shell's generic mechanism for mounting modules: a **frosted-glass drawer** on the home that swaps open to reveal **module tiles**; tapping a tile mounts that module's entry view. Food Decision is tile #1.
+- **Couple identity** — names, photos, anniversary date, stored in **local settings for now** (no pairing/sync — principle 2). Becomes synced core data if/when two-phone sync lands (§7).
+- **Theme system** — the shared dreamy design language (principle 9) exposed as core tokens/components (colors, gradients, glass materials, motion curves, haptic patterns) that shell and modules consume.
+- **Localization infrastructure** — one String Catalog covering en / zh-Hans / zh-Hant (principle 8).
 - **Not yet built (seams only):** pairing, cross-device sync, notifications. Left as clear extension points, not implemented.
 
 ### The Module Contract *(derived from module #1 — will firm up as #2 arrives; don't over-specify ahead of real need)*
 A module is a self-contained feature. To plug into the platform it:
-- **Exposes** an entry point (a SwiftUI view the shell can mount).
+- **Exposes** an entry point (a SwiftUI view the launcher can mount) plus **tile metadata** (localized name + icon/emoji) for its launcher tile.
 - **May persist** its own records through the core's persistence, using its own namespace.
 - **Must not** depend on another module directly — modules are siblings, never a chain.
 - **Hides external data sources behind a protocol** so the source is swappable without touching UI (e.g. module #1's `RestaurantProvider`).
+- **Speaks the platform's languages** — all its user-facing strings live in the String Catalog; user-readable data is localized data.
+- **Wears the platform's theme** — consumes core theme tokens rather than defining its own look.
 
 That's the whole contract for now. It is intentionally minimal; we extend it only when a second module reveals a genuinely shared need.
 
@@ -63,6 +71,10 @@ Keep this to genuinely contested, cross-cutting decisions. Feature-level choices
 | P1 | Native iOS + SwiftUI, iOS-only | Best native UI/feel; I already know SwiftUI; we only need iOS | React Native — only wins on cross-platform (not needed); adds a JS bridge and worse native feel |
 | P2 | Modules over a thin core; build modules first, let the platform emerge | "Platform first" is the classic solo-dev trap — an empty framework has zero value until a loved feature runs on it | Building plugin/extension scaffolding before any module exists |
 | P3 | Hand-written `.xcodeproj` with Xcode 16 synchronized folder groups; shared scheme committed | No tool dependency, $0; folders auto-sync so sessions add files without ever editing the project file; headless `xcodebuild` works | XcodeGen (extra Homebrew dependency); scaffolding via the Xcode GUI (blocks CLI-driven sessions) |
+| P4 | Homepage is a **themed couples shell** with a swap-open frosted-glass **module launcher** (evolves the §4 "app shell" core item; home page is shared chrome, **not** a module) | The daily-open habit (§2) needs a home that feels like *ours*, not a menu; the launcher is the one generic mechanism any future module plugs into | A plain TabView/List home (functional but sterile); making the home page its own module (it's the frame around modules, so it can't be a sibling of them) |
+| P5 | Full localization — en, zh-Hans, zh-Hant — via String Catalog, **from now on** | We live in all three; retrofitting localization is far costlier than building with it; String Catalog is the native, $0 mechanism | English-only now with a translation pass later (guarantees hardcoded-string debt and a painful sweep) |
+| P6 | Couple identity (names, photos, anniversary) in **local settings** for now | Unblocks the shell while honoring local-first (principle 2); the data model is tiny and migrates cleanly into sync later | Building pairing/sync first just to share three fields (heavy, unproven need — the classic empty room) |
+| P7 | Shared **theme system in the core** (gradient/glass/spring/haptic tokens) | One place to tune the feel; shell and modules stay visually coherent as the module count grows | Per-module ad-hoc styling (drifts apart within two modules); a third-party design system (needless dependency, less native feel) |
 
 *(Principles in §3 are not repeated here — the log is for forks with a rejected alternative worth remembering.)*
 
@@ -72,8 +84,8 @@ Keep this to genuinely contested, cross-cutting decisions. Feature-level choices
 
 | Module | Status | Doc |
 |--------|--------|-----|
-| Food decision ("what should we eat") | 🚧 v1 built — in real-use trial | `docs/modules/food-decision.md` |
-| History / home page | 📋 Planned | — |
+| Food decision ("what should we eat") | 🚧 v1 built — in real-use trial; v2 (localization + Chinese-capable search) specced | `docs/modules/food-decision.md` |
+| History (past decisions) | 📋 Planned *(supersedes the earlier "History / home page" row — the home page moved into the core shell, see P4)* | — |
 | Two-phone sync (shared core capability) | 📋 Planned | — |
 | Home-screen Widget | 📋 Planned | — |
 | Daily notification | 📋 Planned | — |
@@ -86,7 +98,7 @@ Keep this to genuinely contested, cross-cutting decisions. Feature-level choices
 ## 7. Roadmap Notes (cross-module, parked)
 
 Revisited only after module #1 earns daily use:
-- **Two-phone sync** becomes a *core* capability once any module needs to work while we're apart. Options: CloudKit (native, serverless, simplest) or reuse the WebSocket + SQLite pattern from Aura on the parcs server. Decide when a module actually needs it.
+- **Two-phone sync** becomes a *core* capability once any module needs to work while we're apart. Options: CloudKit (native, serverless, simplest) or reuse the WebSocket + SQLite pattern from Aura on the parcs server. Decide when a module actually needs it. When it lands, **couple identity (P6) migrates from local settings into synced core data** — design the settings model so that move is mechanical.
 - **Widget + daily notification** are core-adjacent capabilities that raise daily-open rate; worth doing once there's content worth surfacing.
 
 ---
@@ -97,4 +109,4 @@ Revisited only after module #1 earns daily use:
 - Prompts are work orders: *"Build slice X per docs/modules/….md."*
 - When a real decision is made, append it to the right log (platform §5, or the module's own log) **in the same session**.
 - Explain module/file structure before generating code so seams can be checked.
-- I'm an experienced full-stack/TypeScript engineer, newer to heavy SwiftUI — lean idiomatic modern SwiftUI, flag non-obvious bits, favor readable well-separated code (this codebase keeps growing).
+- I'm an experienced full-stack/TypeScript engineer, newer to heavy SwiftUI — lean idiomatic modern SwiftUI, flag non-obvious bits (especially animation and localization machinery), favor readable well-separated code (this codebase keeps growing).
