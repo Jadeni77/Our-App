@@ -13,7 +13,7 @@ struct DecidedView: View {
                     .font(.system(size: 96))
                     .scaleEffect(celebrate ? 1 : 0.3)
                 Text("\(cuisine.displayName) it is! 🎉")
-                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                    .font(Theme.display(36))
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
                     .minimumScaleFactor(0.5)
