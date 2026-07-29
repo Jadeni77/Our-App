@@ -17,7 +17,7 @@ struct ModuleHostView: View {
                     Image(systemName: "xmark")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(.primary)
-                        .padding(11)
+                        .frame(width: 44, height: 44)
                 }
                 .glassCard(cornerRadius: 22)
                 .padding(.trailing, 16)
