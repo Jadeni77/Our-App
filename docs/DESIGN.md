@@ -86,7 +86,7 @@ Keep this to genuinely contested, cross-cutting decisions. Feature-level choices
 
 | Module | Status | Doc |
 |--------|--------|-----|
-| Food decision ("what should we eat") | 🚧 v1 built — in real-use trial; v2 (localization + Chinese-capable search) specced | `docs/modules/food-decision.md` |
+| Food decision ("what should we eat") | 🚧 v2 built — tri-language + Chinese search, in trial | `docs/modules/food-decision.md` |
 | History (past decisions) | 📋 Planned *(supersedes the earlier "History / home page" row — the home page moved into the core shell, see P4)* | — |
 | Two-phone sync (shared core capability) | 📋 Planned | — |
 | Home-screen Widget | 📋 Planned | — |

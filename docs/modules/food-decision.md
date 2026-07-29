@@ -76,10 +76,10 @@ On every completed decision (Agree), persist `{ date, cuisineChosen }` via the c
 6. ~~Shared bits (persistence, shell) in platform core; module cleanly separated.~~
 
 **v2 — current milestone:**
-7. Localized cuisine data model (`id` + per-language names + `searchTerms` + emoji) replacing the string pool; `DecisionRecord` gains cuisine `id` (additive migration).
-8. String Catalog: every module string in en / zh-Hans / zh-Hant; manual entry resolves across languages.
-9. Region-aware multi-term search inside the MapKit provider (query order, merge/dedupe, fallback); protocol surface unchanged.
-10. ~~Launcher tile metadata~~ ✅ shipped with the platform-shell milestone (2026-07-28). Theme adoption remains in this v2 milestone.
+7. ~~Localized cuisine data model (`id` + per-language names + `searchTerms` + emoji) replacing the string pool; `DecisionRecord` gains cuisine `id` (additive migration).~~ ✅ (2026-07-29)
+8. ~~String Catalog: every module string in en / zh-Hans / zh-Hant; manual entry resolves across languages.~~ ✅ (2026-07-29)
+9. ~~Region-aware multi-term search inside the MapKit provider (query order, merge/dedupe, fallback); protocol surface unchanged.~~ ✅ (2026-07-29)
+10. ~~Launcher tile metadata~~ ✅ shipped with the platform-shell milestone (2026-07-28). ~~Theme adoption~~ ✅ (2026-07-29)
 
 ## Definition of done (v1) — ✅ met 2026-07-28
 On one phone: get a cuisine (random or typed) → agree/re-roll → land on a decision → see real nearby restaurants with directions, and each decision is silently recorded. **Then use it for real for a week before adding anything.**
@@ -87,11 +87,13 @@ On one phone: get a cuisine (random or typed) → agree/re-roll → land on a de
 ## Definition of done (v2)
 With the device set to each of en / zh-Hans / zh-Hant in turn: the full ritual reads natively (zero English leaking into Chinese runs and vice versa); rolling 火锅 in a Chinese-speaking region returns hotpot places; the same cuisine still returns results where POIs are tagged in English; history keeps recording (with cuisine `id`) across language switches; module screens wear the platform theme and launch from the shell tile.
 
+*(Met in build — pending the human's tri-language on-device pass.)*
+
 ## Out of scope for v2
 Two-phone sync / backend · accounts / pairing · Google Places / photos / ratings · history UI (persist data only) · widgets · notifications · languages beyond en / zh-Hans / zh-Hant.
 
 ## Module open questions
 - ~~Bias the random pick by history from the start, or stay purely random until the history module lands?~~ **Resolved for v1 (2026-07-28): purely random.** History is recorded from day one, so nothing is lost; bias arrives with the history module.
 - ~~`MKLocalSearch` region/radius — fixed, or adapt to how spread out results are?~~ **Resolved for v1 (2026-07-28): fixed ~5 km region, capped at 8 results.** Revisit if real use shows sparse/dense areas need adaptation.
-- Multi-term search (F7): query terms sequentially with early exit once the cap is filled, or fan out in parallel and merge? *(Lean: sequential with early exit — simplest, kindest to MapKit rate limits; revisit if result latency annoys.)*
-- Region fit for term ordering: derive from the search region's locale, the device locale, or both? *(Lean: search region first — where you're standing determines how POIs are tagged; device locale breaks when traveling.)*
+- ~~Multi-term search (F7): query terms sequentially with early exit once the cap is filled, or fan out in parallel and merge?~~ **Resolved for v2 (2026-07-29): sequential with early exit at the cap.**
+- ~~Region fit for term ordering: derive from the search region's locale, the device locale, or both?~~ **Resolved for v2 (2026-07-29): reverse-geocoded search location first, device region fallback.**
