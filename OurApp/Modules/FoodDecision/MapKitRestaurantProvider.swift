@@ -17,7 +17,7 @@ struct MapKitRestaurantProvider {
                 .distance(from: userLocation)
             // MapKit synthesizes a name (e.g., "Unknown Location") for coordinate-only items.
             // The nil branch is defensive; the realistic path is non-empty name check.
-            let name = item.name.flatMap { $0.isEmpty ? nil : $0 } ?? "Unnamed spot"
+            let name = item.name.flatMap { $0.isEmpty ? nil : $0 } ?? String(localized: "Unnamed spot")
             return Restaurant(
                 id: UUID(),
                 name: name,
