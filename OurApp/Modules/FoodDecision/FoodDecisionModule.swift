@@ -24,3 +24,15 @@ struct FoodDecisionModuleView: View {
 #Preview {
     FoodDecisionModuleView()
 }
+
+/// Tile metadata for the shell's launcher (module contract).
+enum FoodDecisionModule {
+    @MainActor static var descriptor: ModuleDescriptor {
+        ModuleDescriptor(
+            id: "food-decision",
+            name: "What should we eat?",
+            emoji: "🍽️",
+            makeEntryView: { AnyView(FoodDecisionModuleView()) }
+        )
+    }
+}
