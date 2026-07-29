@@ -1,9 +1,10 @@
 import SwiftUI
 
 /// The shell's full-bleed art, drawn in code (original by construction — no
-/// image assets): the dusk gradient, two slowly drifting radial glows, and a
-/// field of soft drifting particles. TimelineView re-renders ~30fps; all motion
-/// derives from wall-clock time so it's smooth and stateless.
+/// image assets): the moonlit gradient, a softly bobbing full moon, two slowly
+/// drifting radial glows, and a field of drifting particles. TimelineView
+/// re-renders ~30fps; all motion derives from wall-clock time so it's smooth
+/// and stateless.
 struct DreamyBackground: View {
     var parallax: CGSize = .zero
 
@@ -21,11 +22,36 @@ struct DreamyBackground: View {
                      x: 0.72 + 0.08 * cos(t / 9), y: 0.62 + 0.07 * sin(t / 15))
                     .offset(x: parallax.width * 1.6, y: parallax.height * 1.6)
 
+                moon(t: t)
+                    .offset(x: parallax.width * 1.2, y: parallax.height * 1.2)
+
                 ParticleField(time: t)
                     .offset(x: parallax.width * 0.6, y: parallax.height * 0.6)
             }
         }
         .ignoresSafeArea()
+    }
+
+    /// A full circular moon with a halo, bobbing almost imperceptibly (P8:
+    /// reference-inspired structure, original code-drawn art).
+    private func moon(t: TimeInterval) -> some View {
+        GeometryReader { geo in
+            // Top-center like the reference — clear of the corner avatars.
+            let x = geo.size.width * 0.52
+            let y = geo.size.height * (0.20 + 0.006 * sin(t / 7))
+            ZStack {
+                RadialGradient(colors: [Theme.glow.opacity(0.55), .clear],
+                               center: .center, startRadius: 30, endRadius: 150)
+                    .frame(width: 300, height: 300)
+                Circle()
+                    .fill(LinearGradient(colors: [.white, Theme.glow],
+                                         startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .frame(width: 86, height: 86)
+                    .shadow(color: Theme.glow.opacity(0.9), radius: 26)
+            }
+            .position(x: x, y: y)
+        }
+        .allowsHitTesting(false)
     }
 
     private func glow(color: Color, radius: CGFloat, x: Double, y: Double) -> some View {
