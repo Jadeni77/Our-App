@@ -4,8 +4,7 @@ import SwiftUI
 /// when module #2 arrives this becomes a switcher (TabView or similar).
 struct AppShell: View {
     var body: some View {
-        Text("OurApp")
-            .font(.largeTitle)
+        FoodDecisionModuleView()
     }
 }
 
