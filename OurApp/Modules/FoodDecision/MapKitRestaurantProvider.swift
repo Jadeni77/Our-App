@@ -45,7 +45,11 @@ extension MapKitRestaurantProvider: RestaurantProvider {
         let request = MKLocalSearch.Request()
         request.naturalLanguageQuery = cuisine
         request.resultTypes = .pointOfInterest
-        request.pointOfInterestFilter = MKPointOfInterestFilter(including: [.restaurant])
+        // Food-adjacent categories included so pool entries like Brunch, Banh Mi,
+        // and Dim Sum (tagged cafe/bakery/market by MapKit) don't false-negative.
+        request.pointOfInterestFilter = MKPointOfInterestFilter(including: [
+            .restaurant, .cafe, .bakery, .brewery, .winery, .foodMarket,
+        ])
         request.region = MKCoordinateRegion(
             center: userLocation.coordinate,
             latitudinalMeters: 5_000,
