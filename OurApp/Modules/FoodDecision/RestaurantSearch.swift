@@ -26,7 +26,7 @@ final class RestaurantSearch {
     func run() async {
         state = .loading
         do {
-            state = .loaded(try await provider.search(cuisine: cuisine.name))
+            state = .loaded(try await provider.search(cuisine: cuisine.displayName))
         } catch RestaurantSearchError.locationDenied {
             state = .locationDenied
         } catch RestaurantSearchError.noResults {

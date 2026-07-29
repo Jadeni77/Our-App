@@ -14,7 +14,7 @@ struct DecideView: View {
             Spacer()
             VStack(spacing: 16) {
                 Text(cuisine.emoji).font(.system(size: 96))
-                Text(cuisine.name)
+                Text(cuisine.displayName)
                     .font(.system(size: 44, weight: .bold, design: .rounded))
                     .multilineTextAlignment(.center)
                     .minimumScaleFactor(0.5)
@@ -55,5 +55,5 @@ struct DecideView: View {
 }
 
 #Preview {
-    DecideView(flow: FoodDecisionFlow(), cuisine: Cuisine(name: "Hotpot", emoji: "🍲"))
+    DecideView(flow: FoodDecisionFlow(), cuisine: CuisinePool.all.first ?? .custom("Hotpot"))
 }

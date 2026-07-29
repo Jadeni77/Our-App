@@ -13,7 +13,7 @@ struct RestaurantListView: View {
         Group {
             switch search.state {
             case .loading:
-                ProgressView("Finding \(search.cuisine.name) near you…")
+                ProgressView("Finding \(search.cuisine.displayName) near you…")
             case .loaded(let restaurants):
                 ScrollView {
                     LazyVStack(spacing: 12) {
@@ -27,7 +27,7 @@ struct RestaurantListView: View {
                 statusView(
                     emoji: "📍",
                     title: "We can't see where you are",
-                    message: "Allow location access in Settings and we'll find \(search.cuisine.name) nearby."
+                    message: "Allow location access in Settings and we'll find \(search.cuisine.displayName) nearby."
                 ) {
                     Button("Open Settings") {
                         if let url = URL(string: UIApplication.openSettingsURLString) {
@@ -39,7 +39,7 @@ struct RestaurantListView: View {
             case .noResults:
                 statusView(
                     emoji: "🤷",
-                    title: "Nothing nearby for \(search.cuisine.name)",
+                    title: "Nothing nearby for \(search.cuisine.displayName)",
                     message: "Go back and try another cuisine — maybe re-roll?"
                 ) {
                     EmptyView()
@@ -57,7 +57,7 @@ struct RestaurantListView: View {
                 }
             }
         }
-        .navigationTitle("\(search.cuisine.emoji) \(search.cuisine.name)")
+        .navigationTitle("\(search.cuisine.emoji) \(search.cuisine.displayName)")
         .navigationBarTitleDisplayMode(.inline)
         .task { await search.run() }
     }
@@ -83,6 +83,6 @@ struct RestaurantListView: View {
 
 #Preview {
     NavigationStack {
-        RestaurantListView(cuisine: Cuisine(name: "Hotpot", emoji: "🍲"))
+        RestaurantListView(cuisine: CuisinePool.all.first ?? .custom("Hotpot"))
     }
 }

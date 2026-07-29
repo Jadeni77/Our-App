@@ -19,14 +19,13 @@ final class FoodDecisionFlow {
         phase = .deciding(CuisinePool.draw())
     }
 
-    /// Manual entry. Matches a pool entry case-insensitively (to reuse its emoji);
-    /// unknown cuisines get the fallback emoji. Blank input is ignored.
+    /// Manual entry resolves across every language and search term (F6):
+    /// 火锅 / Hotpot / 麻辣火锅 all land on the pool entry; unknown text stays
+    /// as a free-form custom cuisine, exactly like v1.
     func proposeManual(_ text: String) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        let cuisine = CuisinePool.all.first { $0.name.caseInsensitiveCompare(trimmed) == .orderedSame }
-            ?? Cuisine(name: trimmed, emoji: "🍽️")
-        phase = .deciding(cuisine)
+        phase = .deciding(CuisinePool.match(trimmed) ?? .custom(trimmed))
     }
 
     func reroll() {
@@ -34,11 +33,14 @@ final class FoodDecisionFlow {
         phase = .deciding(CuisinePool.draw(excluding: current))
     }
 
-    /// Agree seals the decision and silently records it (decision F4).
-    /// The context comes from the view layer so the flow stays construction-free in tests.
+    /// Agree seals the decision and silently records it (F4), now with the
+    /// stable id so history is language-proof (F6).
     func agree(in context: ModelContext) {
         guard case .deciding(let cuisine) = phase else { return }
-        context.insert(DecisionRecord(cuisineChosen: cuisine.name))
+        context.insert(DecisionRecord(
+            cuisineChosen: cuisine.displayName,
+            cuisineID: cuisine.isCustom ? nil : cuisine.id
+        ))
         try? context.save()
         phase = .decided(cuisine)
     }

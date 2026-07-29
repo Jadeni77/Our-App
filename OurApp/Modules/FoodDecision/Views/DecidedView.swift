@@ -12,7 +12,7 @@ struct DecidedView: View {
                 Text(cuisine.emoji)
                     .font(.system(size: 96))
                     .scaleEffect(celebrate ? 1 : 0.3)
-                Text("\(cuisine.name) it is! 🎉")
+                Text("\(cuisine.displayName) it is! 🎉")
                     .font(.system(size: 36, weight: .bold, design: .rounded))
                     .multilineTextAlignment(.center)
                     .minimumScaleFactor(0.5)
@@ -50,6 +50,6 @@ struct DecidedView: View {
 
 #Preview {
     NavigationStack {
-        DecidedView(flow: FoodDecisionFlow(), cuisine: Cuisine(name: "Hotpot", emoji: "🍲"))
+        DecidedView(flow: FoodDecisionFlow(), cuisine: CuisinePool.all.first ?? .custom("Hotpot"))
     }
 }

@@ -11,7 +11,7 @@ private struct MockProvider: RestaurantProvider {
 
 @MainActor
 struct RestaurantSearchTests {
-    private let cuisine = Cuisine(name: "Hotpot", emoji: "🍲")
+    private let cuisine = CuisinePool.all.first ?? .custom("Hotpot")
     private let sample = [
         Restaurant(
             id: UUID(), name: "Haidilao", distanceMeters: 320,
