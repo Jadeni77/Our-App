@@ -16,6 +16,7 @@ struct FoodDecisionModuleView: View {
                     DecidedView(flow: flow, cuisine: cuisine)
                 }
             }
+            .background(Theme.duskGradient.ignoresSafeArea())
             .animation(.spring(duration: 0.35), value: flow.phase)
         }
     }

@@ -14,6 +14,8 @@ struct RestaurantListView: View {
             switch search.state {
             case .loading:
                 ProgressView("Finding \(search.cuisine.displayName) near you…")
+                    .tint(.white)
+                    .foregroundStyle(.white)
             case .loaded(let restaurants):
                 ScrollView {
                     LazyVStack(spacing: 12) {
@@ -57,8 +59,11 @@ struct RestaurantListView: View {
                 }
             }
         }
+        .background(Theme.duskGradient.ignoresSafeArea())
+        .tint(Theme.rose)
         .navigationTitle("\(search.cuisine.emoji) \(search.cuisine.displayName)")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarColorScheme(.dark, for: .navigationBar)
         .task { await search.run() }
     }
 
@@ -70,10 +75,10 @@ struct RestaurantListView: View {
     ) -> some View {
         VStack(spacing: 16) {
             Text(emoji).font(.system(size: 64))
-            Text(title).font(.title3.bold())
+            Text(title).font(.title3.bold()).foregroundStyle(.white)
             Text(message)
                 .font(.body)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.white.opacity(0.7))
                 .multilineTextAlignment(.center)
             actions()
         }

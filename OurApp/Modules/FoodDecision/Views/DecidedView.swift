@@ -14,6 +14,7 @@ struct DecidedView: View {
                     .scaleEffect(celebrate ? 1 : 0.3)
                 Text("\(cuisine.displayName) it is! 🎉")
                     .font(.system(size: 36, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
                     .minimumScaleFactor(0.5)
             }
@@ -39,6 +40,8 @@ struct DecidedView: View {
             .padding(.bottom, 24)
         }
         .padding(.horizontal, 24)
+        .background(Theme.duskGradient.ignoresSafeArea())
+        .tint(Theme.rose)
         .sensoryFeedback(.success, trigger: celebrate)
         .onAppear {
             withAnimation(.spring(duration: 0.5, bounce: 0.5)) {
