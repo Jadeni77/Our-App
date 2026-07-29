@@ -1,21 +1,39 @@
 import SwiftUI
 
-/// Animated "Together for N days". Counts up from 0 with an ease-out ramp on
-/// appear; `.contentTransition(.numericText)` makes the digits roll rather
-/// than crossfade (non-obvious SwiftUI nicety).
+/// The home's hero (P8: reference-inspired structure): a small label line, a
+/// huge day number that counts up with rolling digits, and the anniversary
+/// date beneath. `.contentTransition(.numericText)` makes the digits roll
+/// rather than crossfade (non-obvious SwiftUI nicety).
 struct TogetherCounterView: View {
     let anniversary: Date
     @State private var shown = 0
 
     var body: some View {
-        Text("Together for \(shown) days")
-            .font(Theme.display(24))
+        VStack(spacing: 8) {
+            Text("We've been together for")
+                .font(.system(.body, design: .rounded).weight(.medium))
+                .foregroundStyle(.white.opacity(0.85))
+
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text("\(shown)")
+                    .font(Theme.display(74))
+                    .contentTransition(.numericText(value: Double(shown)))
+                // Ternary of two catalog keys — wrapped explicitly because only
+                // literal Text("…") auto-keys into the String Catalog.
+                Text(shown == 1 ? LocalizedStringKey("day") : LocalizedStringKey("days"))
+                    .font(Theme.display(26))
+                    .opacity(0.9)
+            }
             .foregroundStyle(.white)
-            .contentTransition(.numericText(value: Double(shown)))
-            .padding(.horizontal, 24)
-            .padding(.vertical, 12)
-            .glassCard(cornerRadius: 22)
-            .task(id: anniversary) { await countUp() }
+            .shadow(color: Theme.violet.opacity(0.5), radius: 16)
+
+            Text(anniversary.formatted(.dateTime.year().month(.twoDigits).day(.twoDigits)))
+                .font(.footnote)
+                .foregroundStyle(.white.opacity(0.65))
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text("Together for \(shown) days"))
+        .task(id: anniversary) { await countUp() }
     }
 
     private func countUp() async {

@@ -1,25 +1,20 @@
 import SwiftUI
 
-/// The two of us: avatar photos (or monogram circles) with names, a softly
-/// pulsing heart between.
+/// The two of us in the top corners (P8: reference-inspired structure):
+/// avatar photos (or monogram circles) with names beneath.
 struct PartnerAvatarsView: View {
     let identity: CoupleIdentityStore
-    @State private var pulse = false
 
     var body: some View {
-        HStack(spacing: 24) {
-            avatar(for: .one, name: identity.nameOne, fallback: "Me")
-            Text("💞")
-                .font(.system(size: 34))
-                .scaleEffect(pulse ? 1.15 : 0.95)
-                .animation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true), value: pulse)
-                .onAppear { pulse = true }
-            avatar(for: .two, name: identity.nameTwo, fallback: "My love")
+        HStack(alignment: .top) {
+            badge(for: .one, name: identity.nameOne, fallback: "Me")
+            Spacer()
+            badge(for: .two, name: identity.nameTwo, fallback: "My love")
         }
     }
 
-    private func avatar(for partner: Partner, name: String, fallback: LocalizedStringKey) -> some View {
-        VStack(spacing: 8) {
+    private func badge(for partner: Partner, name: String, fallback: LocalizedStringKey) -> some View {
+        VStack(spacing: 6) {
             Group {
                 if let image = identity.avatars[partner] {
                     Image(uiImage: image)
@@ -28,24 +23,24 @@ struct PartnerAvatarsView: View {
                 } else {
                     // Monogram fallback: first character of the name, or a heart.
                     Text(name.isEmpty ? "♡" : String(name.prefix(1)))
-                        .font(Theme.display(34))
+                        .font(Theme.display(26))
                         .foregroundStyle(Theme.glow)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(.white.opacity(0.12))
+                        .background(.white.opacity(0.15))
                 }
             }
-            .frame(width: 92, height: 92)
+            .frame(width: 66, height: 66)
             .clipShape(Circle())
-            .overlay(Circle().strokeBorder(.white.opacity(0.5), lineWidth: 2))
-            .shadow(color: .black.opacity(0.25), radius: 10, y: 4)
+            .overlay(Circle().strokeBorder(.white.opacity(0.6), lineWidth: 2))
+            .shadow(color: .black.opacity(0.2), radius: 8, y: 3)
 
             if name.isEmpty {
                 Text(fallback)
-                    .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.6))
+                    .font(.footnote)
+                    .foregroundStyle(.white.opacity(0.7))
             } else {
                 Text(name)
-                    .font(Theme.display(18))
+                    .font(Theme.display(15))
                     .foregroundStyle(.white)
             }
         }
@@ -54,6 +49,7 @@ struct PartnerAvatarsView: View {
 
 #Preview {
     PartnerAvatarsView(identity: CoupleIdentityStore())
+        .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.duskGradient)
 }

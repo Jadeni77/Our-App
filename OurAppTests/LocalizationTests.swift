@@ -22,4 +22,11 @@ struct LocalizationTests {
         #expect(localizedValue("Our space", language: "zh-Hans") == "我们的空间")
         #expect(localizedValue("What should we eat?", language: "zh-Hant") == "吃點什麼好？")
     }
+
+    @Test func counterHeroStringsAreTranslated() {
+        #expect(localizedValue("We've been together for", language: "zh-Hans") == "我们在一起已经")
+        #expect(localizedValue("We've been together for", language: "zh-Hant") == "我們在一起已經")
+        #expect(localizedValue("day", language: "zh-Hans") == "天")
+        #expect(localizedValue("days", language: "zh-Hant") == "天")
+    }
 }

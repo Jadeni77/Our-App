@@ -3,12 +3,13 @@ import SwiftUI
 /// The platform's shared design language (principle 9, decision P7).
 /// One place to tune the feel — shell and modules consume these tokens.
 enum Theme {
-    // MARK: Palette — "dusk dream": deep indigo through rose into peach glow.
-    static let indigo = Color(red: 0.16, green: 0.13, blue: 0.35)
-    static let violet = Color(red: 0.35, green: 0.20, blue: 0.55)
-    static let rose = Color(red: 0.85, green: 0.45, blue: 0.60)
-    static let peach = Color(red: 0.98, green: 0.75, blue: 0.60)
-    static let glow = Color(red: 1.00, green: 0.92, blue: 0.85)
+    // MARK: Palette — "moonlit dream": brightened 2026-07-29 (P8) from the
+    // original deep dusk to a softer periwinkle-through-blush sky.
+    static let indigo = Color(red: 0.44, green: 0.45, blue: 0.72)
+    static let violet = Color(red: 0.62, green: 0.55, blue: 0.83)
+    static let rose = Color(red: 0.93, green: 0.66, blue: 0.77)
+    static let peach = Color(red: 0.99, green: 0.86, blue: 0.78)
+    static let glow = Color(red: 1.00, green: 0.95, blue: 0.88)
 
     /// Full-bleed base gradient for shell backgrounds.
     static let duskGradient = LinearGradient(
