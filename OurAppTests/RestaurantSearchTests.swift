@@ -4,7 +4,7 @@ import Foundation
 
 private struct MockProvider: RestaurantProvider {
     let result: Result<[Restaurant], Error>
-    func search(cuisine: String) async throws -> [Restaurant] {
+    func search(for cuisine: Cuisine) async throws -> [Restaurant] {
         try result.get()
     }
 }

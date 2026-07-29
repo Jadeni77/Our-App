@@ -30,6 +30,33 @@ struct MapKitRestaurantProvider {
         }
         return Array(mapped.sorted { $0.distanceMeters < $1.distanceMeters }.prefix(limit))
     }
+
+    /// F7 term ordering: where you stand determines how POIs are tagged.
+    /// Stable partition — original order preserved within each group.
+    static func orderedTerms(for cuisine: Cuisine, chineseSpeakingRegion: Bool) -> [String] {
+        let (cjk, latin) = cuisine.searchTerms.reduce(into: ([String](), [String]())) { result, term in
+            if term.unicodeScalars.contains(where: { (0x4E00...0x9FFF).contains($0.value) }) {
+                result.0.append(term)
+            } else {
+                result.1.append(term)
+            }
+        }
+        return chineseSpeakingRegion ? cjk + latin : latin + cjk
+    }
+
+    /// F7 merge: batches arrive in term-priority order; dedupe by
+    /// case-insensitive name + ~11m coordinate cell, distance-sort, cap.
+    static func merge(_ batches: [[Restaurant]], limit: Int = 8) -> [Restaurant] {
+        var seen = Set<String>()
+        var unique: [Restaurant] = []
+        for restaurant in batches.flatMap({ $0 }) {
+            let key = "\(restaurant.name.lowercased())|\(String(format: "%.4f", restaurant.latitude))|\(String(format: "%.4f", restaurant.longitude))"
+            if seen.insert(key).inserted {
+                unique.append(restaurant)
+            }
+        }
+        return Array(unique.sorted { $0.distanceMeters < $1.distanceMeters }.prefix(limit))
+    }
 }
 
 extension MapKitRestaurantProvider: RestaurantProvider {
@@ -37,13 +64,14 @@ extension MapKitRestaurantProvider: RestaurantProvider {
     /// adaptive radius deferred until real use demands it).
     /// @MainActor matches the protocol requirement — without it this witness is
     /// nonisolated and calling the @MainActor `LocationFetcher()` init won't compile.
+    /// Temporary: uses single term for v2 alpha (Task 5 implements multi-term strategy).
     @MainActor
-    func search(cuisine: String) async throws -> [Restaurant] {
+    func search(for cuisine: Cuisine) async throws -> [Restaurant] {
         let fetcher = LocationFetcher()
         let userLocation = try await fetcher.currentLocation()
 
         let request = MKLocalSearch.Request()
-        request.naturalLanguageQuery = cuisine
+        request.naturalLanguageQuery = cuisine.searchTerms.first ?? cuisine.displayName
         request.resultTypes = .pointOfInterest
         // Food-adjacent categories included so pool entries like Brunch, Banh Mi,
         // and Dim Sum (tagged cafe/bakery/market by MapKit) don't false-negative.
