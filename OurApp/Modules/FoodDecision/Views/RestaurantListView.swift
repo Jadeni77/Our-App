@@ -64,8 +64,8 @@ struct RestaurantListView: View {
 
     private func statusView(
         emoji: String,
-        title: String,
-        message: String,
+        title: LocalizedStringKey,
+        message: LocalizedStringKey,
         @ViewBuilder actions: () -> some View
     ) -> some View {
         VStack(spacing: 16) {
