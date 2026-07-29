@@ -1304,6 +1304,12 @@ struct CouplesHomeView: View {
             if launchArguments.contains("-openSettings") { showSettings = true }
         }
         .onDisappear { tilt.stop() }
+        .onChange(of: openModule == nil && !showSettings) { _, homeVisible in
+            // The home is the root view, so onDisappear never fires in normal
+            // use — bracket tilt by cover/sheet visibility instead.
+            // (Amended 2026-07-28 — Task 8 review.)
+            if homeVisible { tilt.start() } else { tilt.stop() }
+        }
     }
 
     private var launchArguments: [String] {
