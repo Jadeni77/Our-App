@@ -1,0 +1,51 @@
+# CI: build and run the unit test suite on every PR and on pushes to main.
+#
+# Notes:
+# - macos-26 GitHub-hosted runners ship Xcode 26.2 as the default, matching
+#   local development; the xcode-select step pins it explicitly (with a
+#   fallback to the newest 26.x on the image) so image updates can't
+#   silently change the toolchain.
+# - macOS runners bill at a 10x minutes multiplier on private repos, so this
+#   stays a single lean job that only runs where it matters (PRs + main).
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Build & test (iOS Simulator)
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 26.2
+        run: |
+          if [ -d /Applications/Xcode_26.2.app ]; then
+            sudo xcode-select -s /Applications/Xcode_26.2.app
+          else
+            # Fall back to the newest 26.x on the image and surface the drift.
+            LATEST=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)
+            echo "::warning::Xcode_26.2.app not on image; using ${LATEST}"
+            sudo xcode-select -s "${LATEST}"
+          fi
+          xcodebuild -version
+
+      - name: Build and test
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project OurApp.xcodeproj \
+            -scheme OurApp \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+            CODE_SIGNING_ALLOWED=NO \
+            | tail -100
