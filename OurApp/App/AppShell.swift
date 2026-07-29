@@ -1,10 +1,14 @@
 import SwiftUI
 
-/// The platform's module mount point. Today it mounts the only module directly;
-/// when module #2 arrives this becomes a switcher (TabView or similar).
+/// The platform's mount point: the themed couples home (P4). Modules are
+/// registered here — one line per module, nothing else crosses the seam.
 struct AppShell: View {
+    private let modules = [
+        FoodDecisionModule.descriptor,
+    ]
+
     var body: some View {
-        FoodDecisionModuleView()
+        CouplesHomeView(modules: modules)
     }
 }
 
