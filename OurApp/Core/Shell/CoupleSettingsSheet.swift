@@ -1,0 +1,88 @@
+import PhotosUI
+import SwiftUI
+
+/// Edit names, anniversary, and avatar photos — the whole of "couple identity"
+/// (P6, local settings only). PhotosPicker runs out-of-process, so no photo
+/// library permission or Info.plist key is needed (non-obvious but true).
+struct CoupleSettingsSheet: View {
+    @Bindable var identity: CoupleIdentityStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var pickedItem: PhotosPickerItem?
+    @State private var pickingFor: Partner?
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                partnerSection(header: "Me", name: $identity.nameOne, partner: .one)
+                partnerSection(header: "My love", name: $identity.nameTwo, partner: .two)
+
+                Section("Anniversary") {
+                    DatePicker(
+                        "Anniversary",
+                        selection: Binding(
+                            get: { identity.anniversary ?? .now },
+                            set: { identity.anniversary = $0 }
+                        ),
+                        in: ...Date.now,
+                        displayedComponents: .date
+                    )
+                }
+            }
+            .navigationTitle(Text("Our details"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .photosPicker(
+                isPresented: Binding(
+                    get: { pickingFor != nil },
+                    set: { if !$0 { pickingFor = nil } }
+                ),
+                selection: $pickedItem,
+                matching: .images
+            )
+            .onChange(of: pickedItem) {
+                guard let item = pickedItem, let partner = pickingFor else { return }
+                Task {
+                    // loadTransferable is async & throwing; failures just leave
+                    // the old avatar in place (fail soft).
+                    if let data = try? await item.loadTransferable(type: Data.self) {
+                        try? identity.setAvatar(data, for: partner)
+                    }
+                    pickedItem = nil
+                    pickingFor = nil
+                }
+            }
+        }
+    }
+
+    private func partnerSection(header: LocalizedStringKey, name: Binding<String>, partner: Partner) -> some View {
+        Section(header) {
+            TextField("Name", text: name)
+            Button {
+                pickingFor = partner
+            } label: {
+                HStack {
+                    Text("Choose a photo")
+                    Spacer()
+                    if let image = identity.avatars[partner] {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 32, height: 32)
+                            .clipShape(Circle())
+                    } else {
+                        Image(systemName: "photo.circle")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
+    }
+}
+
+#Preview {
+    CoupleSettingsSheet(identity: CoupleIdentityStore())
+}
