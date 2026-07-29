@@ -4,3 +4,4 @@ DerivedData/
 build/
 *.xcuserstate
 .claude/*.lock
+.claude/memory/
