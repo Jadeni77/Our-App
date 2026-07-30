@@ -18,7 +18,10 @@ struct AddExternalAppSheet: View {
     @State private var searchResults: [ITunesSearch.Result] = []
     @State private var searchTask: Task<Void, Never>?
     @State private var pendingPick: ITunesSearch.Result?
-    @State private var pickName = ""
+    /// True while the scheme field holds a probe-found link — a name change
+    /// clears those (they belonged to the previous game); hand-typed links
+    /// stay put.
+    @State private var schemeFoundByProbe = false
     @State private var isSearching = false
     @State private var isProbing = false
     @State private var schemeSetByProbe = false
@@ -39,44 +42,44 @@ struct AddExternalAppSheet: View {
                         .keyboardType(.URL)
                         .onChange(of: scheme) {
                             // A hand-edited link invalidates the last probe
-                            // result; a probe-written one IS the result.
+                            // result; a probe-written (or probe-cleared) one
+                            // IS the result.
                             if schemeSetByProbe {
                                 schemeSetByProbe = false
+                                schemeFoundByProbe = !scheme.isEmpty
                             } else {
                                 probeOpened = nil
+                                schemeFoundByProbe = false
                             }
                         }
 
-                    if let url = normalizedSchemeURL {
+                    // One smart row: tests the typed link when there is one,
+                    // finds one when there isn't.
+                    if normalizedSchemeURL != nil
+                        || !SchemeCatalog.candidates(from: trimmedName).isEmpty {
                         Button {
                             Haptics.tap()
-                            UIApplication.shared.open(url, options: [:]) { opened in
-                                probeOpened = opened
-                                if opened { Haptics.success() }
+                            if let url = normalizedSchemeURL {
+                                UIApplication.shared.open(url, options: [:]) { opened in
+                                    probeOpened = opened
+                                    if opened { Haptics.success() }
+                                }
+                            } else {
+                                probeCandidates()
                             }
                         } label: {
                             HStack {
-                                Text("Test launch")
+                                // Literal branches keep every key visible to
+                                // catalog extraction.
+                                (normalizedSchemeURL != nil
+                                    ? Text("Test launch") : Text("Find launch link"))
                                 Spacer()
-                                if let probeOpened {
-                                    // Two literal branches keep both keys
-                                    // visible to catalog extraction.
+                                if isProbing {
+                                    ProgressView()
+                                } else if let probeOpened {
                                     (probeOpened ? Text("Opened") : Text("Couldn't open"))
                                         .foregroundStyle(probeOpened ? .green : .secondary)
                                 }
-                            }
-                        }
-                    }
-
-                    if !SchemeCatalog.candidates(from: trimmedName).isEmpty {
-                        Button {
-                            Haptics.tap()
-                            probeCandidates()
-                        } label: {
-                            HStack {
-                                Text("Find launch link")
-                                Spacer()
-                                if isProbing { ProgressView() }
                             }
                         }
                         .disabled(isProbing)
@@ -98,11 +101,6 @@ struct AddExternalAppSheet: View {
                                 ForEach(searchResults, id: \.self) { result in
                                     Button {
                                         Haptics.tap()
-                                        // Tiles read like the home screen, not
-                                        // the store: catalog names win, and the
-                                        // confirm field stays editable.
-                                        pickName = store.verifiedDisplayName(
-                                            for: result.trackName) ?? result.trackName
                                         pendingPick = result
                                     } label: {
                                         VStack(spacing: 4) {
@@ -161,6 +159,13 @@ struct AddExternalAppSheet: View {
             scheme = existing.launchURL?.absoluteString ?? ""
         }
         .onChange(of: name) {
+            // A new name means a new game: the last probe result — and any
+            // link the probe found for the previous name — no longer apply.
+            probeOpened = nil
+            if schemeFoundByProbe {
+                schemeSetByProbe = true
+                scheme = ""
+            }
             searchTask?.cancel()
             let query = trimmedName
             guard existing == nil, query.count >= 2 else {
@@ -191,7 +196,6 @@ struct AddExternalAppSheet: View {
                 set: { if !$0 { pendingPick = nil } }),
             presenting: pendingPick
         ) { pick in
-            TextField("Name", text: $pickName)
             Button("Add") { addPicked(pick) }
             Button("Cancel", role: .cancel) {}
         } message: { _ in
@@ -229,10 +233,13 @@ struct AddExternalAppSheet: View {
     /// the rest — a wrong guess still falls back to the store page).
     private func addPicked(_ pick: ITunesSearch.Result) {
         guard !isAdding else { return }
-        let trimmedPick = pickName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let finalName = trimmedPick.isEmpty ? pick.trackName : trimmedPick
-        // An edited name can collide with an existing tile — drop back into
-        // the form (the "Already added" hint takes over) instead of committing.
+        // Tiles read like the home screen when the catalog knows the game;
+        // renaming lives in the jiggle-tap edit, not here.
+        let finalName = store.verifiedDisplayName(for: pick.trackName)
+            ?? pick.trackName
+        // A learned short name can collide with an existing tile — drop back
+        // into the form (the "Already added" hint takes over) instead of
+        // committing a twin.
         guard !Self.isDuplicateName(finalName, among: store.layout.externalApps,
                                     excluding: nil) else {
             name = finalName
