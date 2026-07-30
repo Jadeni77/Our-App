@@ -18,13 +18,20 @@ struct Wobble: ViewModifier {
                                       style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
                 }
             }
-            .onChange(of: active) { _, isOn in
-                guard isOn, !reduceMotion else { leaning = false; return }
-                withAnimation(.easeInOut(duration: 0.13)
-                    .repeatForever(autoreverses: true)
-                    .delay(Double.random(in: 0...0.12))) {
-                    leaning = true
-                }
-            }
+            .onAppear { updateWobble(isOn: active) }
+            .onChange(of: active) { _, isOn in updateWobble(isOn: isOn) }
+    }
+
+    /// Starts (or stops) the repeating lean. Run from both `onAppear` and
+    /// `onChange(of: active)` — a tile born mid-edit (a freshly formed
+    /// collection, an app just dragged out of a folder) only ever gets an
+    /// `onAppear`, never an `active` transition, since it mounts already active.
+    private func updateWobble(isOn: Bool) {
+        guard isOn, !reduceMotion else { leaning = false; return }
+        withAnimation(.easeInOut(duration: 0.13)
+            .repeatForever(autoreverses: true)
+            .delay(Double.random(in: 0...0.12))) {
+            leaning = true
+        }
     }
 }

@@ -21,7 +21,7 @@ struct GamesTabView: View {
             DreamyBackground()
                 .onTapGesture {
                     if jiggle.isEditing {
-                        withAnimation(Theme.springy) { jiggle.isEditing = false }
+                        exitEditing()
                     }
                 }
             ScrollView {
@@ -72,8 +72,7 @@ struct GamesTabView: View {
         .overlay(alignment: .topTrailing) {
             if jiggle.isEditing {
                 Button {
-                    Haptics.tap()
-                    withAnimation(Theme.springy) { jiggle.isEditing = false }
+                    exitEditing()
                 } label: {
                     Text("Done")
                         .font(.system(.body, design: .rounded).weight(.semibold))
@@ -95,6 +94,17 @@ struct GamesTabView: View {
         .fullScreenCover(item: $openModule) { module in
             ModuleHostView(module: module)
         }
+    }
+
+    /// Done and background-tap both leave edit mode this way: haptic, spring
+    /// back to rest, and drop any in-flight drag so a cancelled gesture
+    /// (notification shade, app switcher, backgrounding) can't strand a ghost
+    /// or leave `jiggle.draggedItem` set for the next drag to inherit.
+    private func exitEditing() {
+        Haptics.tap()
+        withAnimation(Theme.springy) { jiggle.isEditing = false }
+        dragLocation = nil
+        _ = jiggle.endDrag()
     }
 
     @ViewBuilder
@@ -153,7 +163,12 @@ struct GamesTabView: View {
     private func dragGesture(for id: GamesLayout.ItemID) -> some Gesture {
         DragGesture(minimumDistance: 4, coordinateSpace: .named("springboard"))
             .onChanged { value in
-                if jiggle.draggedItem == nil {
+                // Keyed on identity, not nil: a cancelled drag (notification
+                // shade, app switcher, backgrounding) never fires `onEnded`,
+                // so `draggedItem` can be left stale — this still recognizes
+                // a genuinely new drag and re-arms cleanly instead of letting
+                // the next gesture inherit the wrong item's intent.
+                if jiggle.draggedItem != id {
                     Haptics.tap()
                     jiggle.beginDrag(id)
                 }

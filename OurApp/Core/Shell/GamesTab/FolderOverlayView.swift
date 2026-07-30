@@ -89,6 +89,13 @@ struct FolderOverlayView: View {
         }
         .onChange(of: isEditing) { _, newValue in
             jiggle.isEditing = newValue
+            if !newValue {
+                // Root exited edit mode (Done / background tap) while this
+                // folder was open — drop any in-flight member drag so a
+                // cancelled gesture can't strand a ghost in here either.
+                dragLocation = nil
+                _ = jiggle.endDrag()
+            }
         }
     }
 
@@ -102,7 +109,11 @@ struct FolderOverlayView: View {
     private func memberDrag(_ memberID: String) -> some Gesture {
         DragGesture(minimumDistance: 4, coordinateSpace: .named("folder"))
             .onChanged { value in
-                if jiggle.draggedItem == nil {
+                // Keyed on identity, not nil — see the matching comment in
+                // GamesTabView.dragGesture(for:): a cancelled drag never
+                // fires `onEnded`, so this must still recognize a genuinely
+                // new drag rather than inherit a stale dragged member.
+                if jiggle.draggedItem != .app(memberID) {
                     Haptics.tap()
                     jiggle.beginDrag(.app(memberID))
                 }
