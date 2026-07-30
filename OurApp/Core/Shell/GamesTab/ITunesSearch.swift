@@ -32,8 +32,10 @@ enum ITunesSearch {
     }
 
     static func lookup(name: String) async -> Result? {
-        guard let url = searchURL(for: name),
-              let (data, _) = try? await URLSession.shared.data(from: url)
+        guard let url = searchURL(for: name) else { return nil }
+        // Short timeout: the add sheet awaits this before the tile appears.
+        let request = URLRequest(url: url, timeoutInterval: 4)
+        guard let (data, _) = try? await URLSession.shared.data(for: request)
         else { return nil }
         return firstResult(from: data)
     }

@@ -51,7 +51,9 @@ final class ArtworkStore {
     /// when the artwork URL changed (first fetch, or a rename found a
     /// different app). Failures leave the previous state in place.
     func refreshArtwork(from url: URL, for id: UUID) async {
-        guard let (data, _) = try? await URLSession.shared.data(from: url) else { return }
+        // Short timeout: the add sheet awaits this before the tile appears.
+        let request = URLRequest(url: url, timeoutInterval: 5)
+        guard let (data, _) = try? await URLSession.shared.data(for: request) else { return }
         storeArtwork(data, for: id)
     }
 

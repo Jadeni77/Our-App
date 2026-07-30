@@ -378,7 +378,11 @@ struct GamesTabView: View {
 
     private func commitNewExternalApp(_ app: GamesLayout.ExternalApp) {
         store.addExternalApp(app)
-        enrich(app)
+        // The sheet pre-dressed the tile when it could — only chase
+        // enrichment for the fail-soft path (offline add, lookup miss).
+        if app.artworkURL == nil {
+            enrich(app)
+        }
     }
 
     private func commitEditedExternalApp(_ edited: GamesLayout.ExternalApp) {

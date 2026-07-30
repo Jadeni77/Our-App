@@ -9,10 +9,12 @@ struct AddExternalAppSheet: View {
     let onCommit: (GamesLayout.ExternalApp) -> Void
 
     @Environment(GamesLayoutStore.self) private var store
+    @Environment(ArtworkStore.self) private var artwork
     @Environment(\.dismiss) private var dismiss
     @State private var name = ""
     @State private var scheme = ""
     @State private var probeOpened: Bool?
+    @State private var isAdding = false
 
     /// Starter suggestions (owners' list — Identity V first). An entry
     /// carries its scheme once one is verified with Test launch on a real
@@ -27,7 +29,7 @@ struct AddExternalAppSheet: View {
     private static let suggestions: [Suggestion] = [
         .init(name: "Identity V"),
         .init(name: "第五人格"),
-        .init(name: "Wild Rift"),
+        .init(name: "Wild Rift", scheme: "wildrift://"),   // verified on device 2026-07-30
     ]
 
     /// Best-effort scheme guess: the latin letters and digits of the name,
@@ -108,12 +110,17 @@ struct AddExternalAppSheet: View {
                         Haptics.tap()
                         commit()
                     } label: {
-                        existing == nil ? Text("Add") : Text("Done")
+                        if isAdding {
+                            ProgressView()
+                        } else {
+                            existing == nil ? Text("Add") : Text("Done")
+                        }
                     }
-                    .disabled(trimmedName.isEmpty || isDuplicate)
+                    .disabled(trimmedName.isEmpty || isDuplicate || isAdding)
                 }
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
+                        .disabled(isAdding)
                 }
             }
         }
@@ -165,13 +172,36 @@ struct AddExternalAppSheet: View {
     }
 
     private func commit() {
+        guard !isAdding else { return }
         var app = existing ?? GamesLayout.ExternalApp(
             id: UUID(), name: "", emoji: "🎮",
             artworkURL: nil, launchURL: nil, storeURL: nil)
         app.name = trimmedName        // user data — stored verbatim (S6)
         app.launchURL = normalizedSchemeURL
-        onCommit(app)
-        dismiss()
+
+        // Edits commit instantly (the tile already exists on screen).
+        guard existing == nil else {
+            onCommit(app)
+            dismiss()
+            return
+        }
+
+        // New tiles get dressed BEFORE they're born — fetch artwork and the
+        // store link first (network calls carry timeouts, and every failure
+        // still lands on the emoji fallback), so the grid never flashes 🎮
+        // and then swaps.
+        isAdding = true
+        Task {
+            if let found = await ITunesSearch.lookup(name: app.name) {
+                app.artworkURL = found.artworkUrl512 ?? app.artworkURL
+                app.storeURL = found.trackViewUrl ?? app.storeURL
+                if let artworkURL = found.artworkUrl512 {
+                    await artwork.refreshArtwork(from: artworkURL, for: app.id)
+                }
+            }
+            onCommit(app)
+            dismiss()
+        }
     }
 }
 
