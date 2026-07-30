@@ -24,6 +24,7 @@ struct AddExternalAppSheet: View {
     @State private var schemeFoundByProbe = false
     @State private var isSearching = false
     @State private var isProbing = false
+    @State private var showsShortcutHelp = false
     @State private var schemeSetByProbe = false
 
     var body: some View {
@@ -83,6 +84,41 @@ struct AddExternalAppSheet: View {
                             }
                         }
                         .disabled(isProbing)
+                    }
+                    // The last resort when every guess misses (S7's parked
+                    // Shortcuts bridge, now guided): we pre-fill our half of
+                    // the link and open the Shortcuts editor — the owner only
+                    // makes the two choices iOS reserves for humans.
+                    if !trimmedName.isEmpty {
+                        Button {
+                            Haptics.tap()
+                            showsShortcutHelp = true
+                            probeOpened = nil
+                            schemeSetByProbe = true
+                            scheme = "shortcuts://run-shortcut?name=\(trimmedName)"
+                        } label: {
+                            Text("Use a Shortcut instead")
+                        }
+                    }
+
+                    if showsShortcutHelp {
+                        Text(String(format: String(localized:
+                            "1. Tap Open Shortcuts below and create a new shortcut.\n2. Add the “Open App” action and choose %1$@.\n3. Name the shortcut exactly “%1$@”, then come back and tap Test launch."),
+                            trimmedName))
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+
+                        Button {
+                            Haptics.tap()
+                            let create = URL(string: "shortcuts://create-shortcut")!
+                            UIApplication.shared.open(create, options: [:]) { opened in
+                                if !opened, let fallback = URL(string: "shortcuts://") {
+                                    UIApplication.shared.open(fallback)
+                                }
+                            }
+                        } label: {
+                            Text("Open Shortcuts")
+                        }
                     }
                 } footer: {
                     // Most people can't know an app's scheme — explain why it

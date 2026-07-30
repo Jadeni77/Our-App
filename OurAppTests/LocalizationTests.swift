@@ -54,6 +54,9 @@ struct LocalizationTests {
         #expect(localizedValue("Opened", language: "zh-Hant") == "已打開")
         #expect(localizedValue("Add this game?", language: "zh-Hans") == "要添加这个游戏吗？")
         #expect(localizedValue("Add this game?", language: "zh-Hant") == "要新增這個遊戲嗎？")
+        #expect(localizedValue("Use a Shortcut instead", language: "zh-Hans") == "改用快捷指令")
+        #expect(localizedValue("Use a Shortcut instead", language: "zh-Hant") == "改用捷徑")
+        #expect(localizedValue("Open Shortcuts", language: "zh-Hant") == "打開捷徑")
         #expect(localizedValue("Set up link", language: "zh-Hans") == "设置链接")
         #expect(localizedValue("Open App Store", language: "zh-Hant") == "打開 App Store")
         #expect(localizedValue("Opens the App Store every time — link it to launch directly?",
