@@ -23,7 +23,7 @@ The platform log (P11) owns the big forks: tab bar over the rail, springboard co
 
 ---
 
-## v1 Scope — spec'd 2026-07-29, in build
+## v1 Scope — ✅ built 2026-07-30, pending the human's on-device feel pass
 
 ### Tab frame (platform §4)
 Native `TabView` on the Xcode 26 toolchain (system Liquid Glass bar, core tint — no hand-rolled bar): **Home** (the couples hero, rail removed, gear stays) | **Games** (this springboard). Labels localized en / zh-Hans / zh-Hant. Every future surface is one new `Tab`.
