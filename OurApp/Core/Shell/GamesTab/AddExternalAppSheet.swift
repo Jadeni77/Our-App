@@ -62,9 +62,10 @@ struct AddExternalAppSheet: View {
                         }
                     }
                 } footer: {
-                    // Most people can't know an app's scheme — say plainly
-                    // that skipping it still gives a working tile.
-                    Text("Without a link, the tile opens its App Store page.")
+                    // Most people can't know an app's scheme — explain why it
+                    // matters and that skipping it still gives a working tile
+                    // (the store page shows Open for installed apps).
+                    Text("iOS needs an app's link (URL scheme) to open it directly. Without one, the tile opens its App Store page instead.")
                 }
             }
             .navigationTitle(existing.map { Text(verbatim: $0.name) } ?? Text("Add a game"))

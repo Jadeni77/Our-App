@@ -656,6 +656,29 @@
         }
       }
     },
+    "iOS needs an app's link (URL scheme) to open it directly. Without one, the tile opens its App Store page instead." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iOS needs an app's link (URL scheme) to open it directly. Without one, the tile opens its App Store page instead."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iOS 需要应用的链接（URL Scheme）才能直接打开它。没有链接时，会改为打开它的 App Store 页面。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iOS 需要應用程式的連結（URL Scheme）才能直接開啟它。沒有連結時，會改為開啟它的 App Store 頁面。"
+          }
+        }
+      }
+    },
     "Language" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1331,29 +1354,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "吃點什麼好？"
-          }
-        }
-      }
-    },
-    "Without a link, the tile opens its App Store page." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Without a link, the tile opens its App Store page."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "没有链接时，会改为打开它的 App Store 页面。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "沒有連結時，會改為開啟它的 App Store 頁面。"
           }
         }
       }

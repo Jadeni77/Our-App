@@ -7,11 +7,10 @@ struct AppTileView: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            Text(module.emoji)
-                .font(.system(size: 40))
-                .frame(maxWidth: .infinity)
-                .aspectRatio(1, contentMode: .fit)
-                .glassCard(cornerRadius: 20)
+            TileSquare {
+                Text(module.emoji)
+                    .font(.system(size: 40))
+            }
             Text(module.name)
                 .font(.system(.caption, design: .rounded).weight(.semibold))
                 .foregroundStyle(.white)

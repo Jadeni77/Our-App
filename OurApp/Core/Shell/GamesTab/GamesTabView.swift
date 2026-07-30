@@ -51,17 +51,24 @@ struct GamesTabView: View {
             }
             // The scroll area owns every touch the tiles don't, so the
             // enter/exit gestures live here — like the real springboard,
-            // holding empty space starts arranging and tapping it stops.
+            // holding anywhere (a tile or empty space) starts arranging and
+            // tapping empty space stops. `simultaneousGesture` matters twice:
+            // it fires at the 0.5 s mark while the finger is still down (a
+            // plain onLongPressGesture on a ScrollView only recognizes on
+            // lift), and it sees touches that begin on tiles, so this is the
+            // ONE jiggle entry point for the whole grid.
             .onTapGesture {
                 if jiggle.isEditing {
                     exitEditing()
                 }
             }
-            .onLongPressGesture(minimumDuration: 0.5) {
-                guard !jiggle.isEditing else { return }
-                Haptics.tap()
-                withAnimation(Theme.springy) { jiggle.isEditing = true }
-            }
+            .simultaneousGesture(
+                LongPressGesture(minimumDuration: 0.5).onEnded { _ in
+                    guard !jiggle.isEditing else { return }
+                    Haptics.tap()
+                    withAnimation(Theme.springy) { jiggle.isEditing = true }
+                }
+            )
 
             if let openCollectionID,
                case .collection(let collection)? = store.layout.items.first(where: {
@@ -212,11 +219,6 @@ struct GamesTabView: View {
                         Haptics.tap()
                         openModule = module
                     }
-                    .onLongPressGesture(minimumDuration: 0.5) {
-                        guard !jiggle.isEditing else { return }
-                        Haptics.tap()
-                        withAnimation(Theme.springy) { jiggle.isEditing = true }
-                    }
                     .gesture(jiggle.isEditing ? dragGesture(for: item.id) : nil)
                     .onGeometryChange(for: CGRect.self) { proxy in
                         proxy.frame(in: .named("springboard"))
@@ -241,11 +243,6 @@ struct GamesTabView: View {
                         guard !jiggle.isEditing else { return }
                         launchExternal(external)
                     }
-                    .onLongPressGesture(minimumDuration: 0.5) {
-                        guard !jiggle.isEditing else { return }
-                        Haptics.tap()
-                        withAnimation(Theme.springy) { jiggle.isEditing = true }
-                    }
                     .gesture(jiggle.isEditing ? dragGesture(for: item.id) : nil)
                     .onGeometryChange(for: CGRect.self) { proxy in
                         proxy.frame(in: .named("springboard"))
@@ -264,11 +261,6 @@ struct GamesTabView: View {
                 .onTapGesture {
                     Haptics.tap()
                     withAnimation(Theme.springy) { openCollectionID = collection.id }
-                }
-                .onLongPressGesture(minimumDuration: 0.5) {
-                    guard !jiggle.isEditing else { return }
-                    Haptics.tap()
-                    withAnimation(Theme.springy) { jiggle.isEditing = true }
                 }
                 .gesture(jiggle.isEditing ? dragGesture(for: item.id) : nil)
                 .onGeometryChange(for: CGRect.self) { proxy in

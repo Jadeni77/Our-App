@@ -56,10 +56,12 @@ struct LocalizationTests {
         #expect(localizedValue("Remove", language: "zh-Hans") == "移除")
         #expect(localizedValue("Edit", language: "zh-Hant") == "編輯")
         #expect(localizedValue("OK", language: "zh-Hans") == "好")
-        #expect(localizedValue("Without a link, the tile opens its App Store page.",
-                               language: "zh-Hans") == "没有链接时，会改为打开它的 App Store 页面。")
-        #expect(localizedValue("Without a link, the tile opens its App Store page.",
-                               language: "zh-Hant") == "沒有連結時，會改為開啟它的 App Store 頁面。")
+        let schemeFooter = "iOS needs an app's link (URL scheme) to open it directly. "
+            + "Without one, the tile opens its App Store page instead."
+        #expect(localizedValue(schemeFooter, language: "zh-Hans")
+                == "iOS 需要应用的链接（URL Scheme）才能直接打开它。没有链接时，会改为打开它的 App Store 页面。")
+        #expect(localizedValue(schemeFooter, language: "zh-Hant")
+                == "iOS 需要應用程式的連結（URL Scheme）才能直接開啟它。沒有連結時，會改為開啟它的 App Store 頁面。")
     }
 
     @Test func springboardStringsAreTranslated() {

@@ -9,27 +9,14 @@ struct ExternalTileView: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            Group {
+            TileSquare {
                 if let image = artwork.image(for: app.id) {
-                    // The artwork lives in an overlay so its intrinsic size
-                    // can never negotiate with the grid — the cell stays the
-                    // exact square the emoji tiles get.
-                    Color.clear
-                        .frame(maxWidth: .infinity)
-                        .aspectRatio(1, contentMode: .fit)
-                        .overlay {
-                            Image(uiImage: image)
-                                .resizable()
-                                .scaledToFill()
-                        }
-                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                        .glassCard(cornerRadius: 20)   // one chrome source (principle 9)
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
                 } else {
                     Text(app.emoji)
                         .font(.system(size: 40))
-                        .frame(maxWidth: .infinity)
-                        .aspectRatio(1, contentMode: .fit)
-                        .glassCard(cornerRadius: 20)
                 }
             }
             Text(verbatim: app.name)   // user data (S6)
