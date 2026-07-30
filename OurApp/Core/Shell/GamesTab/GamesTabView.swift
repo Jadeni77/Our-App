@@ -44,6 +44,9 @@ struct GamesTabView: View {
                     store: store,
                     isEditing: jiggle.isEditing,
                     startsRenaming: renamingNewCollection,
+                    onBeginEditing: {
+                        withAnimation(Theme.springy) { jiggle.isEditing = true }
+                    },
                     onLaunch: { module in
                         self.openCollectionID = nil
                         renamingNewCollection = false
