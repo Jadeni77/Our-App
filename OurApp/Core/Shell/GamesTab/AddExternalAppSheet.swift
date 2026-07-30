@@ -27,6 +27,7 @@ struct AddExternalAppSheet: View {
     private static let suggestions: [Suggestion] = [
         .init(name: "Identity V"),
         .init(name: "第五人格"),
+        .init(name: "Wild Rift"),
     ]
 
     /// Best-effort scheme guess: the latin letters and digits of the name,
