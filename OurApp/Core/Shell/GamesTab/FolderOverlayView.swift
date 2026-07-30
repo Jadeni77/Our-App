@@ -13,6 +13,8 @@ struct FolderOverlayView: View {
     /// so the overlay asks rather than flips it locally.
     let onBeginEditing: () -> Void
     let onLaunch: (ModuleDescriptor) -> Void
+    /// External members launch through the root's S7 fallback chain.
+    let onLaunchExternal: (GamesLayout.ExternalApp) -> Void
     let onClose: () -> Void
 
     @State private var draftName = ""
@@ -117,8 +119,11 @@ struct FolderOverlayView: View {
                     .accessibilityLabel(Text(module.name))
             } else if let external = store.externalApp(forKey: memberID) {
                 ExternalTileView(app: external)
-                    // Launching externals arrives with the S7 launch path;
-                    // arranging works exactly like a module member already.
+                    .onTapGesture {
+                        guard !jiggle.isEditing else { return }
+                        Haptics.tap()
+                        onLaunchExternal(external)
+                    }
                     .accessibilityLabel(Text(verbatim: external.name))
             }
         }

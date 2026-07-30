@@ -10,6 +10,9 @@ struct GamesTabView: View {
     @State private var openCollectionID: UUID?
     @State private var renamingNewCollection = false
     @State private var addingExternalApp = false
+    @State private var editingExternalApp: GamesLayout.ExternalApp?
+    @State private var deletingExternalApp: GamesLayout.ExternalApp?
+    @State private var launchFailedApp: GamesLayout.ExternalApp?
     @State private var jiggle = JiggleController()
     @State private var tileFrames: [GamesLayout.ItemID: CGRect] = [:]
     @State private var dragLocation: CGPoint?
@@ -53,6 +56,11 @@ struct GamesTabView: View {
                         self.openCollectionID = nil
                         renamingNewCollection = false
                         openModule = module
+                    },
+                    onLaunchExternal: { external in
+                        self.openCollectionID = nil
+                        renamingNewCollection = false
+                        launchExternal(external)
                     },
                     onClose: {
                         withAnimation(Theme.springy) { self.openCollectionID = nil }
@@ -109,6 +117,35 @@ struct GamesTabView: View {
         .sheet(isPresented: $addingExternalApp) {
             AddExternalAppSheet(onCommit: commitNewExternalApp)
         }
+        .sheet(item: $editingExternalApp) { app in
+            AddExternalAppSheet(existing: app, onCommit: commitEditedExternalApp)
+        }
+        .confirmationDialog(
+            Text(verbatim: deletingExternalApp?.name ?? ""),
+            isPresented: Binding(
+                get: { deletingExternalApp != nil },
+                set: { if !$0 { deletingExternalApp = nil } }),
+            titleVisibility: .visible,
+            presenting: deletingExternalApp
+        ) { app in
+            Button("Remove", role: .destructive) {
+                Haptics.tap()
+                withAnimation(Theme.springy) { store.deleteExternalApp(id: app.id) }
+            }
+            Button("Cancel", role: .cancel) {}
+        }
+        .alert(
+            Text(verbatim: launchFailedApp?.name ?? ""),
+            isPresented: Binding(
+                get: { launchFailedApp != nil },
+                set: { if !$0 { launchFailedApp = nil } }),
+            presenting: launchFailedApp
+        ) { app in
+            Button("Edit") { editingExternalApp = app }
+            Button("OK", role: .cancel) {}
+        } message: { _ in
+            Text("Couldn't open")
+        }
         .onAppear {
             #if DEBUG
             if ProcessInfo.processInfo.arguments.contains("-jiggleMode") {
@@ -163,8 +200,15 @@ struct GamesTabView: View {
             if let external = store.externalApp(id: externalID) {
                 ExternalTileView(app: external)
                     .modifier(Wobble(active: jiggle.isEditing, reduceMotion: reduceMotion))
-                    // Launching arrives with the S7 launch path; arranging
-                    // works exactly like a module tile already.
+                    .overlay(alignment: .topLeading) {
+                        // The one deletion the springboard allows (S7):
+                        // externals are user-added, modules never delete.
+                        if jiggle.isEditing { deleteBadge(external) }
+                    }
+                    .onTapGesture {
+                        guard !jiggle.isEditing else { return }
+                        launchExternal(external)
+                    }
                     .onLongPressGesture(minimumDuration: 0.5) {
                         guard !jiggle.isEditing else { return }
                         Haptics.tap()
@@ -311,6 +355,42 @@ struct GamesTabView: View {
     private func commitNewExternalApp(_ app: GamesLayout.ExternalApp) {
         store.addExternalApp(app)
         enrich(app)
+    }
+
+    private func commitEditedExternalApp(_ app: GamesLayout.ExternalApp) {
+        store.updateExternalApp(app)
+        enrich(app)   // refresh the store link if the name changed; fails soft
+    }
+
+    /// S7 launch path (principle 7 — never a dead end): the app's scheme,
+    /// else its App Store page, else a friendly message with an Edit way out.
+    private func launchExternal(_ app: GamesLayout.ExternalApp) {
+        Haptics.tap()
+        guard let launchURL = app.launchURL else { openStoreOrFail(app); return }
+        UIApplication.shared.open(launchURL, options: [:]) { opened in
+            if !opened { openStoreOrFail(app) }
+        }
+    }
+
+    private func openStoreOrFail(_ app: GamesLayout.ExternalApp) {
+        guard let storeURL = app.storeURL else { launchFailedApp = app; return }
+        UIApplication.shared.open(storeURL, options: [:]) { opened in
+            if !opened { launchFailedApp = app }
+        }
+    }
+
+    private func deleteBadge(_ app: GamesLayout.ExternalApp) -> some View {
+        Button {
+            Haptics.tap()
+            deletingExternalApp = app
+        } label: {
+            Image(systemName: "xmark.circle.fill")
+                .font(.system(size: 22))
+                .symbolRenderingMode(.palette)
+                .foregroundStyle(.white, .black.opacity(0.4))
+        }
+        .offset(x: -8, y: -8)
+        .accessibilityLabel(Text("Remove"))
     }
 
     /// Fire-and-forget iTunes enrichment: official artwork + App Store page

@@ -63,8 +63,10 @@ One JSON file in Application Support, written atomically on every mutation; per 
 | Auto-dissolve | Removing the last member deletes the collection — empty folders can't exist |
 | Exit | Done or tap empty background; haptic; every mutation already saved |
 | Reduce Motion | Wobble replaced by a static edit affordance; drag behavior unchanged |
+| Add a game (v2) | A **+** glass pill top-leading (opposite Done) opens the S7 add sheet |
+| Delete (v2, externals only) | In edit mode external tiles wear an ⓧ badge → confirm → registry entry, root tile, and collection references all go (S5 dissolve applies); module tiles never delete |
 
-No app deletion (modules are code), no badges. VoiceOver: tiles and folders stay labeled and launchable; drag-arranging under VoiceOver is a logged gap.
+No module deletion (modules are code), no badges beyond the external ⓧ. VoiceOver: tiles and folders stay labeled and launchable; drag-arranging under VoiceOver is a logged gap.
 
 ### DEBUG support
 Launch args for headless screenshot verification: `-selectGames`, `-jiggleMode` (the rail's `-openDrawer` retires with it). Sample tiles per S4.
@@ -93,11 +95,12 @@ The games we actually play get tiles on **our** springboard; tapping launches th
 
 ### Layout model (`GamesLayout` version 1 → 2)
 
-New item case alongside `app` and `collection`:
+New item case alongside `app` and `collection`, backed by a top-level registry:
 
 ```swift
-case external(ExternalApp)
+case external(externalID: UUID)     // references the registry below
 
+// GamesLayout gains: var externalApps: [ExternalApp]
 struct ExternalApp: Codable {
     var id: UUID
     var name: String        // user data — S6 applies, never translated
@@ -108,7 +111,7 @@ struct ExternalApp: Codable {
 }
 ```
 
-Version-1 documents decode losslessly (additive case). Reconcile (S5) **never auto-drops external tiles** — they aren't registered modules, so only the user removes them: jiggle mode gains a delete affordance *for external tiles only* (modules still can't be deleted).
+Externals live in the registry and are referenced by id — `Collection.members` stays `[String]` (external members are UUID strings), which is what lets version-1 documents decode losslessly *and* externals join collections. Reconcile (S5) treats the registry as the source of truth: dangling references drop, a registry entry that lost its tile is re-materialized at the end of the grid, and **external tiles are never auto-dropped** — they aren't registered modules, so only the user removes them: jiggle mode gains a delete affordance *for external tiles only* (modules still can't be deleted).
 
 ### Add flow
 
