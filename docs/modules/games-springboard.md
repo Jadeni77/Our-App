@@ -26,6 +26,11 @@ The platform log (P11) owns the big forks: tab bar over the rail, springboard co
 
 ## v1 Scope — ✅ built 2026-07-30, pending the human's on-device feel pass
 
+> **Naming note (2026-07-30):** the tab's user-facing label is **Apps**
+> (应用 / 應用, `square.grid.2x2.fill`) — not everything on the springboard is
+> a game. Internal names (`GamesTab*`, `GamesLayout*`, `-selectGames`) keep
+> the original word; renaming them is churn without user value.
+
 ### Tab frame (platform §4)
 Native `TabView` on the Xcode 26 toolchain (system Liquid Glass bar, core tint — no hand-rolled bar): **Home** (the couples hero, rail removed, gear stays) | **Games** (this springboard). Labels localized en / zh-Hans / zh-Hant. Every future surface is one new `Tab`.
 
@@ -61,10 +66,13 @@ One JSON file in Application Support, written atomically on every mutation; per 
 | Open a collection | Tap (both modes) → overlay zooms open; normal mode: tap a member to launch; edit mode: opens in editing state |
 | Edit inside a folder | Members wobble and reorder by drag; dragging a member outside the overlay returns it to the root grid; name is editable — long-pressing a member enters edit mode from here (deliberately *without* focusing the name, unlike just-formed collections) |
 | Auto-dissolve | Removing the last member deletes the collection — empty folders can't exist |
-| Exit | Done or tap empty background; haptic; every mutation already saved |
+| Exit | **Done only** — haptic; every mutation already saved. (A background tap used to exit too; it competed with tile taps and felt flaky, so it was removed 2026-07-30.) |
 | Reduce Motion | Wobble replaced by a static edit affordance; drag behavior unchanged |
+| Add a game (v2) | A **+** glass pill top-leading (opposite Done) opens the S7 add sheet |
+| Delete (v2, externals only) | In edit mode external tiles wear an ⓧ badge (root grid only — drag a foldered external out first) → confirm → registry entry, root tile, collection references, and cached artwork all go (S5 dissolve applies); module tiles never delete |
+| Edit a game (v2) | In edit mode, tapping an external tile opens its edit sheet (name + launch link + Test launch) — the repair path when a wrong scheme soft-falls to the store page |
 
-No app deletion (modules are code), no badges. VoiceOver: tiles and folders stay labeled and launchable; drag-arranging under VoiceOver is a logged gap.
+No module deletion (modules are code), no badges beyond the external ⓧ. VoiceOver: tiles and folders stay labeled and launchable; drag-arranging under VoiceOver is a logged gap.
 
 ### DEBUG support
 Launch args for headless screenshot verification: `-selectGames`, `-jiggleMode` (the rail's `-openDrawer` retires with it). Sample tiles per S4.
@@ -87,17 +95,18 @@ In each of en / zh-Hans / zh-Hant, on simulator (and a device pass for feel): th
 
 Two-phone sync (direction in `DESIGN.md` §7 — note the layout is a per-device preference and may never sync) · horizontal paging / page dots · Home quick-action row · an Us tab · badges · VoiceOver drag-arranging · widgets / notifications.
 
-## v2 Scope — external app tiles (S7, next milestone)
+## v2 Scope — external app tiles (S7) — ✅ built 2026-07-30, pending the human's on-device pass
 
 The games we actually play get tiles on **our** springboard; tapping launches the real app — the OS switches to the game full-screen, exactly like tapping it on the system home screen, and you return via the app switcher (not our Close button). iOS can't embed another app's UI or list what's installed, so tiles are added manually and launch via URL scheme with fail-soft fallbacks.
 
 ### Layout model (`GamesLayout` version 1 → 2)
 
-New item case alongside `app` and `collection`:
+New item case alongside `app` and `collection`, backed by a top-level registry:
 
 ```swift
-case external(ExternalApp)
+case external(externalID: UUID)     // references the registry below
 
+// GamesLayout gains: var externalApps: [ExternalApp]
 struct ExternalApp: Codable {
     var id: UUID
     var name: String        // user data — S6 applies, never translated
@@ -108,18 +117,19 @@ struct ExternalApp: Codable {
 }
 ```
 
-Version-1 documents decode losslessly (additive case). Reconcile (S5) **never auto-drops external tiles** — they aren't registered modules, so only the user removes them: jiggle mode gains a delete affordance *for external tiles only* (modules still can't be deleted).
+Externals live in the registry and are referenced by id — `Collection.members` stays `[String]` (external members are UUID strings), which is what lets version-1 documents decode losslessly *and* externals join collections. Reconcile (S5) treats the registry as the source of truth: dangling references drop, a registry entry that lost its tile is re-materialized at the end of the grid, and **external tiles are never auto-dropped** — they aren't registered modules, so only the user removes them: jiggle mode gains a delete affordance *for external tiles only* (modules still can't be deleted).
 
 ### Add flow
 
 In jiggle mode, a **"+" glass pill** (top-leading, opposite Done) opens a sheet:
-- a small **curated catalog** (name + known scheme + store id — starter list is an open question below), and
-- **manual entry** (name + optional scheme) with a **"Test launch"** button that proves a scheme on the spot — this is how we pin down undocumented schemes like Identity V's on a real phone.
-Artwork + store link come from the **iTunes Search API** by name (free, keyless), cached to Application Support; every fetch fails soft to the emoji.
+- a small **curated catalog** (owners' games; entries carry schemes once verified on device — `wildrift://` and `clashofclans://` so far),
+- a **live store picker**: typing the name surfaces matching App Store entries as icons — tap one, confirm, and the tile commits with the exact title + artwork (while matches are showing, the picker is the only add path; bare **Add** returns when nothing matches, so a half-typed search can't become a tile),
+- **manual entry** (name + optional scheme) with one smart probe row — **"Test launch"** when a link is typed, **"Find launch link"** when not — that always walks the full list: the typed link first, then the likely schemes (subtitle squash, full squash, initials, first word), until one visibly opens the game and lands in the field, tested. A lone failed guess never strands the flow.
+Artwork + store link come from the **iTunes Search API** (free, keyless), cached to Application Support; enrichment only dresses a tile when the store title plausibly matches the typed name; every fetch fails soft to the emoji. New tiles are dressed *before* they appear (spinner on Add, capped by timeouts).
 
 ### Launch behavior (principle 7 — never a dead end)
 
-`UIApplication.open(launchURL)` → on failure open `storeURL` → neither works: friendly "can't open" message with an edit affordance. No `LSApplicationQueriesSchemes` declarations needed — we never call `canOpenURL`; `open()`'s completion is the probe.
+The saved link → a self-healing walk of the learned catalog + likely candidates (filtered through silent `canOpenURL` for schemes declared in `OurApp-Info.plist`'s `LSApplicationQueriesSchemes`, ≤50 — declared-but-absent guesses never prompt) → `storeURL` → neither works: friendly "can't open" message with an edit affordance. A second same-session store bounce offers **Set up link** once; choosing **Open App Store** instead persists as the tile's standing preference (`prefersStore`: future taps skip guessing entirely, re-offered every third store open; cleared when a link is verified).
 
 ### Everything else is unchanged
 
@@ -139,7 +149,12 @@ On a real phone: add Identity V through the add flow; its tile (official artwork
 
 ## Module open questions
 
+- v3 candidate — **share-sheet import** (owners' "pick the app" idea, 2026-07-30, in the only shape iOS allows): a Share extension that accepts App Store links — find the game in the App Store, Share → OurApp, and the tile arrives with the exact name/artwork/store id, zero typing. Needs a new extension target + an App Group to reach the layout document; milestone-sized.
+- Idea (2026-07-30, deferred): a bundled **video demo** of the Shortcut setup behind a "Watch how" button in the help block (`VideoPlayer`, owner-recorded clip). Deferred until the paste-proof text steps demonstrably trip someone up — Shortcuts UI drift and tri-language upkeep make video expensive for a once-per-game flow.
+- v3 candidate — **in-app App Store panel** (`SKStoreProductViewController`): schemeless tiles present the store page *inside* OurApp (Get/Open without leaving), the closest iOS permits to "download it from inside our app" — installing apps is reserved to the App Store by the sandbox, so true in-app installs/embedded games are impossible, not just hard.
+
 - Once sync lands: does the layout stay per-device (each of us arranges our own page) or become shared? Parked to the sync milestone.
 - Grid metrics (4 columns, tile size) — revisit after real use on both phones.
 - v2: curated catalog contents — which games do we two want pre-listed? (Owners' list; Identity V is #1.)
-- v2: a Shortcuts bridge (`shortcuts://run-shortcut` + an "Open App" action) can launch *any* app when no URL scheme works, at the cost of one-time setup per game and a visible bounce through Shortcuts. *(Lean: defer until a game we care about has no working scheme.)*
+- v2: the Shortcuts bridge (`shortcuts://run-shortcut?name=X` + an "Open App" action) launches *any* app when no URL scheme works, at the cost of one-time setup per game and a visible bounce through Shortcuts. **Shipped as a guided flow** (prefilled link, clipboard-assisted rename, `shortcuts://create-shortcut` deep link), surfaced only after the probe fails or a name yields no guesses — a Shortcut never replaces a working scheme. Deliberately **one tiny shortcut per game** (folderable inside Shortcuts): a single input-driven If-chain "launcher" shortcut would centralize breakage and is fiddlier to extend by hand; `shortcuts://` opens are never learned into the catalog (they "succeed" even when the shortcut is gone).
+- v2 follow-up: **detecting installed games** — iOS never lists installed apps (privacy), so full auto-detection is impossible; but a curated catalog *with known schemes* could probe via `canOpenURL` (requires declaring each scheme in `LSApplicationQueriesSchemes`, ≤50) and offer one-tap "add Identity V?" suggestions. Same data gap as launching: someone has to collect real schemes. Revisit once we've pinned schemes for the games we actually play (owners asked 2026-07-30; would soften S7's rejected-alternative note from "impossible" to "possible for a curated list").

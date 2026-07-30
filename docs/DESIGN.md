@@ -90,7 +90,7 @@ Keep this to genuinely contested, cross-cutting decisions. Feature-level choices
 | Module | Status | Doc |
 |--------|--------|-----|
 | Food decision ("what should we eat") | 🚧 v2 built — tri-language + Chinese search, in trial | `docs/modules/food-decision.md` |
-| Games springboard (launcher surface — core shell chrome, documented module-style) | 🚧 v1 built — pending on-device feel pass; v2 (external app tiles) specced | `docs/modules/games-springboard.md` |
+| Games springboard (launcher surface — core shell chrome, documented module-style) | 🚧 v1 + v2 built — pending on-device pass (feel + add a real game) | `docs/modules/games-springboard.md` |
 | History (past decisions) | 📋 Planned *(supersedes the earlier "History / home page" row — the home page moved into the core shell, see P4)* | — |
 | Two-phone sync (shared core capability) | 📋 Planned | — |
 | Home-screen Widget | 📋 Planned | — |

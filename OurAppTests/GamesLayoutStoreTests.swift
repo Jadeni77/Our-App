@@ -43,6 +43,35 @@ struct GamesLayoutStoreTests {
         #expect(store.layout.items == [.app(moduleID: "a")])
     }
 
+    @Test func unreadableFileIsPreservedBeforeOverwrite() throws {
+        // The document carries user-authored externals (S7): fail-soft still
+        // rebuilds the default, but the old bytes must survive for recovery.
+        let url = tempFile()
+        try Data("not json 🙃".utf8).write(to: url)
+        _ = GamesLayoutStore(modules: [descriptor("a")], fileURL: url)
+        let directory = url.deletingLastPathComponent()
+        let backups = try FileManager.default.contentsOfDirectory(atPath: directory.path)
+            .filter { $0.hasPrefix("\(url.lastPathComponent).unreadable-") }
+        #expect(backups.count == 1)
+        let backupURL = directory.appendingPathComponent(try #require(backups.first))
+        #expect(try Data(contentsOf: backupURL) == Data("not json 🙃".utf8))
+    }
+
+    @Test func deleteExternalAppKeepsOtherCollectionMembersInOrder() throws {
+        let store = GamesLayoutStore(
+            modules: [descriptor("a"), descriptor("b")], fileURL: tempFile())
+        let game = identityV()
+        store.addExternalApp(game)
+        let id = try #require(store.formCollection(target: "a", dragged: "b", named: "n"))
+        store.addToCollection(id, member: game.memberKey)
+        store.deleteExternalApp(id: game.id)
+        guard case .collection(let kept) = store.layout.items[0] else {
+            Issue.record("expected the collection to survive"); return
+        }
+        #expect(kept.members == ["a", "b"])
+        #expect(store.layout.externalApps.isEmpty)
+    }
+
     @Test func newerVersionOnDiskFallsBackToDefault() throws {
         let url = tempFile()
         let future = GamesLayout(version: 99, items: [.app(moduleID: "b")])
@@ -97,7 +126,7 @@ struct GamesLayoutStoreTests {
         let store = GamesLayoutStore(
             modules: [descriptor("a"), descriptor("b"), descriptor("c")], fileURL: tempFile())
         let id = try #require(store.formCollection(target: "a", dragged: "b", named: "n"))
-        store.addToCollection(id, moduleID: "c")
+        store.addToCollection(id, member: "c")
         guard case .collection(let made) = store.layout.items[0] else {
             Issue.record("expected collection"); return
         }
@@ -109,8 +138,8 @@ struct GamesLayoutStoreTests {
         let store = GamesLayoutStore(
             modules: [descriptor("a"), descriptor("b"), descriptor("c")], fileURL: tempFile())
         let id = try #require(store.formCollection(target: "a", dragged: "b", named: "n"))
-        store.addToCollection(id, moduleID: "c")
-        store.moveMember(in: id, moduleID: "c", toIndex: 0)
+        store.addToCollection(id, member: "c")
+        store.moveMember(in: id, member: "c", toIndex: 0)
         guard case .collection(let made) = store.layout.items[0] else {
             Issue.record("expected collection at items[0]"); return
         }
@@ -137,5 +166,155 @@ struct GamesLayoutStoreTests {
             Issue.record("expected collection at items[0]"); return
         }
         #expect(made.name == "  周末去哪儿 🎡 ")   // verbatim — user data (S6)
+    }
+
+    // MARK: - v2: external app tiles (S7)
+
+    private func identityV(id: UUID = UUID()) -> GamesLayout.ExternalApp {
+        GamesLayout.ExternalApp(id: id, name: "Identity V", emoji: "🎮",
+                                artworkURL: nil,
+                                launchURL: URL(string: "identityv://"),
+                                storeURL: nil)
+    }
+
+    @Test func addExternalAppAppendsTileAndPersists() throws {
+        let url = tempFile()
+        let store = GamesLayoutStore(modules: [descriptor("a")], fileURL: url)
+        let game = identityV()
+        store.addExternalApp(game)
+        #expect(store.layout.items.map(\.id) == [.app("a"), .external(game.id)])
+        #expect(store.layout.externalApps == [game])
+        let reloaded = GamesLayoutStore(modules: [descriptor("a")], fileURL: url)
+        #expect(reloaded.layout == store.layout)
+    }
+
+    @Test func updateExternalAppReplacesFields() {
+        let store = GamesLayoutStore(modules: [descriptor("a")], fileURL: tempFile())
+        var game = identityV()
+        store.addExternalApp(game)
+        game.name = "第五人格"
+        game.storeURL = URL(string: "https://apps.apple.com/app/id1191740709")
+        store.updateExternalApp(game)
+        #expect(store.layout.externalApps == [game])
+    }
+
+    @Test func deleteExternalAppRemovesEverywhereAndDissolves() throws {
+        let store = GamesLayoutStore(modules: [descriptor("a")], fileURL: tempFile())
+        let game = identityV()
+        store.addExternalApp(game)
+        let id = try #require(store.formCollection(target: game.memberKey,
+                                                   dragged: "a", named: "n"))
+        store.moveMemberToRoot("a", from: id)   // collection now holds only the external
+        store.deleteExternalApp(id: game.id)
+        #expect(store.layout.externalApps.isEmpty)
+        #expect(store.layout.items.map(\.id) == [.app("a")])   // dissolved (S5)
+    }
+
+    @Test func formCollectionAcceptsExternalParticipants() throws {
+        let store = GamesLayoutStore(modules: [descriptor("a")], fileURL: tempFile())
+        let game = identityV()
+        store.addExternalApp(game)
+        let id = try #require(store.formCollection(target: "a",
+                                                   dragged: game.memberKey, named: "n"))
+        guard case .collection(let made) = store.layout.items[0] else {
+            Issue.record("expected collection at items[0]"); return
+        }
+        #expect(made.id == id)
+        #expect(made.members == ["a", game.memberKey])
+        #expect(store.layout.items.count == 1)   // the external's root tile was absorbed
+    }
+
+    @Test func addToCollectionAcceptsExternalMember() throws {
+        let store = GamesLayoutStore(
+            modules: [descriptor("a"), descriptor("b")], fileURL: tempFile())
+        let game = identityV()
+        store.addExternalApp(game)
+        let id = try #require(store.formCollection(target: "a", dragged: "b", named: "n"))
+        store.addToCollection(id, member: game.memberKey)
+        guard case .collection(let made) = store.layout.items[0] else {
+            Issue.record("expected collection at items[0]"); return
+        }
+        #expect(made.members == ["a", "b", game.memberKey])
+    }
+
+    @Test func moveMemberToRootRestoresExternalItem() throws {
+        let store = GamesLayoutStore(modules: [descriptor("a")], fileURL: tempFile())
+        let game = identityV()
+        store.addExternalApp(game)
+        let id = try #require(store.formCollection(target: "a",
+                                                   dragged: game.memberKey, named: "n"))
+        store.moveMemberToRoot(game.memberKey, from: id)
+        // The external returns to the grid as an external tile, not a module tile.
+        #expect(store.layout.items.map(\.id) == [.collection(id), .external(game.id)])
+    }
+
+    @Test func savedDocumentsStampCurrentVersion() throws {
+        let url = tempFile()
+        let v1 = GamesLayout(version: 1, items: [.app(moduleID: "a")])
+        try JSONEncoder().encode(v1).write(to: url)
+        _ = GamesLayoutStore(modules: [descriptor("a")], fileURL: url)
+        let onDisk = try JSONDecoder().decode(GamesLayout.self,
+                                              from: Data(contentsOf: url))
+        #expect(onDisk.version == GamesLayout.currentVersion)
+    }
+
+    @Test func learningASchemeUpsertsAndPersists() throws {
+        let url = tempFile()
+        let store = GamesLayoutStore(modules: [], fileURL: url)
+        store.learnScheme(name: "Honor of Kings", scheme: "wrongguess://")
+        store.learnScheme(name: "honor of kings ", scheme: "smoba://")   // upsert
+        #expect(store.layout.learnedSchemes.count == 1)
+        #expect(store.layout.learnedSchemes.first?.scheme == "smoba://")
+
+        let reloaded = GamesLayoutStore(modules: [], fileURL: url)
+        #expect(reloaded.layout.learnedSchemes.first?.scheme == "smoba://")
+    }
+
+    @Test func shortcutLinksAreNeverLearned() {
+        // Opening shortcuts:// always "succeeds" even when the shortcut is
+        // gone — per-phone and unverifiable, so it isn't knowledge.
+        let store = GamesLayoutStore(modules: [], fileURL: tempFile())
+        store.learnScheme(name: "Honor of Kings",
+                          scheme: "shortcuts://run-shortcut?name=HOK")
+        #expect(store.layout.learnedSchemes.isEmpty)
+    }
+
+    @Test func staleLearnedShortcutLinksAreScrubbedOnLoad() throws {
+        let url = tempFile()
+        let stale = GamesLayout(
+            version: GamesLayout.currentVersion,
+            items: [],
+            learnedSchemes: [
+                .init(name: "HOK", scheme: "shortcuts://run-shortcut?name=HOK"),
+                .init(name: "Wild Rift", scheme: "wildrift://"),
+            ])
+        try JSONEncoder().encode(stale).write(to: url)
+        let store = GamesLayoutStore(modules: [], fileURL: url)
+        #expect(store.layout.learnedSchemes
+                == [.init(name: "Wild Rift", scheme: "wildrift://")])
+    }
+
+    @Test func verifiedLookupsPreferLearnedOverSeeds() {
+        let store = GamesLayoutStore(modules: [], fileURL: tempFile())
+        // Seeds still answer for games the code catalog knows…
+        #expect(store.verifiedScheme(for: "League of Legends: Wild Rift")
+                == "wildrift://")
+        // …runtime learning answers for everything else, and the learned
+        // name doubles as the home-screen-style display name.
+        store.learnScheme(name: "Honor of Kings", scheme: "smoba://")
+        #expect(store.verifiedScheme(for: "Honor of Kings: MOBA Battle")
+                == "smoba://")
+        #expect(store.verifiedDisplayName(for: "Honor of Kings: MOBA Battle")
+                == "Honor of Kings")
+        #expect(store.verifiedScheme(for: "Candy Crush Saga") == nil)
+    }
+
+    @Test func externalLookupResolvesByMemberKey() {
+        let store = GamesLayoutStore(modules: [], fileURL: tempFile())
+        let game = identityV()
+        store.addExternalApp(game)
+        #expect(store.externalApp(forKey: game.memberKey) == game)
+        #expect(store.externalApp(forKey: "a") == nil)
+        #expect(store.externalApp(forKey: UUID().uuidString) == nil)
     }
 }

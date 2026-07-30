@@ -9,6 +9,7 @@ struct AppShell: View {
 
     private let modules: [ModuleDescriptor]
     @State private var store: GamesLayoutStore
+    @State private var artwork: ArtworkStore
     @State private var selection: AppTab
 
     init() {
@@ -20,6 +21,7 @@ struct AppShell: View {
         #endif
         self.modules = modules
         _store = State(initialValue: GamesLayoutStore(modules: modules))
+        _artwork = State(initialValue: ArtworkStore())
         _selection = State(initialValue:
             Self.launchArguments.contains("-selectGames") ? .games : .home)
     }
@@ -30,11 +32,12 @@ struct AppShell: View {
                 .tabItem { Label("Home", systemImage: "house.fill") }
                 .tag(AppTab.home)
             GamesTabView()
-                .tabItem { Label("Games", systemImage: "gamecontroller.fill") }
+                .tabItem { Label("Apps", systemImage: "square.grid.2x2.fill") }
                 .tag(AppTab.games)
         }
         .tint(Theme.indigo)   // reads on the gradient's peach bottom, where the bar sits
         .environment(store)
+        .environment(artwork)
     }
 
     private static var launchArguments: [String] {

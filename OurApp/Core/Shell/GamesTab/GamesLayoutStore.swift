@@ -19,11 +19,64 @@ final class GamesLayoutStore {
         self.modulesByID = Dictionary(uniqueKeysWithValues: modules.map { ($0.id, $0) })
         self.fileURL = fileURL
         let ids = modules.map(\.id)
-        layout = Self.load(from: fileURL, moduleIDs: ids).reconciled(with: ids)
+        var loaded = Self.load(from: fileURL, moduleIDs: ids).reconciled(with: ids)
+        // Saves always carry the running build's schema version — older
+        // documents are migrated (losslessly) the moment they're loaded.
+        loaded.version = GamesLayout.currentVersion
+        // Shortcut links learned by earlier builds were false knowledge
+        // (opening Shortcuts "succeeds" even when the shortcut is gone).
+        loaded.learnedSchemes.removeAll { $0.scheme.hasPrefix("shortcuts://") }
+        layout = loaded
         save()
     }
 
     func module(for id: String) -> ModuleDescriptor? { modulesByID[id] }
+
+    func externalApp(forKey key: String) -> GamesLayout.ExternalApp? {
+        layout.externalApp(withKey: key)
+    }
+
+    func externalApp(id: UUID) -> GamesLayout.ExternalApp? {
+        layout.externalApps.first { $0.id == id }
+    }
+
+    /// The glyph a collection's 3×3 mini-grid shows for a member key.
+    func glyph(forMember member: String) -> String {
+        module(for: member)?.emoji ?? externalApp(forKey: member)?.emoji ?? ""
+    }
+
+    // MARK: - Learned schemes (runtime-verified, S7)
+
+    /// Records a scheme the moment it's proven (probe, Test launch, or a
+    /// self-healed tap) — upserted by name, persisted, and consulted before
+    /// the code-seeded catalog from then on. No code edits per game.
+    func learnScheme(name: String, scheme: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, !scheme.isEmpty,
+              // shortcuts:// opens are per-phone and always "succeed" even
+              // when the target shortcut is gone — not knowledge.
+              !scheme.hasPrefix("shortcuts://")
+        else { return }
+        let key = trimmed.lowercased()
+        layout.learnedSchemes.removeAll { $0.name.lowercased() == key }
+        layout.learnedSchemes.append(.init(name: trimmed, scheme: scheme))
+        save()
+    }
+
+    /// Learned knowledge first, code seeds second (SchemeCatalog).
+    func verifiedScheme(for title: String) -> String? {
+        learnedEntry(for: title)?.scheme ?? SchemeCatalog.verified(for: title)
+    }
+
+    func verifiedDisplayName(for title: String) -> String? {
+        learnedEntry(for: title)?.name ?? SchemeCatalog.displayName(for: title)
+    }
+
+    private func learnedEntry(for title: String) -> GamesLayout.LearnedScheme? {
+        let haystack = title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !haystack.isEmpty else { return nil }
+        return layout.learnedSchemes.first { haystack.contains($0.name.lowercased()) }
+    }
 
     // MARK: - Persistence
 
@@ -40,7 +93,15 @@ final class GamesLayoutStore {
               decoded.version <= GamesLayout.currentVersion
         else {
             // Fail-soft (principle 7): a missing, corrupt, or from-the-future
-            // file silently becomes the default layout.
+            // file silently becomes the default layout — but the bytes carry
+            // user-authored externals (S7), so preserve them for hand recovery
+            // before the first save overwrites the file.
+            if FileManager.default.fileExists(atPath: url.path) {
+                let stamp = Int(Date().timeIntervalSince1970)
+                let backup = url.deletingLastPathComponent()
+                    .appendingPathComponent("\(url.lastPathComponent).unreadable-\(stamp)")
+                try? FileManager.default.moveItem(at: url, to: backup)
+            }
             return .default(moduleIDs: moduleIDs)
         }
         return decoded
@@ -65,43 +126,44 @@ final class GamesLayoutStore {
     @discardableResult
     func formCollection(target: String, dragged: String, named name: String) -> UUID? {
         guard target != dragged,
-              let targetIndex = layout.items.firstIndex(where: { $0.id == .app(target) }),
-              layout.items.contains(where: { $0.id == .app(dragged) })
+              let targetID = rootTileID(forMember: target),
+              let draggedID = rootTileID(forMember: dragged),
+              let targetIndex = layout.items.firstIndex(where: { $0.id == targetID })
         else { return nil }
         let collection = GamesLayout.Collection(id: UUID(), name: name,
                                                 members: [target, dragged])
         layout.items[targetIndex] = .collection(collection)
-        layout.items.removeAll { $0.id == .app(dragged) }
+        layout.items.removeAll { $0.id == draggedID }
         save()
         return collection.id
     }
 
-    func addToCollection(_ collectionID: UUID, moduleID: String) {
-        guard layout.items.contains(where: { $0.id == .app(moduleID) }),
+    func addToCollection(_ collectionID: UUID, member: String) {
+        guard let memberID = rootTileID(forMember: member),
               let index = collectionIndex(collectionID),
               case .collection(var collection) = layout.items[index]
         else { return }
-        collection.members.append(moduleID)
+        collection.members.append(member)
         layout.items[index] = .collection(collection)
-        layout.items.removeAll { $0.id == .app(moduleID) }
+        layout.items.removeAll { $0.id == memberID }
         save()
     }
 
-    func moveMember(in collectionID: UUID, moduleID: String, toIndex: Int) {
+    func moveMember(in collectionID: UUID, member: String, toIndex: Int) {
         guard let index = collectionIndex(collectionID),
               case .collection(var collection) = layout.items[index],
-              let from = collection.members.firstIndex(of: moduleID)
+              let from = collection.members.firstIndex(of: member)
         else { return }
-        let member = collection.members.remove(at: from)
-        collection.members.insert(member, at: min(max(toIndex, 0), collection.members.count))
+        let moved = collection.members.remove(at: from)
+        collection.members.insert(moved, at: min(max(toIndex, 0), collection.members.count))
         layout.items[index] = .collection(collection)
         save()
     }
 
-    func moveMemberToRoot(_ moduleID: String, from collectionID: UUID) {
+    func moveMemberToRoot(_ member: String, from collectionID: UUID) {
         guard let index = collectionIndex(collectionID),
               case .collection(var collection) = layout.items[index],
-              let from = collection.members.firstIndex(of: moduleID)
+              let from = collection.members.firstIndex(of: member)
         else { return }
         collection.members.remove(at: from)
         if collection.members.isEmpty {
@@ -109,8 +171,61 @@ final class GamesLayoutStore {
         } else {
             layout.items[index] = .collection(collection)
         }
-        layout.items.append(.app(moduleID: moduleID))
+        layout.items.append(item(forMember: member))
         save()
+    }
+
+    // MARK: - External apps (S7)
+
+    func addExternalApp(_ app: GamesLayout.ExternalApp) {
+        guard !layout.externalApps.contains(where: { $0.id == app.id }) else { return }
+        layout.externalApps.append(app)
+        layout.items.append(.external(externalID: app.id))
+        save()
+    }
+
+    func updateExternalApp(_ app: GamesLayout.ExternalApp) {
+        guard let index = layout.externalApps.firstIndex(where: { $0.id == app.id })
+        else { return }
+        layout.externalApps[index] = app
+        save()
+    }
+
+    /// The one deletion the springboard allows (S7): externals are user-added,
+    /// so the user removes them — modules never can be. Strips the registry
+    /// entry, the root tile, and every collection reference (dissolving
+    /// collections that empty, S5).
+    func deleteExternalApp(id: UUID) {
+        let key = id.uuidString
+        layout.externalApps.removeAll { $0.id == id }
+        layout.items = layout.items.compactMap { item in
+            switch item {
+            case .external(let externalID) where externalID == id:
+                return nil
+            case .collection(var collection):
+                collection.members.removeAll { $0 == key }
+                return collection.members.isEmpty ? nil : .collection(collection)
+            default:
+                return item
+            }
+        }
+        save()
+    }
+
+    /// Resolves a member key to the root tile carrying it, if one exists.
+    private func rootTileID(forMember member: String) -> GamesLayout.ItemID? {
+        let candidate = item(forMember: member).id
+        return layout.items.contains { $0.id == candidate } ? candidate : nil
+    }
+
+    /// The root item a member key materializes as: an external tile when the
+    /// registry backs it, a module tile otherwise.
+    private func item(forMember member: String) -> GamesLayout.Item {
+        if let uuid = UUID(uuidString: member),
+           layout.externalApps.contains(where: { $0.id == uuid }) {
+            return .external(externalID: uuid)
+        }
+        return .app(moduleID: member)
     }
 
     func renameCollection(_ collectionID: UUID, to name: String) {

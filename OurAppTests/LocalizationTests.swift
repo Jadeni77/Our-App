@@ -44,11 +44,44 @@ struct LocalizationTests {
         #expect(localizedValue("Unnamed spot", language: "zh-Hant") == "無名小店")
     }
 
+    @Test func externalAppStringsAreTranslated() {
+        #expect(localizedValue("Add a game", language: "zh-Hans") == "添加游戏")
+        #expect(localizedValue("Add a game", language: "zh-Hant") == "新增遊戲")
+        #expect(localizedValue("Test launch", language: "zh-Hans") == "测试启动")
+        #expect(localizedValue("Couldn't open", language: "zh-Hans") == "打不开")
+        #expect(localizedValue("Cancel", language: "zh-Hant") == "取消")
+        #expect(localizedValue("Add", language: "zh-Hans") == "添加")
+        #expect(localizedValue("Opened", language: "zh-Hant") == "已打開")
+        #expect(localizedValue("Add this game?", language: "zh-Hans") == "要添加这个游戏吗？")
+        #expect(localizedValue("Add this game?", language: "zh-Hant") == "要新增這個遊戲嗎？")
+        #expect(localizedValue("Use a Shortcut instead", language: "zh-Hans") == "改用快捷指令")
+        #expect(localizedValue("Use a Shortcut instead", language: "zh-Hant") == "改用捷徑")
+        #expect(localizedValue("Open Shortcuts", language: "zh-Hant") == "打開捷徑")
+        #expect(localizedValue("Copy name", language: "zh-Hans") == "复制名称")
+        #expect(localizedValue("Set up link", language: "zh-Hans") == "设置链接")
+        #expect(localizedValue("Open App Store", language: "zh-Hant") == "打開 App Store")
+        #expect(localizedValue("Opens the App Store every time — link it to launch directly?",
+                               language: "zh-Hans") == "每次都会打开 App Store——要设置直接启动的链接吗？")
+        #expect(localizedValue("Find launch link", language: "zh-Hans") == "自动查找启动链接")
+        #expect(localizedValue("Find launch link", language: "zh-Hant") == "自動尋找啟動連結")
+        #expect(localizedValue("Already added — edit it", language: "zh-Hans") == "已添加——去编辑")
+        #expect(localizedValue("Already added — edit it", language: "zh-Hant") == "已新增——去編輯")
+        #expect(localizedValue("Remove", language: "zh-Hans") == "移除")
+        #expect(localizedValue("Edit", language: "zh-Hant") == "編輯")
+        #expect(localizedValue("OK", language: "zh-Hans") == "好")
+        let schemeFooter = "iOS needs an app's link (URL scheme) to open it directly. "
+            + "Without one, the tile opens its App Store page instead."
+        #expect(localizedValue(schemeFooter, language: "zh-Hans")
+                == "iOS 需要应用的链接（URL Scheme）才能直接打开它。没有链接时，会改为打开它的 App Store 页面。")
+        #expect(localizedValue(schemeFooter, language: "zh-Hant")
+                == "iOS 需要應用程式的連結（URL Scheme）才能直接開啟它。沒有連結時，會改為開啟它的 App Store 頁面。")
+    }
+
     @Test func springboardStringsAreTranslated() {
         #expect(localizedValue("Home", language: "zh-Hans") == "首页")
         #expect(localizedValue("Home", language: "zh-Hant") == "首頁")
-        #expect(localizedValue("Games", language: "zh-Hans") == "游戏")
-        #expect(localizedValue("Games", language: "zh-Hant") == "遊戲")
+        #expect(localizedValue("Apps", language: "zh-Hans") == "应用")
+        #expect(localizedValue("Apps", language: "zh-Hant") == "應用")
         #expect(localizedValue("Done", language: "zh-Hans") == "完成")
         #expect(localizedValue("New collection", language: "zh-Hans") == "新合集")
         #expect(localizedValue("New collection", language: "zh-Hant") == "新合輯")
