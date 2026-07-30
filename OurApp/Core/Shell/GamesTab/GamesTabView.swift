@@ -471,6 +471,7 @@ struct GamesTabView: View {
 
             for candidate in attempts {
                 guard let url = URL(string: candidate) else { continue }
+                let started = Date()
                 if await UIApplication.shared.open(url) {
                     // A working launch is proof: keep the tile and the
                     // catalog learning from it.
@@ -482,6 +483,10 @@ struct GamesTabView: View {
                     store.learnScheme(name: app.name, scheme: candidate)
                     return
                 }
+                // A missing scheme fails in milliseconds; a human dismissing
+                // iOS's "wants to open" prompt takes seconds. A slow "no" is
+                // the owner declining — stop everything, including the store.
+                if Date().timeIntervalSince(started) > 1.5 { return }
             }
             openStoreOrFail(app)
         }

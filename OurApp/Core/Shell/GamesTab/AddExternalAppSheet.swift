@@ -80,7 +80,11 @@ struct AddExternalAppSheet: View {
                                 Spacer()
                                 if isProbing {
                                     ProgressView()
-                                } else if let probeOpened {
+                                } else if let probeOpened, !fieldIsShortcutLink {
+                                    // No verdict for shortcuts:// — opening
+                                    // Shortcuts "succeeds" even when the
+                                    // shortcut is missing; the owner watched
+                                    // what actually happened.
                                     (probeOpened ? Text("Opened") : Text("Couldn't open"))
                                         .foregroundStyle(probeOpened ? .green : .secondary)
                                 }
@@ -110,7 +114,10 @@ struct AddExternalAppSheet: View {
                         }
                     }
 
-                    if showsShortcutHelp, probeOpened != true {
+                    // Help stays through the whole Shortcut setup (Test
+                    // launch opening the Shortcuts app must not hide it);
+                    // it retires only when a real scheme gets verified.
+                    if showsShortcutHelp, probeOpened != true || fieldIsShortcutLink {
                         Text(String(format: String(localized:
                             "1. Tap Open Shortcuts below — a new shortcut opens.\n2. Add the “Open App” action and choose %1$@.\n3. Tap the title at the top, choose Rename, and paste (“%1$@” is copied — Copy name refreshes it).\n4. Come back and tap Test launch.\n\nSays the shortcut can’t be found? The names don’t match — rename it in Shortcuts, or tap Use a Shortcut instead to start over."),
                             trimmedName))
@@ -296,11 +303,18 @@ struct AddExternalAppSheet: View {
             attempts = attempts.filter { seen.insert($0).inserted }
             for candidate in attempts {
                 guard let url = URL(string: candidate) else { continue }
+                let started = Date()
                 if await UIApplication.shared.open(url) {
                     schemeSetByProbe = true
                     scheme = candidate
                     probeOpened = true
                     Haptics.success()
+                    isProbing = false
+                    return
+                }
+                // A slow failure is a dismissed iOS confirmation — the owner
+                // said no; stop the walk without a verdict.
+                if Date().timeIntervalSince(started) > 1.5 {
                     isProbing = false
                     return
                 }
@@ -357,10 +371,17 @@ struct AddExternalAppSheet: View {
                              excluding: existing?.id)
     }
 
+    private var fieldIsShortcutLink: Bool {
+        scheme.trimmingCharacters(in: .whitespacesAndNewlines)
+            .hasPrefix("shortcuts://")
+    }
+
     /// A Shortcut only earns its place once the guesses have actually failed
-    /// — or when a name yields none to try (and nothing is typed).
+    /// — or when a name yields none to try (and nothing is typed). While a
+    /// shortcut link is being set up, the button stays: it's also the reset.
     private var shortcutIsTheLastResort: Bool {
         guard !trimmedName.isEmpty else { return false }
+        if fieldIsShortcutLink { return true }
         if probeOpened == false { return true }
         return normalizedSchemeURL == nil
             && SchemeCatalog.candidates(from: trimmedName).isEmpty
