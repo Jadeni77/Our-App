@@ -104,6 +104,29 @@
         }
       }
     },
+    "Add this game?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add this game?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要添加这个游戏吗？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要新增這個遊戲嗎？"
+          }
+        }
+      }
+    },
     "Add your names" : {
       "extractionState" : "manual",
       "localizations" : {

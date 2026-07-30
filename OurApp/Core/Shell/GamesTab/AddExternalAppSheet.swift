@@ -15,6 +15,9 @@ struct AddExternalAppSheet: View {
     @State private var scheme = ""
     @State private var probeOpened: Bool?
     @State private var isAdding = false
+    @State private var searchResults: [ITunesSearch.Result] = []
+    @State private var searchTask: Task<Void, Never>?
+    @State private var pendingPick: ITunesSearch.Result?
 
     /// Starter suggestions (owners' list — Identity V first). An entry
     /// carries its scheme once one is verified with Test launch on a real
@@ -29,7 +32,8 @@ struct AddExternalAppSheet: View {
     private static let suggestions: [Suggestion] = [
         .init(name: "Identity V"),
         .init(name: "第五人格"),
-        .init(name: "Wild Rift", scheme: "wildrift://"),   // verified on device 2026-07-30
+        .init(name: "Wild Rift", scheme: "wildrift://"),           // verified 2026-07-30
+        .init(name: "Clash of Clans", scheme: "clashofclans://"),  // verified 2026-07-30
     ]
 
     /// Best-effort scheme guess: the latin letters and digits of the name,
@@ -101,6 +105,41 @@ struct AddExternalAppSheet: View {
                     // (the store page shows Open for installed apps).
                     Text("iOS needs an app's link (URL scheme) to open it directly. Without one, the tile opens its App Store page instead.")
                 }
+
+                // The lookup the owners asked for (2026-07-30): as the name is
+                // typed, matching store entries appear — tap one, confirm, and
+                // the tile arrives with the exact title and artwork.
+                if existing == nil, !searchResults.isEmpty {
+                    Section {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 16) {
+                                ForEach(searchResults, id: \.self) { result in
+                                    Button {
+                                        Haptics.tap()
+                                        pendingPick = result
+                                    } label: {
+                                        VStack(spacing: 4) {
+                                            AsyncImage(url: result.artworkUrl100) { image in
+                                                image.resizable().scaledToFill()
+                                            } placeholder: {
+                                                Color.secondary.opacity(0.15)
+                                            }
+                                            .frame(width: 48, height: 48)
+                                            .clipShape(RoundedRectangle(cornerRadius: 10,
+                                                                        style: .continuous))
+                                            Text(verbatim: result.trackName)
+                                                .font(.caption2)
+                                                .lineLimit(1)
+                                                .frame(width: 64)
+                                        }
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                            .padding(.vertical, 2)
+                        }
+                    }
+                }
             }
             .navigationTitle(existing.map { Text(verbatim: $0.name) } ?? Text("Add a game"))
             .navigationBarTitleDisplayMode(.inline)
@@ -128,6 +167,59 @@ struct AddExternalAppSheet: View {
             guard let existing else { return }
             name = existing.name
             scheme = existing.launchURL?.absoluteString ?? ""
+        }
+        .onChange(of: name) {
+            searchTask?.cancel()
+            let query = trimmedName
+            guard existing == nil, query.count >= 2 else {
+                searchResults = []
+                return
+            }
+            searchTask = Task {
+                // Debounce keystrokes; a newer query cancels this one.
+                try? await Task.sleep(for: .milliseconds(400))
+                guard !Task.isCancelled else { return }
+                let found = await ITunesSearch.search(name: query)
+                guard !Task.isCancelled else { return }
+                searchResults = found.filter {
+                    !Self.isDuplicateName($0.trackName,
+                                          among: store.layout.externalApps,
+                                          excluding: nil)
+                }
+            }
+        }
+        .alert(
+            Text(verbatim: pendingPick?.trackName ?? ""),
+            isPresented: Binding(
+                get: { pendingPick != nil },
+                set: { if !$0 { pendingPick = nil } }),
+            presenting: pendingPick
+        ) { pick in
+            Button("Add") { addPicked(pick) }
+            Button("Cancel", role: .cancel) {}
+        } message: { _ in
+            Text("Add this game?")
+        }
+    }
+
+    /// A picked store entry commits with its exact title and artwork; the
+    /// launch link starts as a derived guess (Test launch refines it later
+    /// via Edit — a wrong guess still falls back to the store page).
+    private func addPicked(_ pick: ITunesSearch.Result) {
+        guard !isAdding else { return }
+        var app = GamesLayout.ExternalApp(
+            id: UUID(), name: pick.trackName, emoji: "🎮",
+            artworkURL: pick.artworkUrl512, launchURL: nil,
+            storeURL: pick.trackViewUrl)
+        app.launchURL = Self.normalizedLaunchURL(
+            from: Self.derivedScheme(from: pick.trackName))
+        isAdding = true
+        Task {
+            if let artworkURL = pick.artworkUrl512 {
+                await artwork.refreshArtwork(from: artworkURL, for: app.id)
+            }
+            onCommit(app)
+            dismiss()
         }
     }
 

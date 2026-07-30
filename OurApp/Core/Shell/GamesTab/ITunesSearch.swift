@@ -4,8 +4,10 @@ import Foundation
 /// game with official artwork and its App Store page. Every failure is soft —
 /// callers get nil and the tile keeps its emoji fallback.
 enum ITunesSearch {
-    struct Result: Decodable, Equatable {
+    struct Result: Decodable, Equatable, Hashable {
         let trackName: String
+        /// Small icon for pickers; the tile itself caches the 512 version.
+        let artworkUrl100: URL?
         let artworkUrl512: URL?
         let trackViewUrl: URL?
     }
@@ -14,7 +16,7 @@ enum ITunesSearch {
         let results: [Result]
     }
 
-    static func searchURL(for name: String) -> URL? {
+    static func searchURL(for name: String, limit: Int = 1) -> URL? {
         var components = URLComponents()
         components.scheme = "https"
         components.host = "itunes.apple.com"
@@ -22,21 +24,29 @@ enum ITunesSearch {
         components.queryItems = [
             URLQueryItem(name: "term", value: name),
             URLQueryItem(name: "entity", value: "software"),
-            URLQueryItem(name: "limit", value: "1"),
+            URLQueryItem(name: "limit", value: String(limit)),
         ]
         return components.url
     }
 
+    static func results(from data: Data) -> [Result] {
+        (try? JSONDecoder().decode(Response.self, from: data))?.results ?? []
+    }
+
     static func firstResult(from data: Data) -> Result? {
-        (try? JSONDecoder().decode(Response.self, from: data))?.results.first
+        results(from: data).first
+    }
+
+    /// Live-picker search: a handful of matches by name. Fails soft to [].
+    static func search(name: String, limit: Int = 5) async -> [Result] {
+        guard let url = searchURL(for: name, limit: limit) else { return [] }
+        let request = URLRequest(url: url, timeoutInterval: 4)
+        guard let (data, _) = try? await URLSession.shared.data(for: request)
+        else { return [] }
+        return results(from: data)
     }
 
     static func lookup(name: String) async -> Result? {
-        guard let url = searchURL(for: name) else { return nil }
-        // Short timeout: the add sheet awaits this before the tile appears.
-        let request = URLRequest(url: url, timeoutInterval: 4)
-        guard let (data, _) = try? await URLSession.shared.data(for: request)
-        else { return nil }
-        return firstResult(from: data)
+        await search(name: name, limit: 1).first
     }
 }

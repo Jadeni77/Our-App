@@ -53,6 +53,8 @@ struct LocalizationTests {
         #expect(localizedValue("Cancel", language: "zh-Hant") == "取消")
         #expect(localizedValue("Add", language: "zh-Hans") == "添加")
         #expect(localizedValue("Opened", language: "zh-Hant") == "已打開")
+        #expect(localizedValue("Add this game?", language: "zh-Hans") == "要添加这个游戏吗？")
+        #expect(localizedValue("Add this game?", language: "zh-Hant") == "要新增這個遊戲嗎？")
         #expect(localizedValue("Already added", language: "zh-Hans") == "已添加")
         #expect(localizedValue("Already added", language: "zh-Hant") == "已新增")
         #expect(localizedValue("Remove", language: "zh-Hans") == "移除")

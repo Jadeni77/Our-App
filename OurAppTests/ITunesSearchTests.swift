@@ -40,4 +40,28 @@ struct ITunesSearchTests {
         #expect(ITunesSearch.firstResult(from: empty) == nil)
         #expect(ITunesSearch.firstResult(from: Data("not json".utf8)) == nil)
     }
+
+    @Test func resultsParseManyMatchesWithSmallArtwork() throws {
+        let json = """
+        {"resultCount":2,"results":[\
+        {"trackName":"Clash of Clans",\
+        "artworkUrl100":"https://example.com/coc-small.png",\
+        "artworkUrl512":"https://example.com/coc.png",\
+        "trackViewUrl":"https://apps.apple.com/app/id529479190"},\
+        {"trackName":"Clash Royale"}]}
+        """
+        let results = ITunesSearch.results(from: Data(json.utf8))
+        #expect(results.count == 2)
+        #expect(results[0].trackName == "Clash of Clans")
+        #expect(results[0].artworkUrl100 == URL(string: "https://example.com/coc-small.png"))
+        #expect(results[1].artworkUrl100 == nil)
+        #expect(ITunesSearch.results(from: Data("junk".utf8)).isEmpty)
+    }
+
+    @Test func searchURLHonorsTheRequestedLimit() throws {
+        let url = try #require(ITunesSearch.searchURL(for: "Clash", limit: 5))
+        let components = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false))
+        #expect(try #require(components.queryItems)
+            .contains(URLQueryItem(name: "limit", value: "5")))
+    }
 }
