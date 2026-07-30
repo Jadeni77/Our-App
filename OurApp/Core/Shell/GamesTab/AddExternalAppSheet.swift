@@ -13,21 +13,46 @@ struct AddExternalAppSheet: View {
     @State private var scheme = ""
     @State private var probeOpened: Bool?
 
-    /// Starter suggestions (owners' list — Identity V first). Names only:
-    /// schemes get pinned down with Test launch on a real phone.
-    private static let suggestions = ["Identity V", "第五人格"]
+    /// Starter suggestions (owners' list — Identity V first). An entry
+    /// carries its scheme once one is verified with Test launch on a real
+    /// phone; until then, tapping a suggestion derives a testable guess
+    /// from the name.
+    private struct Suggestion {
+        let name: String
+        /// Verified on-device — nil means "derive a guess to test".
+        var scheme: String?
+    }
+
+    private static let suggestions: [Suggestion] = [
+        .init(name: "Identity V"),
+        .init(name: "第五人格"),
+    ]
+
+    /// Best-effort scheme guess: the latin letters and digits of the name,
+    /// lowercased, plus `://` — a starting point for Test launch, not a
+    /// promise. Fully non-latin names get an empty field instead of junk.
+    static func derivedScheme(from name: String) -> String {
+        let ascii = name.lowercased().unicodeScalars.filter {
+            $0.isASCII && CharacterSet.alphanumerics.contains($0)
+        }
+        guard !ascii.isEmpty else { return "" }
+        return String(String.UnicodeScalarView(ascii)) + "://"
+    }
 
     var body: some View {
         NavigationStack {
             Form {
                 if existing == nil {
                     Section("Suggested") {
-                        ForEach(Self.suggestions, id: \.self) { suggestion in
+                        ForEach(Self.suggestions, id: \.name) { suggestion in
                             Button {
                                 Haptics.tap()
-                                name = suggestion
+                                name = suggestion.name
+                                scheme = suggestion.scheme
+                                    ?? Self.derivedScheme(from: suggestion.name)
+                                probeOpened = nil
                             } label: {
-                                Text(verbatim: suggestion)   // game titles are data
+                                Text(verbatim: suggestion.name)   // game titles are data
                             }
                         }
                     }
