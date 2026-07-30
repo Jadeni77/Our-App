@@ -43,7 +43,7 @@ The app opens into **our space** — a themed couples home that feels like it be
 ### Shared core (only what's actually shared)
 - **Local persistence** — a store modules can read/write (e.g. a module's records). *(Built in v1: SwiftData container factory.)*
 - **Themed shell (homepage)** — *evolved from the original "app shell / navigation" item.* The app opens into a lush couples space: full-bleed bright moonlit background (code-drawn full moon + particles), the two partner avatars + names in the **top corners**, and a centered **day-counter hero** — label line, huge day number, anniversary date — computed from our anniversary, with ambient motion (gentle parallax). *(Layout refined per P8, structure loosely following a reference the user shared; art stays original.)* With P11 the shell frame becomes a themed **bottom tab bar** of surfaces — **Home** (this couples space) and **Games** (the launcher) — and every future surface is one new tab.
-- **Module launcher** — the shell's generic mechanism for mounting modules: the **Games tab's springboard grid** — app tiles plus user-arranged **collections** (iOS-folder style) with full jiggle-mode editing, layout kept per device in a small JSON document (P11, supersedes P8's trailing rail; doc: `docs/modules/games-springboard.md`); tapping a tile mounts that module's entry view. Food Decision is app #1.
+- **Module launcher** — the shell's generic mechanism for mounting modules: the **Games tab's springboard grid** — app tiles plus user-arranged **collections** (iOS-folder style) with full jiggle-mode editing, layout kept per device in a small JSON document (P11, supersedes P8's trailing rail; doc: `docs/modules/games-springboard.md`); tapping a tile mounts that module's entry view. Food Decision is app #1. *(Springboard v2 adds **external app tiles** — launching real games installed on the phone, per the module doc's S7.)*
 - **Couple identity** — names, photos, anniversary date, stored in **local settings for now** (no pairing/sync — principle 2). Becomes synced core data if/when two-phone sync lands (§7).
 - **Theme system** — the shared dreamy design language (principle 9) exposed as core tokens/components (colors, gradients, glass materials, motion curves, haptic patterns) that shell and modules consume.
 - **Localization infrastructure** — one String Catalog covering en / zh-Hans / zh-Hant (principle 8). Language is switchable **both** ways: iOS's per-app language setting, and an in-app picker in the couple settings (System / English / 简体中文 / 繁體中文 — P9). The in-app override re-renders the UI live via the SwiftUI locale environment and aligns bundle lookups on next launch.
@@ -90,7 +90,7 @@ Keep this to genuinely contested, cross-cutting decisions. Feature-level choices
 | Module | Status | Doc |
 |--------|--------|-----|
 | Food decision ("what should we eat") | 🚧 v2 built — tri-language + Chinese search, in trial | `docs/modules/food-decision.md` |
-| Games springboard (launcher surface — core shell chrome, documented module-style) | 🚧 v1 built — pending on-device feel pass | `docs/modules/games-springboard.md` |
+| Games springboard (launcher surface — core shell chrome, documented module-style) | 🚧 v1 built — pending on-device feel pass; v2 (external app tiles) specced | `docs/modules/games-springboard.md` |
 | History (past decisions) | 📋 Planned *(supersedes the earlier "History / home page" row — the home page moved into the core shell, see P4)* | — |
 | Two-phone sync (shared core capability) | 📋 Planned | — |
 | Home-screen Widget | 📋 Planned | — |
