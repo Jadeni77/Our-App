@@ -8,6 +8,7 @@ struct AddExternalAppSheet: View {
     var existing: GamesLayout.ExternalApp?
     let onCommit: (GamesLayout.ExternalApp) -> Void
 
+    @Environment(GamesLayoutStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     @State private var name = ""
     @State private var scheme = ""
@@ -60,6 +61,11 @@ struct AddExternalAppSheet: View {
 
                 Section {
                     TextField("Name", text: $name)
+                    if isDuplicate {
+                        Text("Already added")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                     TextField("URL scheme (optional)", text: $scheme)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
@@ -103,7 +109,7 @@ struct AddExternalAppSheet: View {
                     } label: {
                         existing == nil ? Text("Add") : Text("Done")
                     }
-                    .disabled(trimmedName.isEmpty)
+                    .disabled(trimmedName.isEmpty || isDuplicate)
                 }
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -121,12 +127,40 @@ struct AddExternalAppSheet: View {
         name.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    /// A bare app name is a valid scheme seed — "identityv" becomes
-    /// "identityv://" so Test launch and the tile both get a real URL.
+    /// One tile per game: the same name (trimmed, case-insensitive) can't be
+    /// added twice — though an edit may keep its own.
+    private var isDuplicate: Bool {
+        Self.isDuplicateName(trimmedName, among: store.layout.externalApps,
+                             excluding: existing?.id)
+    }
+
+    static func isDuplicateName(_ name: String,
+                                among externalApps: [GamesLayout.ExternalApp],
+                                excluding excludedID: UUID?) -> Bool {
+        let candidate = name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !candidate.isEmpty else { return false }
+        return externalApps.contains {
+            $0.id != excludedID
+                && $0.name.trimmingCharacters(in: .whitespacesAndNewlines)
+                    .lowercased() == candidate
+        }
+    }
+
     private var normalizedSchemeURL: URL? {
-        let trimmed = scheme.trimmingCharacters(in: .whitespacesAndNewlines)
+        Self.normalizedLaunchURL(from: scheme)
+    }
+
+    /// A bare app name is a valid scheme seed — "identityv" becomes
+    /// "identityv://" — and links whose query carries spaces (a Shortcuts
+    /// run-shortcut name, say) get percent-encoded rather than rejected.
+    static func normalizedLaunchURL(from raw: String) -> URL? {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
-        return URL(string: trimmed.contains("://") ? trimmed : trimmed + "://")
+        let candidate = trimmed.contains("://") ? trimmed : trimmed + "://"
+        if let url = URL(string: candidate) { return url }
+        guard let encoded = candidate.addingPercentEncoding(
+            withAllowedCharacters: .urlQueryAllowed) else { return nil }
+        return URL(string: encoded)
     }
 
     private func commit() {
@@ -142,4 +176,8 @@ struct AddExternalAppSheet: View {
 
 #Preview {
     AddExternalAppSheet(onCommit: { _ in })
+        .environment(GamesLayoutStore(
+            modules: [],
+            fileURL: FileManager.default.temporaryDirectory
+                .appendingPathComponent("preview-add-sheet.json")))
 }
