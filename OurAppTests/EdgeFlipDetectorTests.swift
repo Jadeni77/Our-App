@@ -49,6 +49,16 @@ struct EdgeFlipDetectorTests {
         #expect(detector.update(x: 200, width: width, now: t0 + 1) == nil)
     }
 
+    @Test func unmeasuredOrTinyWidthsNeverFire() {
+        // Before layout reports a size, width is 0 and every x would sit in
+        // a zone; below 2× the zone width the zones overlap.
+        var detector = EdgeFlipDetector()
+        #expect(detector.update(x: 10, width: 0, now: t0) == nil)
+        #expect(detector.update(x: 10, width: 0, now: t0 + 1) == nil)
+        #expect(detector.update(x: 40, width: 80, now: t0) == nil)
+        #expect(detector.update(x: 40, width: 80, now: t0 + 1) == nil)
+    }
+
     @Test func resetDropsTheArmedState() {
         var detector = EdgeFlipDetector()
         _ = detector.update(x: 10, width: width, now: t0)

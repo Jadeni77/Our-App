@@ -6,13 +6,14 @@ struct DirectionsPlannerTests {
     @Test func buildsGoogleMapsDrivingURL() {
         let url = DirectionsPlanner.googleMapsURL(latitude: 42.352, longitude: -71.064)
         #expect(url.absoluteString
-                == "comgooglemaps://?daddr=42.352,-71.064&directionsmode=driving")
+                == "comgooglemaps://?daddr=42.352000,-71.064000&directionsmode=driving")
     }
 
-    @Test func keepsFullCoordinatePrecision() {
-        let url = DirectionsPlanner.googleMapsURL(latitude: 42.3521234, longitude: 121.5)
+    @Test func nearZeroCoordinatesStayDecimalNotExponential() {
+        // "\(Double)" renders 5e-05 — a fixed format may not.
+        let url = DirectionsPlanner.googleMapsURL(latitude: 0.00005, longitude: 0)
         #expect(url.absoluteString
-                == "comgooglemaps://?daddr=42.3521234,121.5&directionsmode=driving")
+                == "comgooglemaps://?daddr=0.000050,0.000000&directionsmode=driving")
     }
 
     /// `canOpenURL` silently answers false for undeclared schemes, which

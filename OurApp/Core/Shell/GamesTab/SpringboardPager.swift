@@ -30,9 +30,11 @@ enum SpringboardPager {
     /// but the dragged tile never leaves the page its drag began on. Its
     /// hosting view owns the live gesture; letting another page's ForEach
     /// adopt it would tear that view down and cancel the drag mid-flight.
-    /// When the preview slot falls on another page, the invisible tile rides
-    /// along as an overflow cell at the end of its origin page (clipped below
-    /// the fold, never seen) and the target page simply shows no gap.
+    /// The preview slot is therefore clamped into the origin page's index
+    /// window: moving an element only *within* that window means every other
+    /// page — and the page count — stays byte-identical to the resting
+    /// layout. A preview slot on another page shows no gap there until
+    /// release, which still lands at the real index.
     static func previewPages(items: [GamesLayout.Item],
                              dragged: GamesLayout.ItemID,
                              insertAt: Int,
@@ -42,16 +44,15 @@ enum SpringboardPager {
             return pages(of: items, capacity: capacity)
         }
         var flat = items.filter { $0.id != dragged }
-        flat.insert(draggedItem, at: min(max(insertAt, 0), flat.count))
-        var paged = pages(of: flat, capacity: capacity)
-        guard let landed = paged.firstIndex(where: { page in
-                  page.contains { $0.id == dragged }
-              }),
-              landed != originPage, paged.indices.contains(originPage)
-        else { return paged }
-        paged[landed].removeAll { $0.id == dragged }
-        paged[originPage].append(draggedItem)
-        paged.removeAll(where: \.isEmpty)
-        return paged
+        guard capacity > 0 else {
+            flat.insert(draggedItem, at: min(max(insertAt, 0), flat.count))
+            return pages(of: flat, capacity: capacity)
+        }
+        let lastPage = (items.count - 1) / capacity
+        let origin = min(max(originPage, 0), lastPage)
+        let lower = origin * capacity
+        let upper = min(lower + capacity, items.count) - 1
+        flat.insert(draggedItem, at: min(max(insertAt, lower), upper))
+        return pages(of: flat, capacity: capacity)
     }
 }

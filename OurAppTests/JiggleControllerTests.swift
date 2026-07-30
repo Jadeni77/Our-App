@@ -87,6 +87,19 @@ struct JiggleControllerTests {
         #expect(jiggle.intent == .armedTarget(.app("b")))
     }
 
+    @Test func draggingWithNoVisibleNeighborsIsANoOp() {
+        // S8: a page can hold just the dragged tile (items % capacity == 1);
+        // the frame dictionary then has no candidates. Release must do
+        // nothing rather than read as .reorder(insertAt: 0).
+        let jiggle = JiggleController()
+        jiggle.beginDrag(.app("a"))
+        jiggle.updateDrag(location: CGPoint(x: 50, y: 50),
+                          frames: [.app("a"): CGRect(x: 0, y: 0, width: 100, height: 100)],
+                          order: order, now: t0)
+        #expect(jiggle.intent == .none)
+        #expect(jiggle.endDrag() == .none)
+    }
+
     @Test func endDragReturnsTheFinalIntentAndResets() {
         let jiggle = JiggleController()
         jiggle.beginDrag(.app("a"))

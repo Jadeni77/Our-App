@@ -70,22 +70,44 @@ struct SpringboardPagerTests {
 
     @Test func previewNeverMovesTheDraggedTileOffItsOriginPage() {
         // Dragging "f" (page 1) toward the front: the flat preview would put
-        // it on page 0, but its hosting view owns the live gesture — it must
-        // stay on page 1.
+        // it on page 0, but its hosting view owns the live gesture — the
+        // slot clamps to page 1's window and page 0 stays untouched.
         let pages = SpringboardPager.previewPages(
             items: apps("a", "b", "c", "d", "e", "f"), dragged: .app("f"),
             insertAt: 0, capacity: 4, originPage: 1)
-        #expect(moduleIDs(pages) == [["a", "b", "c"], ["d", "e", "f"]])
+        #expect(moduleIDs(pages) == [["a", "b", "c", "d"], ["f", "e"]])
     }
 
-    @Test func previewClampBackToOriginSurvivesEmptyingAPage() {
-        // "a" starts on page 0 and previews to the very end, which would
-        // leave it alone on page 1 — the clamp folds it back onto page 0
-        // (one invisible overflow cell) and drops the empty page.
+    @Test func previewClampsTheSlotIntoTheOriginPageWindow() {
+        // "a" starts on page 0 and previews to the very end (page 1's only
+        // slot) — the clamp keeps it in page 0's last slot instead.
         let pages = SpringboardPager.previewPages(
             items: apps("a", "b", "c", "d", "e"), dragged: .app("a"),
             insertAt: 4, capacity: 4, originPage: 0)
-        #expect(moduleIDs(pages) == [["b", "c", "d", "e", "a"]])
+        #expect(moduleIDs(pages) == [["b", "c", "d", "a"], ["e"]])
+    }
+
+    @Test func previewKeepsThePageCountAndTheOtherPagesStable() {
+        // The state that used to collapse a page mid-drag: the last page
+        // holds only the dragged tile. Every page but the origin must be
+        // byte-identical to the resting layout, and the count must hold —
+        // the pager's dots, edge-flip bounds, and position all read it.
+        let items = apps("a", "b", "c", "d", "e")
+        let resting = SpringboardPager.pages(of: items, capacity: 4)
+        let preview = SpringboardPager.previewPages(
+            items: items, dragged: .app("e"),
+            insertAt: 0, capacity: 4, originPage: 1)
+        #expect(preview.count == resting.count)
+        #expect(moduleIDs(preview) == [["a", "b", "c", "d"], ["e"]])
+    }
+
+    @Test func previewClampsAnOutOfRangeOriginPage() {
+        // A stale origin (cancelled drag, layout shrank) must still honor
+        // the invariant rather than silently skipping the clamp.
+        let pages = SpringboardPager.previewPages(
+            items: apps("a", "b", "c"), dragged: .app("c"),
+            insertAt: 0, capacity: 2, originPage: 9)
+        #expect(moduleIDs(pages) == [["a", "b"], ["c"]])
     }
 
     @Test func previewWithUnknownDraggedIDFallsBackToPlainPages() {

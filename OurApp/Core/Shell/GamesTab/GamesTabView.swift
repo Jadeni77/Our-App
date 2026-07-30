@@ -105,9 +105,11 @@ struct GamesTabView: View {
             )
             // Deleting or foldering away the last tile of the last page can
             // leave the position pointing past the end — settle back.
-            .onChange(of: pageSlices.count) { _, count in
+            .onChange(of: pageCount) { _, count in
                 if let page = currentPage, page >= count {
-                    withAnimation(Theme.springy) { currentPage = max(count - 1, 0) }
+                    withAnimation(reduceMotion ? nil : Theme.springy) {
+                        currentPage = max(count - 1, 0)
+                    }
                 }
             }
 
@@ -263,6 +265,17 @@ struct GamesTabView: View {
             if ProcessInfo.processInfo.arguments.contains("-jiggleMode") {
                 jiggle.isEditing = true
             }
+            // Screenshot arg for the far page — and standing proof that a
+            // programmatic scroll-position write lands while the pager's
+            // swipe is disabled, which is all the edit-mode paths (edge-flip,
+            // dot tap) are. Delayed so it exercises a mid-session flip, not
+            // the initial position.
+            if ProcessInfo.processInfo.arguments.contains("-secondPage") {
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(1))
+                    withAnimation(Theme.springy) { currentPage = 1 }
+                }
+            }
             #endif
         }
         .fullScreenCover(item: $openModule) { module in
@@ -270,10 +283,11 @@ struct GamesTabView: View {
         }
     }
 
-    /// Done and background-tap both leave edit mode this way: haptic, spring
-    /// back to rest, and drop any in-flight drag so a cancelled gesture
-    /// (notification shade, app switcher, backgrounding) can't strand a ghost
-    /// or leave `jiggle.draggedItem` set for the next drag to inherit.
+    /// Done — the only way out of edit mode — leaves it this way: haptic,
+    /// spring back to rest, and drop any in-flight drag so a cancelled
+    /// gesture (notification shade, app switcher, backgrounding) can't
+    /// strand a ghost or leave `jiggle.draggedItem` set for the next drag
+    /// to inherit.
     private func exitEditing() {
         Haptics.tap()
         withAnimation(Theme.springy) { jiggle.isEditing = false }
@@ -369,7 +383,12 @@ struct GamesTabView: View {
                     jiggle.beginDrag(id)
                     // The page the gesture's tile lives on, for the whole
                     // drag — previews never move the tile off it (S8).
-                    dragOriginPage = currentPage ?? 0
+                    // Derived from the tile itself, not `currentPage`: the
+                    // scroll binding can be nil (never swiped) or stale
+                    // (dot-tapped away after a cancelled drag).
+                    dragOriginPage = pageSlices.firstIndex { page in
+                        page.contains { $0.id == id }
+                    } ?? currentPage ?? 0
                     edgeFlip.reset()
                 }
                 dragLocation = value.location
@@ -408,11 +427,14 @@ struct GamesTabView: View {
 
     // MARK: - Pages (S8)
 
-    /// Tile height for page capacity: measured once real frames exist, a
-    /// width-derived estimate (square face + label) for the first render.
+    /// Tile height for page capacity, derived, never measured: the square
+    /// face is the column width, the label is one caption line (Dynamic
+    /// Type aware). Measured frames wobble in edit mode — the rotation
+    /// inflates the bounding box — and page membership must be a function
+    /// of geometry, never of animation state.
     private var tileHeight: CGFloat {
-        if let measured = tileFrames.values.map(\.height).max() { return measured }
-        return (pagerSize.width - 40 - 3 * 18) / 4 + 26
+        let tileWidth = (pagerSize.width - 40 - 3 * 18) / 4
+        return tileWidth + 8 + UIFont.preferredFont(forTextStyle: .caption1).lineHeight
     }
 
     private var pageCapacity: Int {
@@ -421,6 +443,17 @@ struct GamesTabView: View {
         return SpringboardPager.capacity(columns: columns.count,
                                          availableHeight: available,
                                          tileHeight: tileHeight, rowSpacing: 22)
+    }
+
+    /// Page count from the *resting* layout — what the dots, the edge-flip
+    /// bounds, and the position clamp all read. The drag preview is built to
+    /// keep the same count, but nothing that outlives a render should depend
+    /// on a preview.
+    private var pageCount: Int {
+        let count = store.layout.items.count
+        guard count > 0 else { return 0 }
+        guard pageCapacity > 0 else { return 1 }
+        return (count - 1) / pageCapacity + 1
     }
 
     /// The pages to render: the layout auto-flowed to capacity — from a
@@ -444,21 +477,25 @@ struct GamesTabView: View {
     private var pageDots: some View {
         VStack {
             Spacer()
-            if pageSlices.count > 1 {
+            if pageCount > 1 {
                 HStack(spacing: 6) {
-                    ForEach(0..<pageSlices.count, id: \.self) { index in
+                    ForEach(0..<pageCount, id: \.self) { index in
+                        let isCurrent = index == (currentPage ?? 0)
                         Circle()
-                            .fill(.white.opacity(index == (currentPage ?? 0) ? 0.9 : 0.35))
+                            .fill(.white.opacity(isCurrent ? 0.9 : 0.35))
                             .frame(width: 7, height: 7)
                             .frame(width: 18, height: 28)
                             .contentShape(Rectangle())
                             .onTapGesture {
-                                guard index != (currentPage ?? 0) else { return }
+                                guard !isCurrent else { return }
                                 Haptics.tap()
-                                withAnimation(Theme.springy) { currentPage = index }
+                                withAnimation(reduceMotion ? nil : Theme.springy) {
+                                    currentPage = index
+                                }
                             }
-                            .accessibilityAddTraits(.isButton)
-                            .accessibilityLabel(Text("Page \(index + 1) of \(pageSlices.count)"))
+                            .accessibilityAddTraits(isCurrent ? [.isButton, .isSelected]
+                                                              : .isButton)
+                            .accessibilityLabel(Text("Page \(index + 1) of \(pageCount)"))
                     }
                 }
                 .animation(Theme.springy, value: currentPage)
@@ -477,9 +514,9 @@ struct GamesTabView: View {
     private func flip(_ direction: EdgeFlipDetector.Direction) {
         let current = currentPage ?? 0
         let target = direction == .forward ? current + 1 : current - 1
-        guard (0..<pageSlices.count).contains(target) else { return }
+        guard (0..<pageCount).contains(target) else { return }
         Haptics.tap()
-        withAnimation(Theme.springy) { currentPage = target }
+        withAnimation(reduceMotion ? nil : Theme.springy) { currentPage = target }
     }
 
     private func handleRootDrop(of id: GamesLayout.ItemID, at location: CGPoint,

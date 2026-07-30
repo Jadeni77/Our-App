@@ -6,10 +6,11 @@ import Foundation
 enum DirectionsPlanner {
     /// Google Maps' documented URL scheme for driving directions to a
     /// coordinate. Coordinates, not the name: the name re-runs as a search
-    /// and can land on a different branch of the same restaurant.
+    /// and can land on a different branch of the same restaurant. Fixed
+    /// format, because `"\(Double)"` can go exponential near zero.
     static func googleMapsURL(latitude: Double, longitude: Double) -> URL {
-        // Interpolated doubles only produce URL-safe characters, so this
-        // string always parses.
-        URL(string: "comgooglemaps://?daddr=\(latitude),\(longitude)&directionsmode=driving")!
+        let destination = String(format: "%.6f,%.6f", latitude, longitude)
+        // Only digits, dots, minus signs and a comma — always parses.
+        return URL(string: "comgooglemaps://?daddr=\(destination)&directionsmode=driving")!
     }
 }

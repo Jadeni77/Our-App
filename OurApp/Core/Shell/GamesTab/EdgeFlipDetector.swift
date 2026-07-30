@@ -1,9 +1,9 @@
 import Foundation
 
-/// While a tile drag is live the pager's own swipe is disabled, so this is
-/// how a tile travels between pages (S8): holding the finger against a
-/// screen edge flips to the neighboring page. The dwell keeps a drag that
-/// merely skims an edge from flipping; keep holding and it fires again each
+/// In edit mode the pager's own swipe is disabled, so this is how a tile
+/// travels between pages (S8): holding the dragged tile against a screen
+/// edge flips to the neighboring page. The dwell keeps a drag that merely
+/// skims an edge from flipping; keep holding and it fires again each
 /// dwell — one page per beat, like the real springboard.
 struct EdgeFlipDetector {
     enum Direction {
@@ -18,6 +18,12 @@ struct EdgeFlipDetector {
     /// Feed every drag location; returns a direction exactly when a flip
     /// should happen.
     mutating func update(x: CGFloat, width: CGFloat, now: Date) -> Direction? {
+        // Unmeasured or absurdly narrow: the zones would cover everything
+        // (or overlap), so nothing sensible can fire.
+        guard width > Self.zoneWidth * 2 else {
+            armed = nil
+            return nil
+        }
         let direction: Direction? = if x <= Self.zoneWidth {
             .back
         } else if x >= width - Self.zoneWidth {
