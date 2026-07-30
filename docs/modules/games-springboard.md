@@ -4,7 +4,7 @@
 
 ## Purpose
 
-Launching a module should feel like an iPhone home screen that belongs to us: every module is an **app tile** on the **Games tab**; we arrange tiles and folder-style **collections** however we like, in a full **jiggle mode**; tapping a tile opens its module full-screen. The springboard is the platform's one generic launching mechanism — a new module shows up here with zero springboard changes.
+Launching a module should feel like an iPhone home screen that belongs to us: every module is an **app tile** on the **Games tab**; we arrange tiles and folder-style **collections** however we like, in a full **jiggle mode**; tapping a tile opens its module full-screen. The springboard is the platform's one generic launching mechanism — a new module shows up here with zero springboard changes. From v2 it is also **our second home screen for the games we actually play** (S7): tiles for real apps installed on the phone — same game, launched from our springboard instead of the system one.
 
 ---
 
@@ -20,6 +20,7 @@ The platform log (P11) owns the big forks: tab bar over the rail, springboard co
 | S4 | **DEBUG-only sample tiles** (2–3 "coming soon" placeholders) | Collections need ≥2 tiles to exercise end-to-end while only one real module exists; RELEASE stays honest and shows only real modules | Shipping placeholder tiles; leaving jiggle untestable until module #2 |
 | S5 | **Reconcile rules**: a registered module missing from the layout auto-appends to the root grid; stale ids are dropped; a collection emptied by either dissolves | Adding a module stays a one-line `AppShell` change; layout drift can never block launching (fail-soft, principle 7) | Strict layout validation (turns drift into dead ends) |
 | S6 | **Collection names are user data** — stored verbatim, never translated; only the default "New collection" is localized | The names are *ours*, written in whichever language we felt like that day — the app has no business rewriting them | Localizing/translating stored names |
+| S7 | **External app tiles** (v2): the springboard also launches real apps installed on the phone — added manually, launched via URL scheme with App Store fallback, official artwork via the iTunes Search API | The Games tab should hold the games we *actually play* (e.g. Identity V) — a launcher with one module tile is a stub next to our real library, and launching from *our* space is the whole point | Module-tiles-only purity (v1's premise — still true for modules, extended for games); embedding another app's UI (impossible on iOS); auto-detecting installed apps (no iOS API — privacy) |
 
 ---
 
@@ -86,7 +87,59 @@ In each of en / zh-Hans / zh-Hant, on simulator (and a device pass for feel): th
 
 Two-phone sync (direction in `DESIGN.md` §7 — note the layout is a per-device preference and may never sync) · horizontal paging / page dots · Home quick-action row · an Us tab · badges · VoiceOver drag-arranging · widgets / notifications.
 
+## v2 Scope — external app tiles (S7, next milestone)
+
+The games we actually play get tiles on **our** springboard; tapping launches the real app — the OS switches to the game full-screen, exactly like tapping it on the system home screen, and you return via the app switcher (not our Close button). iOS can't embed another app's UI or list what's installed, so tiles are added manually and launch via URL scheme with fail-soft fallbacks.
+
+### Layout model (`GamesLayout` version 1 → 2)
+
+New item case alongside `app` and `collection`:
+
+```swift
+case external(ExternalApp)
+
+struct ExternalApp: Codable {
+    var id: UUID
+    var name: String        // user data — S6 applies, never translated
+    var emoji: String       // fallback glyph, default 🎮
+    var artworkURL: URL?    // official icon via iTunes Search API, cached; emoji when absent
+    var launchURL: URL?     // the app's custom URL scheme, e.g. identityv://…
+    var storeURL: URL?      // App Store page fallback
+}
+```
+
+Version-1 documents decode losslessly (additive case). Reconcile (S5) **never auto-drops external tiles** — they aren't registered modules, so only the user removes them: jiggle mode gains a delete affordance *for external tiles only* (modules still can't be deleted).
+
+### Add flow
+
+In jiggle mode, a **"+" glass pill** (top-leading, opposite Done) opens a sheet:
+- a small **curated catalog** (name + known scheme + store id — starter list is an open question below), and
+- **manual entry** (name + optional scheme) with a **"Test launch"** button that proves a scheme on the spot — this is how we pin down undocumented schemes like Identity V's on a real phone.
+Artwork + store link come from the **iTunes Search API** by name (free, keyless), cached to Application Support; every fetch fails soft to the emoji.
+
+### Launch behavior (principle 7 — never a dead end)
+
+`UIApplication.open(launchURL)` → on failure open `storeURL` → neither works: friendly "can't open" message with an edit affordance. No `LSApplicationQueriesSchemes` declarations needed — we never call `canOpenURL`; `open()`'s completion is the probe.
+
+### Everything else is unchanged
+
+External tiles reorder, join collections (their emoji/artwork counts in the 3×3 mini-grid), and persist exactly like app tiles. Add-flow UI strings localized en / zh-Hans / zh-Hant; tile names stay user data.
+
+---
+
+## Build Order (v2)
+
+6. `ExternalApp` + layout v2 decode/migration + reconcile guarantees (never-auto-drop, delete-external-only) — TDD, logic only.
+7. Add-flow sheet (catalog + manual entry + test launch) with iTunes artwork fetch and cache — fail-soft throughout.
+8. Launch path with scheme → store → message fallbacks; delete affordance in jiggle; localization sweep.
+
+## Definition of done (v2)
+
+On a real phone: add Identity V through the add flow; its tile (official artwork, or emoji fallback) sits among modules and collections, survives reorder, foldering, and relaunch; tapping switches to the actual game; a tile with a broken scheme falls back to its App Store page; deleting an external tile works in jiggle and modules still can't be deleted; all new strings read natively in en / zh-Hans / zh-Hant; full suite green.
+
 ## Module open questions
 
 - Once sync lands: does the layout stay per-device (each of us arranges our own page) or become shared? Parked to the sync milestone.
 - Grid metrics (4 columns, tile size) — revisit after real use on both phones.
+- v2: curated catalog contents — which games do we two want pre-listed? (Owners' list; Identity V is #1.)
+- v2: a Shortcuts bridge (`shortcuts://run-shortcut` + an "Open App" action) can launch *any* app when no URL scheme works, at the cost of one-time setup per game and a visible bounce through Shortcuts. *(Lean: defer until a game we care about has no working scheme.)*
