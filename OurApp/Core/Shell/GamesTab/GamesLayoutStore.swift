@@ -23,6 +23,9 @@ final class GamesLayoutStore {
         // Saves always carry the running build's schema version — older
         // documents are migrated (losslessly) the moment they're loaded.
         loaded.version = GamesLayout.currentVersion
+        // Shortcut links learned by earlier builds were false knowledge
+        // (opening Shortcuts "succeeds" even when the shortcut is gone).
+        loaded.learnedSchemes.removeAll { $0.scheme.hasPrefix("shortcuts://") }
         layout = loaded
         save()
     }
@@ -49,7 +52,11 @@ final class GamesLayoutStore {
     /// the code-seeded catalog from then on. No code edits per game.
     func learnScheme(name: String, scheme: String) {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, !scheme.isEmpty else { return }
+        guard !trimmed.isEmpty, !scheme.isEmpty,
+              // shortcuts:// opens are per-phone and always "succeed" even
+              // when the target shortcut is gone — not knowledge.
+              !scheme.hasPrefix("shortcuts://")
+        else { return }
         let key = trimmed.lowercased()
         layout.learnedSchemes.removeAll { $0.name.lowercased() == key }
         layout.learnedSchemes.append(.init(name: trimmed, scheme: scheme))

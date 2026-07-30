@@ -7,6 +7,9 @@ import SwiftUI
 struct AddExternalAppSheet: View {
     var existing: GamesLayout.ExternalApp?
     let onCommit: (GamesLayout.ExternalApp) -> Void
+    /// Re-adding an app you already have is how people instinctively try to
+    /// repair it (e.g. a dead Shortcut link) — route them to its editor.
+    var onEditExisting: (GamesLayout.ExternalApp) -> Void = { _ in }
 
     @Environment(GamesLayoutStore.self) private var store
     @Environment(ArtworkStore.self) private var artwork
@@ -32,10 +35,15 @@ struct AddExternalAppSheet: View {
             Form {
                 Section {
                     TextField("Name", text: $name)
-                    if isDuplicate {
-                        Text("Already added")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                    if isDuplicate, let tile = existingApp(named: trimmedName) {
+                        Button {
+                            Haptics.tap()
+                            dismiss()
+                            onEditExisting(tile)
+                        } label: {
+                            Text("Already added — edit it")
+                                .font(.footnote)
+                        }
                     }
                     TextField("URL scheme (optional)", text: $scheme)
                         .textInputAutocapitalization(.never)
@@ -111,7 +119,6 @@ struct AddExternalAppSheet: View {
                             trimmedName))
                             .font(.footnote)
                             .foregroundStyle(.secondary)
-                            .textSelection(.enabled)
 
                         Button {
                             Haptics.tap()
@@ -147,9 +154,15 @@ struct AddExternalAppSheet: View {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 16) {
                                 ForEach(searchResults, id: \.self) { result in
+                                    let alreadyAdded = existingApp(named: result.trackName)
                                     Button {
                                         Haptics.tap()
-                                        pendingPick = result
+                                        if let alreadyAdded {
+                                            dismiss()
+                                            onEditExisting(alreadyAdded)
+                                        } else {
+                                            pendingPick = result
+                                        }
                                     } label: {
                                         VStack(spacing: 4) {
                                             AsyncImage(url: result.artworkUrl100) { image in
@@ -160,6 +173,15 @@ struct AddExternalAppSheet: View {
                                             .frame(width: 48, height: 48)
                                             .clipShape(RoundedRectangle(cornerRadius: 10,
                                                                         style: .continuous))
+                                            .overlay(alignment: .topTrailing) {
+                                                if alreadyAdded != nil {
+                                                    Image(systemName: "pencil.circle.fill")
+                                                        .font(.system(size: 16))
+                                                        .symbolRenderingMode(.palette)
+                                                        .foregroundStyle(.white, .tint)
+                                                        .offset(x: 5, y: -5)
+                                                }
+                                            }
                                             Text(verbatim: result.trackName)
                                                 .font(.caption2)
                                                 .lineLimit(1)
@@ -229,11 +251,9 @@ struct AddExternalAppSheet: View {
                 guard !Task.isCancelled else { return }
                 let found = await ITunesSearch.search(name: query)
                 guard !Task.isCancelled else { return }
-                searchResults = found.filter {
-                    !Self.isDuplicateName($0.trackName,
-                                          among: store.layout.externalApps,
-                                          excluding: nil)
-                }
+                // Already-added games stay visible (with a pencil badge) —
+                // tapping one is the repair path, not a dead end.
+                searchResults = found
                 isSearching = false
             }
         }
@@ -330,6 +350,16 @@ struct AddExternalAppSheet: View {
     private var isDuplicate: Bool {
         Self.isDuplicateName(trimmedName, among: store.layout.externalApps,
                              excluding: existing?.id)
+    }
+
+    private func existingApp(named title: String) -> GamesLayout.ExternalApp? {
+        let key = title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !key.isEmpty else { return nil }
+        return store.layout.externalApps.first {
+            $0.id != existing?.id
+                && $0.name.trimmingCharacters(in: .whitespacesAndNewlines)
+                    .lowercased() == key
+        }
     }
 
     static func isDuplicateName(_ name: String,

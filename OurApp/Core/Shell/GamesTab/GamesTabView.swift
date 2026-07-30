@@ -148,7 +148,13 @@ struct GamesTabView: View {
         .sheet(item: $externalSheet) { sheet in
             switch sheet {
             case .add:
-                AddExternalAppSheet(onCommit: commitNewExternalApp)
+                AddExternalAppSheet(
+                    onCommit: commitNewExternalApp,
+                    onEditExisting: { app in
+                        // Hop past the add sheet's dismissal, then reopen as
+                        // that tile's editor — the redo path for dead links.
+                        Task { @MainActor in externalSheet = .edit(app) }
+                    })
             case .edit(let app):
                 AddExternalAppSheet(existing: app, onCommit: commitEditedExternalApp)
             }

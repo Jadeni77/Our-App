@@ -270,6 +270,30 @@ struct GamesLayoutStoreTests {
         #expect(reloaded.layout.learnedSchemes.first?.scheme == "smoba://")
     }
 
+    @Test func shortcutLinksAreNeverLearned() {
+        // Opening shortcuts:// always "succeeds" even when the shortcut is
+        // gone — per-phone and unverifiable, so it isn't knowledge.
+        let store = GamesLayoutStore(modules: [], fileURL: tempFile())
+        store.learnScheme(name: "Honor of Kings",
+                          scheme: "shortcuts://run-shortcut?name=HOK")
+        #expect(store.layout.learnedSchemes.isEmpty)
+    }
+
+    @Test func staleLearnedShortcutLinksAreScrubbedOnLoad() throws {
+        let url = tempFile()
+        let stale = GamesLayout(
+            version: GamesLayout.currentVersion,
+            items: [],
+            learnedSchemes: [
+                .init(name: "HOK", scheme: "shortcuts://run-shortcut?name=HOK"),
+                .init(name: "Wild Rift", scheme: "wildrift://"),
+            ])
+        try JSONEncoder().encode(stale).write(to: url)
+        let store = GamesLayoutStore(modules: [], fileURL: url)
+        #expect(store.layout.learnedSchemes
+                == [.init(name: "Wild Rift", scheme: "wildrift://")])
+    }
+
     @Test func verifiedLookupsPreferLearnedOverSeeds() {
         let store = GamesLayoutStore(modules: [], fileURL: tempFile())
         // Seeds still answer for games the code catalog knows…

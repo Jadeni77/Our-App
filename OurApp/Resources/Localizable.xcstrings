@@ -104,25 +104,25 @@
         }
       }
     },
-    "Already added" : {
+    "Already added — edit it" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Already added"
+            "value" : "Already added — edit it"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已添加"
+            "value" : "已添加——去编辑"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已新增"
+            "value" : "已新增——去編輯"
           }
         }
       }
