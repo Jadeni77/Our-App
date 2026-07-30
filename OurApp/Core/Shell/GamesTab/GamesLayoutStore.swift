@@ -52,4 +52,76 @@ final class GamesLayoutStore {
         guard let data = try? encoder.encode(layout) else { return }
         try? data.write(to: fileURL, options: .atomic)
     }
+
+    // MARK: - Mutations (each persists immediately)
+
+    func moveItem(id: GamesLayout.ItemID, toIndex: Int) {
+        guard let from = layout.items.firstIndex(where: { $0.id == id }) else { return }
+        let item = layout.items.remove(at: from)
+        layout.items.insert(item, at: min(max(toIndex, 0), layout.items.count))
+        save()
+    }
+
+    @discardableResult
+    func formCollection(target: String, dragged: String, named name: String) -> UUID? {
+        guard target != dragged,
+              let targetIndex = layout.items.firstIndex(where: { $0.id == .app(target) }),
+              layout.items.contains(where: { $0.id == .app(dragged) })
+        else { return nil }
+        let collection = GamesLayout.Collection(id: UUID(), name: name,
+                                                members: [target, dragged])
+        layout.items[targetIndex] = .collection(collection)
+        layout.items.removeAll { $0.id == .app(dragged) }
+        save()
+        return collection.id
+    }
+
+    func addToCollection(_ collectionID: UUID, moduleID: String) {
+        guard layout.items.contains(where: { $0.id == .app(moduleID) }),
+              let index = collectionIndex(collectionID),
+              case .collection(var collection) = layout.items[index]
+        else { return }
+        collection.members.append(moduleID)
+        layout.items[index] = .collection(collection)
+        layout.items.removeAll { $0.id == .app(moduleID) }
+        save()
+    }
+
+    func moveMember(in collectionID: UUID, moduleID: String, toIndex: Int) {
+        guard let index = collectionIndex(collectionID),
+              case .collection(var collection) = layout.items[index],
+              let from = collection.members.firstIndex(of: moduleID)
+        else { return }
+        let member = collection.members.remove(at: from)
+        collection.members.insert(member, at: min(max(toIndex, 0), collection.members.count))
+        layout.items[index] = .collection(collection)
+        save()
+    }
+
+    func moveMemberToRoot(_ moduleID: String, from collectionID: UUID) {
+        guard let index = collectionIndex(collectionID),
+              case .collection(var collection) = layout.items[index],
+              let from = collection.members.firstIndex(of: moduleID)
+        else { return }
+        collection.members.remove(at: from)
+        if collection.members.isEmpty {
+            layout.items.remove(at: index)          // auto-dissolve (S5)
+        } else {
+            layout.items[index] = .collection(collection)
+        }
+        layout.items.append(.app(moduleID: moduleID))
+        save()
+    }
+
+    func renameCollection(_ collectionID: UUID, to name: String) {
+        guard let index = collectionIndex(collectionID),
+              case .collection(var collection) = layout.items[index] else { return }
+        collection.name = name
+        layout.items[index] = .collection(collection)
+        save()
+    }
+
+    private func collectionIndex(_ id: UUID) -> Int? {
+        layout.items.firstIndex(where: { $0.id == .collection(id) })
+    }
 }
