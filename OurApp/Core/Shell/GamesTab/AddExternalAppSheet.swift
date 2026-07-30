@@ -62,20 +62,15 @@ struct AddExternalAppSheet: View {
                             }
                         }
 
-                    // One smart row: tests the typed link when there is one,
-                    // finds one when there isn't.
+                    // One smart row, one behavior: walk everything until
+                    // something opens — the typed link first (if any), then
+                    // every remaining guess. A lone failed guess must never
+                    // strand the flow (owners' report, 2026-07-30).
                     if normalizedSchemeURL != nil
                         || !SchemeCatalog.candidates(from: trimmedName).isEmpty {
                         Button {
                             Haptics.tap()
-                            if let url = normalizedSchemeURL {
-                                UIApplication.shared.open(url, options: [:]) { opened in
-                                    probeOpened = opened
-                                    if opened { Haptics.success() }
-                                }
-                            } else {
-                                probeCandidates()
-                            }
+                            probeCandidates()
                         } label: {
                             HStack {
                                 // Literal branches keep every key visible to
@@ -271,17 +266,23 @@ struct AddExternalAppSheet: View {
         }
     }
 
-    /// Walks the likely schemes for the typed name. A failed attempt is
-    /// silent and instant; the first success visibly opens the game — which
-    /// IS the confirmation — and lands in the link field, tested.
+    /// Walks the typed link (unconditionally — the owner chose it), then the
+    /// likely schemes for the name, pre-filtered through silent `canOpenURL`
+    /// where iOS can answer. A failed attempt is silent and instant; the
+    /// first success visibly opens the game — which IS the confirmation —
+    /// and lands in the link field, tested.
     private func probeCandidates() {
         guard !isProbing else { return }
         isProbing = true
         probeOpened = nil
         Task {
+            var attempts: [String] = []
+            if let typed = normalizedSchemeURL?.absoluteString {
+                attempts.append(typed)
+            }
             // Ask iOS which candidates actually exist before opening any —
             // a declared-but-absent scheme is skipped instead of prompting.
-            let attempts = SchemeCatalog.plan(
+            attempts += SchemeCatalog.plan(
                 candidates: SchemeCatalog.candidates(from: trimmedName),
                 declared: SchemeCatalog.declaredSchemes,
                 canOpen: { candidate in
@@ -289,6 +290,8 @@ struct AddExternalAppSheet: View {
                         UIApplication.shared.canOpenURL($0)
                     } ?? false
                 })
+            var seen = Set<String>()
+            attempts = attempts.filter { seen.insert($0).inserted }
             for candidate in attempts {
                 guard let url = URL(string: candidate) else { continue }
                 if await UIApplication.shared.open(url) {
