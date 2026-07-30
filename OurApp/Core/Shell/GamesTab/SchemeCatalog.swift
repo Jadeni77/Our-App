@@ -66,6 +66,37 @@ enum SchemeCatalog {
         return candidates.filter { seen.insert($0).inserted }
     }
 
+    /// Schemes this build declared in `LSApplicationQueriesSchemes` — the
+    /// only ones `canOpenURL` can answer for.
+    static var declaredSchemes: Set<String> {
+        let declared = Bundle.main.object(
+            forInfoDictionaryKey: "LSApplicationQueriesSchemes") as? [String]
+        return Set(declared ?? [])
+    }
+
+    /// Which candidates are worth actually opening, in order:
+    /// 1. declared **and** installed — iOS confirmed these exist, so the
+    ///    first one launches (one system prompt, no wasted bounces);
+    /// 2. undeclared — `canOpenURL` can't answer, so they stay blind attempts;
+    /// 3. declared but absent — dropped: iOS already proved the app isn't
+    ///    here, and firing `open()` at it only asks the owners for nothing.
+    static func plan(candidates: [String],
+                     declared: Set<String>,
+                     canOpen: (String) -> Bool) -> [String] {
+        var seen = Set<String>()
+        var installed: [String] = []
+        var unknown: [String] = []
+        for candidate in candidates where seen.insert(candidate).inserted {
+            let scheme = candidate.components(separatedBy: "://").first ?? candidate
+            if declared.contains(scheme) {
+                if canOpen(candidate) { installed.append(candidate) }
+            } else {
+                unknown.append(candidate)
+            }
+        }
+        return installed + unknown
+    }
+
     private static func asciiWords(of title: String) -> [String] {
         title.lowercased()
             .components(separatedBy: CharacterSet.alphanumerics.inverted)

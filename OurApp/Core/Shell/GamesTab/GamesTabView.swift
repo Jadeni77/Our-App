@@ -409,22 +409,28 @@ struct GamesTabView: View {
     private func launchExternal(_ app: GamesLayout.ExternalApp) {
         Haptics.tap()
         Task {
-            if let launchURL = app.launchURL,
-               await UIApplication.shared.open(launchURL) {
-                // Every working launch is proof — keep the catalog learning.
-                store.learnScheme(name: app.name, scheme: launchURL.absoluteString)
-                return
-            }
-
-            let saved = app.launchURL?.absoluteString
-            var seen = Set<String>()
-            let fallbacks = ([store.verifiedScheme(for: app.name)].compactMap { $0 }
+            // Ordered attempts: the saved link, then what we know, then the
+            // likely guesses — filtered so iOS is only asked to open apps it
+            // has confirmed exist (or ones it can't answer for).
+            let ordered = ([app.launchURL?.absoluteString,
+                            store.verifiedScheme(for: app.name)].compactMap { $0 }
                 + SchemeCatalog.candidates(from: app.name))
-                .filter { $0 != saved && seen.insert($0).inserted }
-            for candidate in fallbacks {
+            let attempts = SchemeCatalog.plan(
+                candidates: ordered,
+                declared: SchemeCatalog.declaredSchemes,
+                canOpen: { candidate in
+                    URL(string: candidate).map {
+                        UIApplication.shared.canOpenURL($0)
+                    } ?? false
+                })
+
+            for candidate in attempts {
                 guard let url = URL(string: candidate) else { continue }
                 if await UIApplication.shared.open(url) {
-                    if var healed = store.externalApp(id: app.id) {
+                    // A working launch is proof: keep the tile and the
+                    // catalog learning from it.
+                    if var healed = store.externalApp(id: app.id),
+                       healed.launchURL != url {
                         healed.launchURL = url
                         store.updateExternalApp(healed)
                     }

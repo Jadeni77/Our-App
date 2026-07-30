@@ -26,6 +26,33 @@ struct SchemeCatalogTests {
         #expect(SchemeCatalog.verified(for: "Candy Crush Saga") == nil)
     }
 
+    @Test func planTriesInstalledSchemesFirstAndSkipsProvenAbsentOnes() {
+        // "smoba" is declared and installed → the only worthwhile attempt.
+        // "honorofkings" is declared but absent → iOS already answered, so
+        // firing open() at it would just prompt for nothing.
+        // "hokx" isn't declared → canOpenURL can't answer, so it stays a
+        // blind attempt, after the known-good one.
+        let plan = SchemeCatalog.plan(
+            candidates: ["honorofkings://", "hokx://", "smoba://"],
+            declared: ["honorofkings", "smoba"],
+            canOpen: { $0 == "smoba://" })
+        #expect(plan == ["smoba://", "hokx://"])
+    }
+
+    @Test func planDropsDuplicatesAndKeepsOrderWithinGroups() {
+        let plan = SchemeCatalog.plan(
+            candidates: ["a://", "b://", "a://", "c://"],
+            declared: ["a", "c"],
+            canOpen: { $0 == "a://" })
+        #expect(plan == ["a://", "b://"])   // c declared+absent → dropped
+    }
+
+    @Test func planIsBlindWhenNothingIsDeclared() {
+        let plan = SchemeCatalog.plan(candidates: ["x://", "y://"],
+                                      declared: [], canOpen: { _ in false })
+        #expect(plan == ["x://", "y://"])
+    }
+
     @Test func verifiedGamesCarryTheirHomeScreenStyleName() {
         // The store title is a mouthful; the tile should read like the
         // phone's own home screen.

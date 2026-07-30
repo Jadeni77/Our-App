@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Base Info.plist. Xcode merges the target's generated INFOPLIST_KEY_*
+     settings into this file at build time, so only keys the build settings
+     can't express live here.
+
+     LSApplicationQueriesSchemes lets the springboard ask iOS *silently*
+     which of these games are installed (`canOpenURL`) instead of firing
+     `open()` at guesses — one system prompt at most, and no App Store
+     bounce for a game that's actually on the phone (S7).
+     iOS caps this list at 50 entries; add a scheme here when a game the
+     owners play needs silent detection. -->
+<plist version="1.0">
+<dict>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<!-- Verified by the owners -->
+		<string>wildrift</string>
+		<string>clashofclans</string>
+		<!-- Honor of Kings candidates (Tencent codenames) -->
+		<string>smoba</string>
+		<string>sgame</string>
+		<string>hok</string>
+		<string>honorofkings</string>
+		<!-- Identity V candidates -->
+		<string>identityv</string>
+		<string>dwrg</string>
+		<!-- Other games the owners might add -->
+		<string>lolwr</string>
+		<string>leagueoflegends</string>
+		<string>riotgames</string>
+		<string>valorant</string>
+		<string>genshinimpact</string>
+		<string>yuanshen</string>
+		<string>mihoyo</string>
+		<string>starrail</string>
+		<string>zenlesszonezero</string>
+		<string>pubgmobile</string>
+		<string>codm</string>
+		<string>callofduty</string>
+		<string>roblox</string>
+		<string>minecraft</string>
+		<string>fortnite</string>
+		<string>brawlstars</string>
+		<string>clashroyale</string>
+		<string>amongus</string>
+		<string>candycrushsaga</string>
+		<string>monopolygo</string>
+		<string>stardewvalley</string>
+		<string>terraria</string>
+		<!-- The Shortcuts bridge, for games with no working scheme -->
+		<string>shortcuts</string>
+	</array>
+</dict>
+</plist>

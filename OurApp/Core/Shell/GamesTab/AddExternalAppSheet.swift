@@ -211,7 +211,17 @@ struct AddExternalAppSheet: View {
         isProbing = true
         probeOpened = nil
         Task {
-            for candidate in SchemeCatalog.candidates(from: trimmedName) {
+            // Ask iOS which candidates actually exist before opening any —
+            // a declared-but-absent scheme is skipped instead of prompting.
+            let attempts = SchemeCatalog.plan(
+                candidates: SchemeCatalog.candidates(from: trimmedName),
+                declared: SchemeCatalog.declaredSchemes,
+                canOpen: { candidate in
+                    URL(string: candidate).map {
+                        UIApplication.shared.canOpenURL($0)
+                    } ?? false
+                })
+            for candidate in attempts {
                 guard let url = URL(string: candidate) else { continue }
                 if await UIApplication.shared.open(url) {
                     schemeSetByProbe = true
