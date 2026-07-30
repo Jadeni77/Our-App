@@ -5,6 +5,10 @@
 > records only what those docs leave open, as resolved and approved this session.
 > Scope: **the tab shell milestone only** — two-phone sync is explicitly deferred;
 > its chosen direction lives in DESIGN.md §7, not here.
+>
+> At spec review the durable springboard detail was promoted to
+> `docs/modules/games-springboard.md` — that doc is the living home (decision log
+> S1–S6, behavioral contract, DoD); this file remains the session record.
 
 ## Approved decisions (this session)
 
