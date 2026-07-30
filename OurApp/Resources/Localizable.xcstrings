@@ -35,25 +35,25 @@
     "💞" : {
 
     },
-    "1. Tap Open Shortcuts below and create a new shortcut.\n2. Add the “Open App” action and choose %1$@.\n3. Name the shortcut exactly “%1$@”, then come back and tap Test launch." : {
+    "1. Tap Open Shortcuts below — a new shortcut opens.\n2. Add the “Open App” action and choose %1$@.\n3. Tap the title at the top, choose Rename, and paste — “%1$@” is already copied.\n4. Come back and tap Test launch." : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1. Tap Open Shortcuts below and create a new shortcut.\n2. Add the “Open App” action and choose %1$@.\n3. Name the shortcut exactly “%1$@”, then come back and tap Test launch."
+            "value" : "1. Tap Open Shortcuts below — a new shortcut opens.\n2. Add the “Open App” action and choose %1$@.\n3. Tap the title at the top, choose Rename, and paste — “%1$@” is already copied.\n4. Come back and tap Test launch."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1. 点击下方“打开快捷指令”，新建一个快捷指令。\n2. 添加“打开 App”操作并选择 %1$@。\n3. 将快捷指令命名为“%1$@”，然后回来点击“测试启动”。"
+            "value" : "1. 点击下方“打开快捷指令”，会新建一个快捷指令。\n2. 添加“打开 App”操作并选择 %1$@。\n3. 点顶部标题，选择“重命名”，然后粘贴——名称“%1$@”已复制好。\n4. 回来点击“测试启动”。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1. 點按下方「打開捷徑」，新增一個捷徑。\n2. 加入「打開 App」動作並選擇 %1$@。\n3. 將捷徑命名為「%1$@」，然後回來點按「測試啟動」。"
+            "value" : "1. 點按下方「打開捷徑」，會新增一個捷徑。\n2. 加入「打開 App」動作並選擇 %1$@。\n3. 點頂部標題，選擇「重新命名」，然後貼上——名稱「%1$@」已複製好。\n4. 回來點按「測試啟動」。"
           }
         }
       }

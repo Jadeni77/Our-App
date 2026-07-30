@@ -96,6 +96,10 @@ struct AddExternalAppSheet: View {
                             probeOpened = nil
                             schemeSetByProbe = true
                             scheme = "shortcuts://run-shortcut?name=\(trimmedName)"
+                            // Shortcuts default-names new shortcuts "Open App";
+                            // the rename must match exactly, so hand the name
+                            // over on the clipboard and let them paste.
+                            UIPasteboard.general.string = trimmedName
                         } label: {
                             Text("Use a Shortcut instead")
                         }
@@ -103,7 +107,7 @@ struct AddExternalAppSheet: View {
 
                     if showsShortcutHelp {
                         Text(String(format: String(localized:
-                            "1. Tap Open Shortcuts below and create a new shortcut.\n2. Add the “Open App” action and choose %1$@.\n3. Name the shortcut exactly “%1$@”, then come back and tap Test launch."),
+                            "1. Tap Open Shortcuts below — a new shortcut opens.\n2. Add the “Open App” action and choose %1$@.\n3. Tap the title at the top, choose Rename, and paste — “%1$@” is already copied.\n4. Come back and tap Test launch."),
                             trimmedName))
                             .font(.footnote)
                             .foregroundStyle(.secondary)
