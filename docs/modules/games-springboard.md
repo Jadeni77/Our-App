@@ -26,6 +26,11 @@ The platform log (P11) owns the big forks: tab bar over the rail, springboard co
 
 ## v1 Scope — ✅ built 2026-07-30, pending the human's on-device feel pass
 
+> **Naming note (2026-07-30):** the tab's user-facing label is **Apps**
+> (应用 / 應用, `square.grid.2x2.fill`) — not everything on the springboard is
+> a game. Internal names (`GamesTab*`, `GamesLayout*`, `-selectGames`) keep
+> the original word; renaming them is churn without user value.
+
 ### Tab frame (platform §4)
 Native `TabView` on the Xcode 26 toolchain (system Liquid Glass bar, core tint — no hand-rolled bar): **Home** (the couples hero, rail removed, gear stays) | **Games** (this springboard). Labels localized en / zh-Hans / zh-Hant. Every future surface is one new `Tab`.
 

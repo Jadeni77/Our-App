@@ -32,7 +32,7 @@ struct AppShell: View {
                 .tabItem { Label("Home", systemImage: "house.fill") }
                 .tag(AppTab.home)
             GamesTabView()
-                .tabItem { Label("Games", systemImage: "gamecontroller.fill") }
+                .tabItem { Label("Apps", systemImage: "square.grid.2x2.fill") }
                 .tag(AppTab.games)
         }
         .tint(Theme.indigo)   // reads on the gradient's peach bottom, where the bar sits

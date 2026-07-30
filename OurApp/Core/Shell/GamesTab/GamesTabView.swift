@@ -12,6 +12,11 @@ struct GamesTabView: View {
     @State private var externalSheet: ExternalSheet?
     @State private var deletingExternalApp: GamesLayout.ExternalApp?
     @State private var launchFailedApp: GamesLayout.ExternalApp?
+    /// Case-2 convergence (owners' spec, 2026-07-30): a tile that keeps
+    /// bouncing to the App Store is either not installed (fine) or missing
+    /// its link — after the second bounce, offer the repair once.
+    @State private var storeBounces: [UUID: Int] = [:]
+    @State private var linkOfferApp: GamesLayout.ExternalApp?
 
     /// One sheet for both S7 flows — two stacked `.sheet` modifiers on one
     /// view are exactly the presentation race this codebase already ruled on.
@@ -163,6 +168,21 @@ struct GamesTabView: View {
                 artwork.forget(app.id)
             }
             Button("Cancel", role: .cancel) {}
+        }
+        .alert(
+            Text(verbatim: linkOfferApp?.name ?? ""),
+            isPresented: Binding(
+                get: { linkOfferApp != nil },
+                set: { if !$0 { linkOfferApp = nil } }),
+            presenting: linkOfferApp
+        ) { app in
+            Button("Set up link") {
+                // Hop past the alert's dismissal before presenting the sheet.
+                Task { @MainActor in externalSheet = .edit(app) }
+            }
+            Button("Open App Store", role: .cancel) { openStore(app) }
+        } message: { _ in
+            Text("Opens the App Store every time — link it to launch directly?")
         }
         .alert(
             Text(verbatim: launchFailedApp?.name ?? ""),
@@ -439,6 +459,19 @@ struct GamesTabView: View {
     }
 
     private func openStoreOrFail(_ app: GamesLayout.ExternalApp) {
+        let bounces = (storeBounces[app.id] ?? 0) + 1
+        storeBounces[app.id] = bounces
+        // The second bounce in a session is the signal: if the app were
+        // simply not installed, the store's Get button would have ended the
+        // story. Offer the direct-link repair once, then stay quiet.
+        if bounces == 2 {
+            linkOfferApp = app
+            return
+        }
+        openStore(app)
+    }
+
+    private func openStore(_ app: GamesLayout.ExternalApp) {
         guard let storeURL = app.storeURL else { launchFailedApp = app; return }
         UIApplication.shared.open(storeURL, options: [:]) { opened in
             if !opened { launchFailedApp = app }
