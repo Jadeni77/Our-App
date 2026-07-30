@@ -57,32 +57,7 @@ struct FolderOverlayView: View {
 
                 LazyVGrid(columns: columns, spacing: 16) {
                     ForEach(collection.members, id: \.self) { memberID in
-                        if let module = store.module(for: memberID) {
-                            AppTileView(module: module)
-                                .modifier(Wobble(active: jiggle.isEditing, reduceMotion: reduceMotion))
-                                // Guards read live state through the observable
-                                // controller (not the captured `isEditing` prop):
-                                // the long-press below flips edit mode mid-touch,
-                                // and a stale snapshot could let the lift still
-                                // launch the module.
-                                .onTapGesture {
-                                    guard !jiggle.isEditing else { return }
-                                    Haptics.tap()
-                                    onLaunch(module)
-                                }
-                                .onLongPressGesture(minimumDuration: 0.5) {
-                                    guard !jiggle.isEditing else { return }
-                                    Haptics.tap()
-                                    onBeginEditing()
-                                }
-                                .gesture(jiggle.isEditing ? memberDrag(memberID) : nil)
-                                .onGeometryChange(for: CGRect.self) { proxy in
-                                    proxy.frame(in: .named("folder"))
-                                } action: { memberFrames[.app(memberID)] = $0 }
-                                .opacity(jiggle.draggedItem == .app(memberID) ? 0.001 : 1)
-                                .accessibilityAddTraits(.isButton)
-                                .accessibilityLabel(Text(module.name))
-                        }
+                        memberTile(memberID)
                     }
                 }
                 .padding(20)
@@ -121,10 +96,54 @@ struct FolderOverlayView: View {
         }
     }
 
+    /// One member tile — module or external. The folder-local drag machinery
+    /// keys everything as `.app(memberKey)`: identities never leave this view,
+    /// so the uniform keying keeps frames, order, and intents aligned without
+    /// caring which kind a member is.
+    @ViewBuilder
+    private func memberTile(_ memberID: String) -> some View {
+        Group {
+            if let module = store.module(for: memberID) {
+                AppTileView(module: module)
+                    // Guards read live state through the observable controller
+                    // (not the captured `isEditing` prop): the long-press below
+                    // flips edit mode mid-touch, and a stale snapshot could let
+                    // the lift still launch the module.
+                    .onTapGesture {
+                        guard !jiggle.isEditing else { return }
+                        Haptics.tap()
+                        onLaunch(module)
+                    }
+                    .accessibilityLabel(Text(module.name))
+            } else if let external = store.externalApp(forKey: memberID) {
+                ExternalTileView(app: external)
+                    // Launching externals arrives with the S7 launch path;
+                    // arranging works exactly like a module member already.
+                    .accessibilityLabel(Text(verbatim: external.name))
+            }
+        }
+        .modifier(Wobble(active: jiggle.isEditing, reduceMotion: reduceMotion))
+        .onLongPressGesture(minimumDuration: 0.5) {
+            guard !jiggle.isEditing else { return }
+            Haptics.tap()
+            onBeginEditing()
+        }
+        .gesture(jiggle.isEditing ? memberDrag(memberID) : nil)
+        .onGeometryChange(for: CGRect.self) { proxy in
+            proxy.frame(in: .named("folder"))
+        } action: { memberFrames[.app(memberID)] = $0 }
+        .opacity(jiggle.draggedItem == .app(memberID) ? 0.001 : 1)
+        .accessibilityAddTraits(.isButton)
+    }
+
     @ViewBuilder
     private func ghost(for id: GamesLayout.ItemID) -> some View {
-        if case .app(let memberID) = id, let module = store.module(for: memberID) {
-            AppTileView(module: module)
+        if case .app(let memberID) = id {
+            if let module = store.module(for: memberID) {
+                AppTileView(module: module)
+            } else if let external = store.externalApp(forKey: memberID) {
+                ExternalTileView(app: external)
+            }
         }
     }
 
@@ -166,7 +185,7 @@ struct FolderOverlayView: View {
                     }
                     if let insertAt {
                         withAnimation(Theme.springy) {
-                            store.moveMember(in: collection.id, moduleID: memberID,
+                            store.moveMember(in: collection.id, member: memberID,
                                              toIndex: insertAt)
                         }
                         Haptics.tap()

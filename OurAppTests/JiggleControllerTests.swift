@@ -71,6 +71,22 @@ struct JiggleControllerTests {
         #expect(jiggle.intent == .reorder(insertAt: 1))
     }
 
+    @Test func draggedExternalTilesCanTargetOtherTiles() {
+        let externalID = UUID()
+        var withExternal = frames
+        withExternal[.external(externalID)] = CGRect(x: 240, y: 0, width: 100, height: 100)
+        let jiggle = JiggleController()
+        jiggle.beginDrag(.external(externalID))
+        let centerOfB = CGPoint(x: 170, y: 50)
+        jiggle.updateDrag(location: centerOfB, frames: withExternal,
+                          order: order + [.external(externalID)], now: t0)
+        #expect(jiggle.intent == .target(.app("b")))
+        jiggle.updateDrag(location: centerOfB, frames: withExternal,
+                          order: order + [.external(externalID)],
+                          now: t0.addingTimeInterval(0.5))
+        #expect(jiggle.intent == .armedTarget(.app("b")))
+    }
+
     @Test func endDragReturnsTheFinalIntentAndResets() {
         let jiggle = JiggleController()
         jiggle.beginDrag(.app("a"))

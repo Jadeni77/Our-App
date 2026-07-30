@@ -137,6 +137,27 @@ struct GamesTabView: View {
                     .accessibilityAddTraits(.isButton)
                     .accessibilityLabel(Text(module.name))
             }
+        case .external(let externalID):
+            if let external = store.externalApp(id: externalID) {
+                ExternalTileView(app: external)
+                    .modifier(Wobble(active: jiggle.isEditing, reduceMotion: reduceMotion))
+                    // Launching arrives with the S7 launch path; arranging
+                    // works exactly like a module tile already.
+                    .onLongPressGesture(minimumDuration: 0.5) {
+                        guard !jiggle.isEditing else { return }
+                        Haptics.tap()
+                        withAnimation(Theme.springy) { jiggle.isEditing = true }
+                    }
+                    .gesture(jiggle.isEditing ? dragGesture(for: item.id) : nil)
+                    .onGeometryChange(for: CGRect.self) { proxy in
+                        proxy.frame(in: .named("springboard"))
+                    } action: { tileFrames[item.id] = $0 }
+                    .opacity(jiggle.draggedItem == item.id ? 0.001 : 1)
+                    .scaleEffect(jiggle.intent == .armedTarget(item.id) ? 1.12 : 1)
+                    .animation(Theme.springy, value: jiggle.intent == .armedTarget(item.id))
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityLabel(Text(verbatim: external.name))
+            }
         case .collection(let collection):
             CollectionTileView(collection: collection, store: store)
                 .modifier(Wobble(active: jiggle.isEditing, reduceMotion: reduceMotion))
@@ -191,6 +212,10 @@ struct GamesTabView: View {
         switch id {
         case .app(let moduleID):
             if let module = store.module(for: moduleID) { AppTileView(module: module) }
+        case .external(let externalID):
+            if let external = store.externalApp(id: externalID) {
+                ExternalTileView(app: external)
+            }
         case .collection(let collectionID):
             if case .collection(let collection)? = store.layout.items.first(where: {
                 $0.id == .collection(collectionID)
@@ -219,12 +244,13 @@ struct GamesTabView: View {
             withAnimation(Theme.springy) { store.moveItem(id: id, toIndex: insertAt) }
             Haptics.tap()
         case .armedTarget(let targetID):
-            guard case .app(let draggedModule) = id else { return }
+            guard let draggedMember = memberKey(for: id) else { return }
             switch targetID {
-            case .app(let targetModule):
+            case .app, .external:
+                guard let targetMember = memberKey(for: targetID) else { return }
                 let name = String(localized: "New collection")
-                if let newID = store.formCollection(target: targetModule,
-                                                    dragged: draggedModule,
+                if let newID = store.formCollection(target: targetMember,
+                                                    dragged: draggedMember,
                                                     named: name) {
                     Haptics.success()
                     renamingNewCollection = true
@@ -232,7 +258,7 @@ struct GamesTabView: View {
                 }
             case .collection(let collectionID):
                 withAnimation(Theme.springy) {
-                    store.addToCollection(collectionID, moduleID: draggedModule)
+                    store.addToCollection(collectionID, member: draggedMember)
                 }
                 Haptics.success()
             }
@@ -245,6 +271,16 @@ struct GamesTabView: View {
             Haptics.tap()
         case .none:
             break
+        }
+    }
+
+    /// The member key a root tile contributes to a collection: module id for
+    /// module tiles, UUID string for externals, nothing for collections.
+    private func memberKey(for id: GamesLayout.ItemID) -> String? {
+        switch id {
+        case .app(let moduleID): moduleID
+        case .external(let externalID): externalID.uuidString
+        case .collection: nil
         }
     }
 }

@@ -41,8 +41,11 @@ final class JiggleController {
         guard let dragged = draggedItem else { return }
         let others = order.filter { $0 != dragged }
 
-        // Only apps can land on things; collections never nest (games-springboard.md).
-        if case .app = dragged,
+        // Tiles (module or external) can land on things; collections never
+        // nest (games-springboard.md).
+        let draggedCanTarget: Bool
+        if case .collection = dragged { draggedCanTarget = false } else { draggedCanTarget = true }
+        if draggedCanTarget,
            let target = others.first(where: { id in
                guard let frame = frames[id] else { return false }
                let inset = frame.insetBy(dx: frame.width * Self.targetInset,

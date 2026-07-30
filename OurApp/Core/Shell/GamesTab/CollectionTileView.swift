@@ -12,7 +12,7 @@ struct CollectionTileView: View {
         VStack(spacing: 8) {
             LazyVGrid(columns: miniColumns, spacing: 2) {
                 ForEach(collection.members.prefix(9), id: \.self) { memberID in
-                    Text(store.module(for: memberID)?.emoji ?? "")
+                    Text(store.glyph(forMember: memberID))
                         .font(.system(size: 15))
                         .frame(maxWidth: .infinity)
                         .aspectRatio(1, contentMode: .fit)
