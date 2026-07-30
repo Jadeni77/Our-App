@@ -240,8 +240,15 @@ struct GamesTabView: View {
                     }
                     .modifier(Wobble(active: jiggle.isEditing, reduceMotion: reduceMotion))
                     .onTapGesture {
-                        guard !jiggle.isEditing else { return }
-                        launchExternal(external)
+                        if jiggle.isEditing {
+                            // Editing is how a wrong scheme gets fixed after a
+                            // soft fallback (store page opened, no alert) —
+                            // jiggle-tap is the way in (owners' find, 2026-07-30).
+                            Haptics.tap()
+                            externalSheet = .edit(external)
+                        } else {
+                            launchExternal(external)
+                        }
                     }
                     .gesture(jiggle.isEditing ? dragGesture(for: item.id) : nil)
                     .onGeometryChange(for: CGRect.self) { proxy in

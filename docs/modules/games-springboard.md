@@ -65,6 +65,7 @@ One JSON file in Application Support, written atomically on every mutation; per 
 | Reduce Motion | Wobble replaced by a static edit affordance; drag behavior unchanged |
 | Add a game (v2) | A **+** glass pill top-leading (opposite Done) opens the S7 add sheet |
 | Delete (v2, externals only) | In edit mode external tiles wear an ⓧ badge (root grid only — drag a foldered external out first) → confirm → registry entry, root tile, collection references, and cached artwork all go (S5 dissolve applies); module tiles never delete |
+| Edit a game (v2) | In edit mode, tapping an external tile opens its edit sheet (name + launch link + Test launch) — the repair path when a wrong scheme soft-falls to the store page |
 
 No module deletion (modules are code), no badges beyond the external ⓧ. VoiceOver: tiles and folders stay labeled and launchable; drag-arranging under VoiceOver is a logged gap.
 
