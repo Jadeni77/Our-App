@@ -49,19 +49,15 @@ struct GamesTabView: View {
                 // corner tiles (and the first tile's delete badge) stay tappable.
                 .padding(.top, jiggle.isEditing ? 72 : 24)
             }
-            // The scroll area owns every touch the tiles don't, so the
-            // enter/exit gestures live here — like the real springboard,
-            // holding anywhere (a tile or empty space) starts arranging and
-            // tapping empty space stops. `simultaneousGesture` matters twice:
-            // it fires at the 0.5 s mark while the finger is still down (a
-            // plain onLongPressGesture on a ScrollView only recognizes on
-            // lift), and it sees touches that begin on tiles, so this is the
-            // ONE jiggle entry point for the whole grid.
-            .onTapGesture {
-                if jiggle.isEditing {
-                    exitEditing()
-                }
-            }
+            // The scroll area owns every touch the tiles don't, so the enter
+            // gesture lives here: holding anywhere (a tile or empty space)
+            // starts arranging. `simultaneousGesture` matters twice: it fires
+            // at the 0.5 s mark while the finger is still down (a plain
+            // onLongPressGesture on a ScrollView only recognizes on lift),
+            // and it sees touches that begin on tiles, so this is the ONE
+            // jiggle entry point for the whole grid. **Done** is the only
+            // exit — a background tap competed with tile taps and read as
+            // flaky (owners' call, 2026-07-30).
             .simultaneousGesture(
                 LongPressGesture(minimumDuration: 0.5).onEnded { _ in
                     guard !jiggle.isEditing else { return }

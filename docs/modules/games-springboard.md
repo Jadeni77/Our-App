@@ -61,7 +61,7 @@ One JSON file in Application Support, written atomically on every mutation; per 
 | Open a collection | Tap (both modes) → overlay zooms open; normal mode: tap a member to launch; edit mode: opens in editing state |
 | Edit inside a folder | Members wobble and reorder by drag; dragging a member outside the overlay returns it to the root grid; name is editable — long-pressing a member enters edit mode from here (deliberately *without* focusing the name, unlike just-formed collections) |
 | Auto-dissolve | Removing the last member deletes the collection — empty folders can't exist |
-| Exit | Done or tap empty background; haptic; every mutation already saved |
+| Exit | **Done only** — haptic; every mutation already saved. (A background tap used to exit too; it competed with tile taps and felt flaky, so it was removed 2026-07-30.) |
 | Reduce Motion | Wobble replaced by a static edit affordance; drag behavior unchanged |
 | Add a game (v2) | A **+** glass pill top-leading (opposite Done) opens the S7 add sheet |
 | Delete (v2, externals only) | In edit mode external tiles wear an ⓧ badge (root grid only — drag a foldered external out first) → confirm → registry entry, root tile, collection references, and cached artwork all go (S5 dissolve applies); module tiles never delete |
