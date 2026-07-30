@@ -1,16 +1,13 @@
 import SwiftUI
 
 /// The themed couples home (P4, layout per P8): moonlit background, the two of
-/// us in the top corners, the day-counter hero in the middle, and the launcher
-/// rail on the trailing edge. DEBUG launch arguments `-openDrawer` /
-/// `-openSettings` exist solely so headless screenshot verification can reach
-/// those states (simctl can't tap).
+/// us in the top corners, the day-counter hero in the middle. The module
+/// launcher moved to the Games tab (P11) — this view only owns the hero and
+/// the settings gear. DEBUG launch argument `-openSettings` exists solely so
+/// headless screenshot verification can reach that state (simctl can't tap).
 struct CouplesHomeView: View {
-    let modules: [ModuleDescriptor]
-
     @State private var identity = CoupleIdentityStore()
     @State private var tilt = TiltModel()
-    @State private var openModule: ModuleDescriptor?
     @State private var showSettings = false
     @State private var pulse = false
 
@@ -66,16 +63,6 @@ struct CouplesHomeView: View {
                 Spacer() // hero sits slightly above center, like the reference
             }
         }
-        .overlay(alignment: .bottomTrailing) {
-            // Lower-right, thumb reach; the tile column grows upward and stays
-            // clear of the centered hero.
-            ModuleLauncherRail(
-                modules: modules,
-                openModule: $openModule,
-                startsOpen: launchArguments.contains("-openDrawer")
-            )
-            .padding(.bottom, 96)
-        }
         .overlay(alignment: .bottomLeading) {
             Button {
                 Haptics.tap()
@@ -90,9 +77,6 @@ struct CouplesHomeView: View {
             .padding(.bottom, 8)
             .accessibilityLabel(Text("Our details"))
         }
-        .fullScreenCover(item: $openModule) { module in
-            ModuleHostView(module: module)
-        }
         .sheet(isPresented: $showSettings) {
             CoupleSettingsSheet(identity: identity)
         }
@@ -102,10 +86,10 @@ struct CouplesHomeView: View {
             if launchArguments.contains("-openSettings") { showSettings = true }
         }
         .onDisappear { tilt.stop() }
-        .onChange(of: openModule == nil && !showSettings) { _, homeVisible in
+        .onChange(of: showSettings) { _, covered in
             // The home is the root view, so onDisappear never fires in normal
             // use — bracket tilt by cover/sheet visibility instead.
-            if homeVisible { tilt.start() } else { tilt.stop() }
+            if covered { tilt.stop() } else { tilt.start() }
         }
     }
 
@@ -119,5 +103,5 @@ struct CouplesHomeView: View {
 }
 
 #Preview {
-    CouplesHomeView(modules: [FoodDecisionModule.descriptor])
+    CouplesHomeView()
 }
