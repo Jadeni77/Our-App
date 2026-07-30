@@ -160,9 +160,10 @@ struct GamesTabView: View {
             }
         }
         // A centered alert, not a bottom sheet — the badge that summons it
-        // sits at the top of the screen (owners' UX call, 2026-07-30).
+        // sits at the top of the screen (owners' UX call, 2026-07-30). The
+        // title asks the question; the name inside it stays verbatim (S6).
         .alert(
-            Text(verbatim: deletingExternalApp?.name ?? ""),
+            Text("Do you want to remove “\(deletingExternalApp?.name ?? "")”?"),
             isPresented: Binding(
                 get: { deletingExternalApp != nil },
                 set: { if !$0 { deletingExternalApp = nil } }),

@@ -67,6 +67,10 @@ struct LocalizationTests {
         #expect(localizedValue("Already added — edit it", language: "zh-Hans") == "已添加——去编辑")
         #expect(localizedValue("Already added — edit it", language: "zh-Hant") == "已新增——去編輯")
         #expect(localizedValue("Remove", language: "zh-Hans") == "移除")
+        #expect(localizedValue("Do you want to remove “%@”?", language: "zh-Hans")
+                == "要移除“%@”吗？")
+        #expect(localizedValue("Do you want to remove “%@”?", language: "zh-Hant")
+                == "要移除「%@」嗎？")
         #expect(localizedValue("Edit", language: "zh-Hant") == "編輯")
         #expect(localizedValue("OK", language: "zh-Hans") == "好")
         let schemeFooter = "iOS needs an app's link (URL scheme) to open it directly. "
