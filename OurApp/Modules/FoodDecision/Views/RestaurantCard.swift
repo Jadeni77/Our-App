@@ -42,7 +42,21 @@ struct RestaurantCard: View {
             .formatted(.measurement(width: .abbreviated, usage: .road))
     }
 
+    /// Google Maps first, Apple Maps as the fallback (F8) — both when Google
+    /// Maps isn't installed and when its open unexpectedly fails.
     private func openDirections() {
+        let googleMaps = DirectionsPlanner.googleMapsURL(latitude: restaurant.latitude,
+                                                         longitude: restaurant.longitude)
+        if UIApplication.shared.canOpenURL(googleMaps) {
+            UIApplication.shared.open(googleMaps, options: [:]) { opened in
+                if !opened { openAppleMaps() }
+            }
+        } else {
+            openAppleMaps()
+        }
+    }
+
+    private func openAppleMaps() {
         let coordinate = CLLocationCoordinate2D(latitude: restaurant.latitude, longitude: restaurant.longitude)
         let item = MKMapItem(placemark: MKPlacemark(coordinate: coordinate))
         item.name = restaurant.name

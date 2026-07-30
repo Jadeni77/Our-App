@@ -19,6 +19,7 @@ Cross-cutting decisions (iOS-native, module-first, localization, theme) live in 
 | F5 | Defer Google Places / photos / ratings | Decoration for our use case; free-but-plain beats paid-but-pretty until we genuinely miss it | Rich photo/rating cards in v1 |
 | F6 | Cuisine pool becomes **localized data**: stable `id` + localized display names (en / zh-Hans / zh-Hant) + emoji; all module strings via the String Catalog (per platform P5) | We think about food in both languages — "火锅" *is* the cuisine, not a translation of it; and history must survive language switches (record the `id`, not the display string) | Keeping the English string pool and translating only the UI chrome (cuisine names are the heart of this module — half-localized is not localized) |
 | F7 | Each cuisine carries **`searchTerms`** (multi-language variants, e.g. hotpot → 火锅 / hotpot / 麻辣火锅) and the provider picks/query-orders terms by **user region**, all behind the existing `RestaurantProvider` | The display name alone under-queries: "火锅" must find places in Chinese-speaking regions where POIs are tagged in Chinese, *and* the same cuisine must still return results where POIs are tagged in English | Using the localized display name as the raw `MKLocalSearch` query (breaks whenever display language ≠ the language local POIs are tagged in) |
+| F8 | **Directions hand off to Google Maps first** (`comgooglemaps://` driving directions to the coordinate), falling back to Apple Maps when it's not installed or the open fails (owners' call, 2026-07-30). Search stays MapKit — F3 unchanged | The owners navigate with Google Maps; the URL scheme is free and keyless, so preferring it costs nothing and keeps the ritual at one tap | Swapping the *search* provider to Google Places (F3's rejected paid/keyed SKUs — still rejected); asking which maps app every time (an extra tap in the ritual, principle 3) |
 
 *(Feature details that weren't real forks — random-pick vs manual entry, list vs map rendering — live in Scope below, not here.)*
 
@@ -31,7 +32,7 @@ Cross-cutting decisions (iOS-native, module-first, localization, theme) live in 
 2. **Show the proposal big** on its own screen; hand the phone over.
 3. **Other person decides:** **Agree ✅** (→ decided) or **Re-roll 🔄** (→ new proposal).
 4. **Decided screen** celebrates the choice, then offers **"Find places near us."**
-5. **Results:** `MKLocalSearch` on the cuisine → a **styled card list (not a map view)**: name, distance, **Directions** action (opens Apple Maps). Address/phone when available.
+5. **Results:** `MKLocalSearch` on the cuisine → a **styled card list (not a map view)**: name, distance, **Directions** action (Google Maps when installed, else Apple Maps — F8). Address/phone when available.
 
 ### Built-in cuisine pool
 ~30–40 hardcoded entries in one editable place (hotpot, ramen, Sichuan, sushi, burgers, Thai, pizza, tacos, Korean BBQ, pho, …). *(Superseded in v2 by F6's localized data pool.)*

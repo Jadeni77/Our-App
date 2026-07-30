@@ -50,6 +50,8 @@
 		<string>terraria</string>
 		<!-- The Shortcuts bridge, for games with no working scheme -->
 		<string>shortcuts</string>
+		<!-- Directions handoff: Google Maps first, Apple Maps fallback (F8) -->
+		<string>comgooglemaps</string>
 	</array>
 </dict>
 </plist>
