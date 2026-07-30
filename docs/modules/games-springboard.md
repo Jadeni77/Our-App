@@ -47,13 +47,13 @@ struct GamesLayout: Codable {          // version: 1
 One JSON file in Application Support, written atomically on every mutation; per device (P11). Corrupt/unreadable → silently rebuild the default (all modules loose, registration order). Reconcile per S5 on load and registration.
 
 ### Rendering
-4-column `LazyVGrid`; app tile = rounded glass square (core `GlassStyle`), large emoji, localized name beneath. Collection tile = same square holding up to 9 member emojis in a 3×3 mini-grid, name beneath. Folder opens as a zoom overlay (matched geometry). Background: `DreamyBackground` without tilt parallax (motion sensors stay Home-only). Launching goes through the existing `ModuleHostView` full-screen cover — the tab bar hides during a ritual. `ModuleDescriptor` is unchanged.
+4-column `LazyVGrid`; app tile = rounded glass square (core `GlassStyle`), large emoji, localized name beneath. Collection tile = same square holding up to 9 member emojis in a 3×3 mini-grid, name beneath. Folder opens as a zoom overlay (matched geometry) titled by the collection's name **above** its grid, like an open iOS folder. Background: `DreamyBackground` without tilt parallax (motion sensors stay Home-only). Launching goes through the existing `ModuleHostView` full-screen cover — the tab bar hides during a ritual. `ModuleDescriptor` is unchanged.
 
 ### Jiggle mode (the behavioral contract)
 
 | Interaction | Behavior |
 |---|---|
-| Enter | Long-press (~0.5 s) any tile → all tiles wobble (per-tile phase stagger); **Done** glass pill top-trailing; haptic |
+| Enter | Long-press (~0.5 s) any tile — in the root grid or inside an open folder → all tiles wobble (per-tile phase stagger); **Done** glass pill top-trailing; haptic |
 | Reorder | Drag a tile; neighbors spring apart to open a gap; release commits |
 | Form a collection | Drag over another tile → arm-on-hover (S2) → release while armed → collection of {target, dragged}; folder overlay opens with the name field focused |
 | Add to collection | Drag over a collection tile → arm-on-hover → release → appended last |

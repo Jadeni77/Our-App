@@ -1,13 +1,17 @@
 // OurApp/Core/Shell/GamesTab/FolderOverlayView.swift
 import SwiftUI
 
-/// A collection zoomed open (games-springboard.md): glass panel, 3-column
-/// grid of members, the name shown beneath — editable while arranging.
+/// A collection zoomed open (games-springboard.md): the name above a glass
+/// panel of members, 3 columns — name editable while arranging, and a
+/// long-press on any member starts arranging right from in here.
 struct FolderOverlayView: View {
     let collection: GamesLayout.Collection
     let store: GamesLayoutStore
     let isEditing: Bool
     var startsRenaming = false
+    /// Long-press on a member wants edit mode; the root grid owns that state,
+    /// so the overlay asks rather than flips it locally.
+    let onBeginEditing: () -> Void
     let onLaunch: (ModuleDescriptor) -> Void
     let onClose: () -> Void
 
@@ -28,31 +32,7 @@ struct FolderOverlayView: View {
                 .onTapGesture { commitNameAndClose() }
 
             VStack(spacing: 16) {
-                LazyVGrid(columns: columns, spacing: 16) {
-                    ForEach(collection.members, id: \.self) { memberID in
-                        if let module = store.module(for: memberID) {
-                            AppTileView(module: module)
-                                .modifier(Wobble(active: jiggle.isEditing, reduceMotion: reduceMotion))
-                                .onTapGesture {
-                                    guard !isEditing else { return }
-                                    Haptics.tap()
-                                    onLaunch(module)
-                                }
-                                .gesture(isEditing ? memberDrag(memberID) : nil)
-                                .onGeometryChange(for: CGRect.self) { proxy in
-                                    proxy.frame(in: .named("folder"))
-                                } action: { memberFrames[.app(memberID)] = $0 }
-                                .opacity(jiggle.draggedItem == .app(memberID) ? 0.001 : 1)
-                                .accessibilityAddTraits(.isButton)
-                                .accessibilityLabel(Text(module.name))
-                        }
-                    }
-                }
-                .padding(20)
-                .glassCard(cornerRadius: 28)
-                .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("folder")) }
-                    action: { panelFrame = $0 }
-
+                // Name sits above the grid, like an open iOS folder's title.
                 if isEditing {
                     TextField("Collection name", text: $draftName)
                         .focused($nameFocused)
@@ -69,6 +49,36 @@ struct FolderOverlayView: View {
                         .font(Theme.display(20))
                         .foregroundStyle(.white)
                 }
+
+                LazyVGrid(columns: columns, spacing: 16) {
+                    ForEach(collection.members, id: \.self) { memberID in
+                        if let module = store.module(for: memberID) {
+                            AppTileView(module: module)
+                                .modifier(Wobble(active: jiggle.isEditing, reduceMotion: reduceMotion))
+                                .onTapGesture {
+                                    guard !isEditing else { return }
+                                    Haptics.tap()
+                                    onLaunch(module)
+                                }
+                                .onLongPressGesture(minimumDuration: 0.5) {
+                                    guard !isEditing else { return }
+                                    Haptics.tap()
+                                    onBeginEditing()
+                                }
+                                .gesture(isEditing ? memberDrag(memberID) : nil)
+                                .onGeometryChange(for: CGRect.self) { proxy in
+                                    proxy.frame(in: .named("folder"))
+                                } action: { memberFrames[.app(memberID)] = $0 }
+                                .opacity(jiggle.draggedItem == .app(memberID) ? 0.001 : 1)
+                                .accessibilityAddTraits(.isButton)
+                                .accessibilityLabel(Text(module.name))
+                        }
+                    }
+                }
+                .padding(20)
+                .glassCard(cornerRadius: 28)
+                .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("folder")) }
+                    action: { panelFrame = $0 }
             }
             .padding(.horizontal, 36)
 
