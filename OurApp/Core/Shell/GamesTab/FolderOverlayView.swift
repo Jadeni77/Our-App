@@ -45,9 +45,14 @@ struct FolderOverlayView: View {
                         .padding(.vertical, 10)
                         .glassCard(cornerRadius: 18)
                 } else {
-                    Text(collection.name)      // verbatim — user data (S6)
+                    Text(verbatim: collection.name)      // user data (S6)
                         .font(Theme.display(20))
                         .foregroundStyle(.white)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.8)
+                        // Match the rename pill's height so the grid doesn't
+                        // shift under a finger mid-long-press when edit begins.
+                        .padding(.vertical, 10)
                 }
 
                 LazyVGrid(columns: columns, spacing: 16) {
@@ -55,17 +60,22 @@ struct FolderOverlayView: View {
                         if let module = store.module(for: memberID) {
                             AppTileView(module: module)
                                 .modifier(Wobble(active: jiggle.isEditing, reduceMotion: reduceMotion))
+                                // Guards read live state through the observable
+                                // controller (not the captured `isEditing` prop):
+                                // the long-press below flips edit mode mid-touch,
+                                // and a stale snapshot could let the lift still
+                                // launch the module.
                                 .onTapGesture {
-                                    guard !isEditing else { return }
+                                    guard !jiggle.isEditing else { return }
                                     Haptics.tap()
                                     onLaunch(module)
                                 }
                                 .onLongPressGesture(minimumDuration: 0.5) {
-                                    guard !isEditing else { return }
+                                    guard !jiggle.isEditing else { return }
                                     Haptics.tap()
                                     onBeginEditing()
                                 }
-                                .gesture(isEditing ? memberDrag(memberID) : nil)
+                                .gesture(jiggle.isEditing ? memberDrag(memberID) : nil)
                                 .onGeometryChange(for: CGRect.self) { proxy in
                                     proxy.frame(in: .named("folder"))
                                 } action: { memberFrames[.app(memberID)] = $0 }
@@ -101,8 +111,10 @@ struct FolderOverlayView: View {
             jiggle.isEditing = newValue
             if !newValue {
                 // Root exited edit mode (Done / background tap) while this
-                // folder was open — drop any in-flight member drag so a
-                // cancelled gesture can't strand a ghost in here either.
+                // folder was open — Done must not silently drop an in-flight
+                // rename, so commit it; then drop any in-flight member drag
+                // so a cancelled gesture can't strand a ghost in here either.
+                commitName()
                 dragLocation = nil
                 _ = jiggle.endDrag()
             }
@@ -168,6 +180,10 @@ struct FolderOverlayView: View {
         if !trimmed.isEmpty, trimmed != collection.name {
             store.renameCollection(collection.id, to: trimmed)
         }
+        // Realign the draft with what's actually stored: the view keeps its
+        // identity across the rename (onAppear won't re-seed), so an
+        // abandoned draft would otherwise resurface on the next edit.
+        draftName = trimmed.isEmpty ? collection.name : trimmed
     }
 
     private func commitNameAndClose() {

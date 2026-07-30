@@ -58,7 +58,7 @@ One JSON file in Application Support, written atomically on every mutation; per 
 | Form a collection | Drag over another tile → arm-on-hover (S2) → release while armed → collection of {target, dragged}; folder overlay opens with the name field focused |
 | Add to collection | Drag over a collection tile → arm-on-hover → release → appended last |
 | Open a collection | Tap (both modes) → overlay zooms open; normal mode: tap a member to launch; edit mode: opens in editing state |
-| Edit inside a folder | Members wobble and reorder by drag; dragging a member outside the overlay returns it to the root grid; name is editable |
+| Edit inside a folder | Members wobble and reorder by drag; dragging a member outside the overlay returns it to the root grid; name is editable — long-pressing a member enters edit mode from here (deliberately *without* focusing the name, unlike just-formed collections) |
 | Auto-dissolve | Removing the last member deletes the collection — empty folders can't exist |
 | Exit | Done or tap empty background; haptic; every mutation already saved |
 | Reduce Motion | Wobble replaced by a static edit affordance; drag behavior unchanged |
