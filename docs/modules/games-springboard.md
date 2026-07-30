@@ -117,9 +117,10 @@ Externals live in the registry and are referenced by id — `Collection.members`
 ### Add flow
 
 In jiggle mode, a **"+" glass pill** (top-leading, opposite Done) opens a sheet:
-- a small **curated catalog** (names only for now — schemes get pinned with Test launch; the starter list is an open question below), and
-- **manual entry** (name + optional scheme) with a **"Test launch"** button that proves a scheme on the spot — this is how we pin down undocumented schemes like Identity V's on a real phone.
-Artwork + store link come from the **iTunes Search API** by name (free, keyless), cached to Application Support; every fetch fails soft to the emoji.
+- a small **curated catalog** (owners' games; entries carry schemes once verified on device — `wildrift://` and `clashofclans://` so far),
+- a **live store picker**: typing the name surfaces matching App Store entries as icons — tap one, confirm, and the tile commits with the exact title + artwork (while matches are showing, the picker is the only add path; bare **Add** returns when nothing matches, so a half-typed search can't become a tile),
+- **manual entry** (name + optional scheme) with **"Test launch"** (proves a typed scheme on the spot) and **"Find launch link"** (auto-probes the likely schemes — squashed name, initials, first word; a failure is silent, a success visibly opens the game and lands in the field, tested).
+Artwork + store link come from the **iTunes Search API** (free, keyless), cached to Application Support; enrichment only dresses a tile when the store title plausibly matches the typed name; every fetch fails soft to the emoji. New tiles are dressed *before* they appear (spinner on Add, capped by timeouts).
 
 ### Launch behavior (principle 7 — never a dead end)
 
