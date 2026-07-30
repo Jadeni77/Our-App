@@ -18,6 +18,7 @@ struct AddExternalAppSheet: View {
     @State private var searchResults: [ITunesSearch.Result] = []
     @State private var searchTask: Task<Void, Never>?
     @State private var pendingPick: ITunesSearch.Result?
+    @State private var pickName = ""
     @State private var isSearching = false
     @State private var isProbing = false
     @State private var schemeSetByProbe = false
@@ -97,6 +98,11 @@ struct AddExternalAppSheet: View {
                                 ForEach(searchResults, id: \.self) { result in
                                     Button {
                                         Haptics.tap()
+                                        // Tiles read like the home screen, not
+                                        // the store: catalog names win, and the
+                                        // confirm field stays editable.
+                                        pickName = SchemeCatalog.displayName(
+                                            for: result.trackName) ?? result.trackName
                                         pendingPick = result
                                     } label: {
                                         VStack(spacing: 4) {
@@ -185,6 +191,7 @@ struct AddExternalAppSheet: View {
                 set: { if !$0 { pendingPick = nil } }),
             presenting: pendingPick
         ) { pick in
+            TextField("Name", text: $pickName)
             Button("Add") { addPicked(pick) }
             Button("Cancel", role: .cancel) {}
         } message: { _ in
@@ -222,11 +229,21 @@ struct AddExternalAppSheet: View {
     /// the rest — a wrong guess still falls back to the store page).
     private func addPicked(_ pick: ITunesSearch.Result) {
         guard !isAdding else { return }
+        let trimmedPick = pickName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let finalName = trimmedPick.isEmpty ? pick.trackName : trimmedPick
+        // An edited name can collide with an existing tile — drop back into
+        // the form (the "Already added" hint takes over) instead of committing.
+        guard !Self.isDuplicateName(finalName, among: store.layout.externalApps,
+                                    excluding: nil) else {
+            name = finalName
+            return
+        }
         var app = GamesLayout.ExternalApp(
-            id: UUID(), name: pick.trackName, emoji: "🎮",
+            id: UUID(), name: finalName, emoji: "🎮",
             artworkURL: pick.artworkUrl512, launchURL: nil,
             storeURL: pick.trackViewUrl)
         let guess = SchemeCatalog.verified(for: pick.trackName)
+            ?? SchemeCatalog.candidates(from: finalName).first
             ?? SchemeCatalog.candidates(from: pick.trackName).first
         app.launchURL = guess.flatMap { Self.normalizedLaunchURL(from: $0) }
         isAdding = true

@@ -25,4 +25,12 @@ struct SchemeCatalogTests {
         #expect(SchemeCatalog.verified(for: "Clash of Clans") == "clashofclans://")
         #expect(SchemeCatalog.verified(for: "Candy Crush Saga") == nil)
     }
+
+    @Test func verifiedGamesCarryTheirHomeScreenStyleName() {
+        // The store title is a mouthful; the tile should read like the
+        // phone's own home screen.
+        #expect(SchemeCatalog.displayName(for: "League of Legends: Wild Rift")
+                == "Wild Rift")
+        #expect(SchemeCatalog.displayName(for: "Candy Crush Saga") == nil)
+    }
 }

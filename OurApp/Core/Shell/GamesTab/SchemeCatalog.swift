@@ -7,14 +7,32 @@ import Foundation
 enum SchemeCatalog {
     /// Verified on-device — matched by containment so store-style titles
     /// ("League of Legends: Wild Rift") still hit their everyday names.
-    private static let verifiedByFragment: [(fragment: String, scheme: String)] = [
-        ("wild rift", "wildrift://"),           // verified 2026-07-30
-        ("clash of clans", "clashofclans://"),  // verified 2026-07-30
+    /// `displayName` is what the phone's home screen shows (no API exposes
+    /// it, so it's curated alongside the scheme).
+    private struct Entry {
+        let fragment: String
+        let scheme: String
+        let displayName: String
+    }
+
+    private static let verifiedEntries: [Entry] = [
+        .init(fragment: "wild rift", scheme: "wildrift://",
+              displayName: "Wild Rift"),                       // verified 2026-07-30
+        .init(fragment: "clash of clans", scheme: "clashofclans://",
+              displayName: "Clash of Clans"),                  // verified 2026-07-30
     ]
 
     static func verified(for title: String) -> String? {
+        entry(for: title)?.scheme
+    }
+
+    static func displayName(for title: String) -> String? {
+        entry(for: title)?.displayName
+    }
+
+    private static func entry(for title: String) -> Entry? {
         let haystack = title.lowercased()
-        return verifiedByFragment.first { haystack.contains($0.fragment) }?.scheme
+        return verifiedEntries.first { haystack.contains($0.fragment) }
     }
 
     /// The likely schemes for a title, most promising first: the subtitle's
