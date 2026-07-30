@@ -362,9 +362,11 @@ struct AddExternalAppSheet: View {
         app.launchURL = normalizedSchemeURL
 
         // A link that Test launch (or the probe) just proved is knowledge —
-        // the catalog learns it with the name the owners chose.
+        // the catalog learns it with the name the owners chose, and a
+        // verified link overrides any standing store preference.
         if probeOpened == true, let scheme = app.launchURL?.absoluteString {
             store.learnScheme(name: app.name, scheme: scheme)
+            app.prefersStore = false
         }
 
         // Edits commit instantly (the tile already exists on screen).

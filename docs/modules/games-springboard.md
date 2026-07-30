@@ -129,7 +129,7 @@ Artwork + store link come from the **iTunes Search API** (free, keyless), cached
 
 ### Launch behavior (principle 7 — never a dead end)
 
-`UIApplication.open(launchURL)` → on failure open `storeURL` → neither works: friendly "can't open" message with an edit affordance. No `LSApplicationQueriesSchemes` declarations needed — we never call `canOpenURL`; `open()`'s completion is the probe.
+The saved link → a self-healing walk of the learned catalog + likely candidates (filtered through silent `canOpenURL` for schemes declared in `OurApp-Info.plist`'s `LSApplicationQueriesSchemes`, ≤50 — declared-but-absent guesses never prompt) → `storeURL` → neither works: friendly "can't open" message with an edit affordance. A second same-session store bounce offers **Set up link** once; choosing **Open App Store** instead persists as the tile's standing preference (`prefersStore`: future taps skip guessing entirely, re-offered every third store open; cleared when a link is verified).
 
 ### Everything else is unchanged
 

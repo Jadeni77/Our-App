@@ -180,7 +180,16 @@ struct GamesTabView: View {
                 // Hop past the alert's dismissal before presenting the sheet.
                 Task { @MainActor in externalSheet = .edit(app) }
             }
-            Button("Open App Store", role: .cancel) { openStore(app) }
+            Button("Open App Store", role: .cancel) {
+                // A standing choice, not a dismissal (owners' call,
+                // 2026-07-30): future taps skip the guessing entirely.
+                if var declined = store.externalApp(id: app.id),
+                   !declined.prefersStore {
+                    declined.prefersStore = true
+                    store.updateExternalApp(declined)
+                }
+                openStore(app)
+            }
         } message: { _ in
             Text("Opens the App Store every time — link it to launch directly?")
         }
@@ -414,6 +423,7 @@ struct GamesTabView: View {
         guard var live = store.externalApp(id: edited.id) else { return }
         live.name = edited.name
         live.launchURL = edited.launchURL
+        live.prefersStore = edited.prefersStore   // cleared by a verified link
         store.updateExternalApp(live)
         enrich(live)   // refresh the store link/artwork if the name changed
     }
@@ -424,6 +434,19 @@ struct GamesTabView: View {
     /// App Store page, else a friendly message with an Edit way out.
     private func launchExternal(_ app: GamesLayout.ExternalApp) {
         Haptics.tap()
+        // "Open App Store" at the offer is a standing choice: no guessing,
+        // no prompts — straight to the store, with a gentle re-offer every
+        // third open in case they've changed their mind.
+        if app.prefersStore {
+            let bounces = (storeBounces[app.id] ?? 0) + 1
+            storeBounces[app.id] = bounces
+            if bounces % 3 == 0 {
+                linkOfferApp = app
+            } else {
+                openStore(app)
+            }
+            return
+        }
         Task {
             // Ordered attempts: the saved link, then what we know, then the
             // likely guesses — filtered so iOS is only asked to open apps it

@@ -91,6 +91,39 @@ struct GamesLayout: Codable, Equatable {
         var launchURL: URL?
         /// App Store page fallback.
         var storeURL: URL?
+        /// The owner chose "Open App Store" at the link offer: skip the
+        /// guessing entirely and go straight to the store (re-offered
+        /// occasionally; cleared when a link is verified).
+        var prefersStore: Bool
+
+        init(id: UUID, name: String, emoji: String,
+             artworkURL: URL?, launchURL: URL?, storeURL: URL?,
+             prefersStore: Bool = false) {
+            self.id = id
+            self.name = name
+            self.emoji = emoji
+            self.artworkURL = artworkURL
+            self.launchURL = launchURL
+            self.storeURL = storeURL
+            self.prefersStore = prefersStore
+        }
+
+        private enum CodingKeys: String, CodingKey {
+            case id, name, emoji, artworkURL, launchURL, storeURL, prefersStore
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            id = try container.decode(UUID.self, forKey: .id)
+            name = try container.decode(String.self, forKey: .name)
+            emoji = try container.decode(String.self, forKey: .emoji)
+            artworkURL = try container.decodeIfPresent(URL.self, forKey: .artworkURL)
+            launchURL = try container.decodeIfPresent(URL.self, forKey: .launchURL)
+            storeURL = try container.decodeIfPresent(URL.self, forKey: .storeURL)
+            // Absent on tiles written before the preference existed.
+            prefersStore = try container.decodeIfPresent(Bool.self,
+                                                         forKey: .prefersStore) ?? false
+        }
 
         /// How collections reference externals: `Collection.members` stays
         /// `[String]`, so externals slot in as their UUID string.

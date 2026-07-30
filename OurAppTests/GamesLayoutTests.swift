@@ -110,6 +110,25 @@ struct GamesLayoutTests {
         #expect(decoded.learnedSchemes.isEmpty)
     }
 
+    @Test func externalAppsWithoutStorePreferenceDecodeAsNotPreferring() throws {
+        // Tiles written before the preference existed must keep decoding.
+        let json = """
+        {"id":"22222222-2222-2222-2222-222222222222","name":"HOK","emoji":"🎮"}
+        """
+        let app = try JSONDecoder().decode(GamesLayout.ExternalApp.self,
+                                           from: Data(json.utf8))
+        #expect(app.prefersStore == false)
+        #expect(app.launchURL == nil)
+    }
+
+    @Test func storePreferenceRoundTrips() throws {
+        var app = external()
+        app.prefersStore = true
+        let decoded = try JSONDecoder().decode(GamesLayout.ExternalApp.self,
+                                               from: JSONEncoder().encode(app))
+        #expect(decoded.prefersStore)
+    }
+
     @Test func learnedSchemesRoundTripAndSurviveReconcile() throws {
         let learned = GamesLayout.LearnedScheme(name: "Wild Rift",
                                                 scheme: "wildrift://")
