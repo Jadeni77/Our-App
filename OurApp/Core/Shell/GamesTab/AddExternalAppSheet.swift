@@ -107,10 +107,11 @@ struct AddExternalAppSheet: View {
 
                     if showsShortcutHelp {
                         Text(String(format: String(localized:
-                            "1. Tap Open Shortcuts below — a new shortcut opens.\n2. Add the “Open App” action and choose %1$@.\n3. Tap the title at the top, choose Rename, and paste — “%1$@” is already copied.\n4. Come back and tap Test launch."),
+                            "1. Tap Open Shortcuts below — a new shortcut opens.\n2. Add the “Open App” action and choose %1$@.\n3. Tap the title at the top, choose Rename, and paste (“%1$@” is copied — Copy name refreshes it).\n4. Come back and tap Test launch.\n\nSays the shortcut can’t be found? The names don’t match — rename it in Shortcuts, or tap Use a Shortcut instead to start over."),
                             trimmedName))
                             .font(.footnote)
                             .foregroundStyle(.secondary)
+                            .textSelection(.enabled)
 
                         Button {
                             Haptics.tap()
@@ -122,6 +123,13 @@ struct AddExternalAppSheet: View {
                             }
                         } label: {
                             Text("Open Shortcuts")
+                        }
+
+                        Button {
+                            Haptics.tap()
+                            UIPasteboard.general.string = trimmedName
+                        } label: {
+                            Text("Copy name")
                         }
                     }
                 } footer: {
