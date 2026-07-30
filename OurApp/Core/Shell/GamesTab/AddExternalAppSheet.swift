@@ -91,8 +91,10 @@ struct AddExternalAppSheet: View {
                     // The last resort when every guess misses (S7's parked
                     // Shortcuts bridge, now guided): we pre-fill our half of
                     // the link and open the Shortcuts editor — the owner only
-                    // makes the two choices iOS reserves for humans.
-                    if !trimmedName.isEmpty {
+                    // makes the two choices iOS reserves for humans. Shown
+                    // only once the probe has failed (or a name yields no
+                    // guesses): a Shortcut never replaces a working scheme.
+                    if shortcutIsTheLastResort {
                         Button {
                             Haptics.tap()
                             showsShortcutHelp = true
@@ -108,7 +110,7 @@ struct AddExternalAppSheet: View {
                         }
                     }
 
-                    if showsShortcutHelp {
+                    if showsShortcutHelp, probeOpened != true {
                         Text(String(format: String(localized:
                             "1. Tap Open Shortcuts below — a new shortcut opens.\n2. Add the “Open App” action and choose %1$@.\n3. Tap the title at the top, choose Rename, and paste (“%1$@” is copied — Copy name refreshes it).\n4. Come back and tap Test launch.\n\nSays the shortcut can’t be found? The names don’t match — rename it in Shortcuts, or tap Use a Shortcut instead to start over."),
                             trimmedName))
@@ -353,6 +355,15 @@ struct AddExternalAppSheet: View {
     private var isDuplicate: Bool {
         Self.isDuplicateName(trimmedName, among: store.layout.externalApps,
                              excluding: existing?.id)
+    }
+
+    /// A Shortcut only earns its place once the guesses have actually failed
+    /// — or when a name yields none to try (and nothing is typed).
+    private var shortcutIsTheLastResort: Bool {
+        guard !trimmedName.isEmpty else { return false }
+        if probeOpened == false { return true }
+        return normalizedSchemeURL == nil
+            && SchemeCatalog.candidates(from: trimmedName).isEmpty
     }
 
     private func existingApp(named title: String) -> GamesLayout.ExternalApp? {
