@@ -142,6 +142,9 @@ On a real phone: add Identity V through the add flow; its tile (official artwork
 
 ## Module open questions
 
+- v3 candidate — **share-sheet import** (owners' "pick the app" idea, 2026-07-30, in the only shape iOS allows): a Share extension that accepts App Store links — find the game in the App Store, Share → OurApp, and the tile arrives with the exact name/artwork/store id, zero typing. Needs a new extension target + an App Group to reach the layout document; milestone-sized.
+- v3 candidate — **in-app App Store panel** (`SKStoreProductViewController`): schemeless tiles present the store page *inside* OurApp (Get/Open without leaving), the closest iOS permits to "download it from inside our app" — installing apps is reserved to the App Store by the sandbox, so true in-app installs/embedded games are impossible, not just hard.
+
 - Once sync lands: does the layout stay per-device (each of us arranges our own page) or become shared? Parked to the sync milestone.
 - Grid metrics (4 columns, tile size) — revisit after real use on both phones.
 - v2: curated catalog contents — which games do we two want pre-listed? (Owners' list; Identity V is #1.)
