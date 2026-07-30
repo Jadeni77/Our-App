@@ -5,9 +5,11 @@ import SwiftUI
 /// arranging, and launches modules full-screen.
 struct GamesTabView: View {
     @Environment(GamesLayoutStore.self) private var store
+    @Environment(ArtworkStore.self) private var artwork
     @State private var openModule: ModuleDescriptor?
     @State private var openCollectionID: UUID?
     @State private var renamingNewCollection = false
+    @State private var addingExternalApp = false
     @State private var jiggle = JiggleController()
     @State private var tileFrames: [GamesLayout.ItemID: CGRect] = [:]
     @State private var dragLocation: CGPoint?
@@ -86,6 +88,26 @@ struct GamesTabView: View {
                 .glassCard(cornerRadius: 18)
                 .padding(.trailing, 16)
             }
+        }
+        .overlay(alignment: .topLeading) {
+            // Opposite Done: add a real installed game to the springboard (S7).
+            if jiggle.isEditing {
+                Button {
+                    Haptics.tap()
+                    addingExternalApp = true
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 44, height: 36)
+                }
+                .glassCard(cornerRadius: 18)
+                .padding(.leading, 16)
+                .accessibilityLabel(Text("Add a game"))
+            }
+        }
+        .sheet(isPresented: $addingExternalApp) {
+            AddExternalAppSheet(onCommit: commitNewExternalApp)
         }
         .onAppear {
             #if DEBUG
@@ -283,6 +305,29 @@ struct GamesTabView: View {
         case .collection: nil
         }
     }
+
+    // MARK: - External apps (S7)
+
+    private func commitNewExternalApp(_ app: GamesLayout.ExternalApp) {
+        store.addExternalApp(app)
+        enrich(app)
+    }
+
+    /// Fire-and-forget iTunes enrichment: official artwork + App Store page
+    /// by name. Every step fails soft — the tile keeps its emoji (principle 7).
+    private func enrich(_ app: GamesLayout.ExternalApp) {
+        Task {
+            guard let found = await ITunesSearch.lookup(name: app.name),
+                  var current = store.externalApp(id: app.id)   // gone if deleted meanwhile
+            else { return }
+            current.artworkURL = found.artworkUrl512 ?? current.artworkURL
+            current.storeURL = found.trackViewUrl ?? current.storeURL
+            store.updateExternalApp(current)
+            if let artworkURL = found.artworkUrl512 {
+                await artwork.fetchArtwork(from: artworkURL, for: app.id)
+            }
+        }
+    }
 }
 
 #Preview {
@@ -291,6 +336,8 @@ struct GamesTabView: View {
             modules: [FoodDecisionModule.descriptor],
             fileURL: FileManager.default.temporaryDirectory
                 .appendingPathComponent("preview-games-tab.json")))
+        .environment(ArtworkStore(directory: FileManager.default.temporaryDirectory
+            .appendingPathComponent("preview-artwork")))
 }
 
 #if DEBUG
@@ -301,6 +348,9 @@ struct GamesTabView: View {
     let store = GamesLayoutStore(modules: modules, fileURL: url)
     let _ = store.formCollection(target: "sample-stars", dragged: "sample-dice",
                                  named: "Play 🎲")
-    GamesTabView().environment(store)
+    GamesTabView()
+        .environment(store)
+        .environment(ArtworkStore(directory: FileManager.default.temporaryDirectory
+            .appendingPathComponent("preview-artwork")))
 }
 #endif
