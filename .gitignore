@@ -6,3 +6,4 @@ build/
 .claude/*.lock
 .claude/memory/
 .superpowers/
+.claude/
