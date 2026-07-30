@@ -45,9 +45,14 @@ struct CollectionTileView: View {
     private func memberGlyph(_ memberID: String) -> some View {
         if let external = store.externalApp(forKey: memberID),
            let image = artwork.image(for: external.id) {
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFill()
+            // Overlay keeps the artwork's intrinsic size out of the mini-grid
+            // layout — cells stay uniform whatever the icon's pixel size.
+            Color.clear
+                .overlay {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                }
                 .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
         } else {
             Text(store.glyph(forMember: memberID))

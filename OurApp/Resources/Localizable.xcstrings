@@ -1334,6 +1334,29 @@
           }
         }
       }
+    },
+    "Without a link, the tile opens its App Store page." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Without a link, the tile opens its App Store page."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有链接时，会改为打开它的 App Store 页面。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沒有連結時，會改為開啟它的 App Store 頁面。"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

@@ -37,11 +37,6 @@ struct GamesTabView: View {
     var body: some View {
         ZStack {
             DreamyBackground()
-                .onTapGesture {
-                    if jiggle.isEditing {
-                        exitEditing()
-                    }
-                }
             ScrollView {
                 LazyVGrid(columns: columns, spacing: 22) {
                     ForEach(displayedItems) { item in
@@ -53,6 +48,19 @@ struct GamesTabView: View {
                 // Edit mode drops the grid below the + and Done pills so the
                 // corner tiles (and the first tile's delete badge) stay tappable.
                 .padding(.top, jiggle.isEditing ? 72 : 24)
+            }
+            // The scroll area owns every touch the tiles don't, so the
+            // enter/exit gestures live here — like the real springboard,
+            // holding empty space starts arranging and tapping it stops.
+            .onTapGesture {
+                if jiggle.isEditing {
+                    exitEditing()
+                }
+            }
+            .onLongPressGesture(minimumDuration: 0.5) {
+                guard !jiggle.isEditing else { return }
+                Haptics.tap()
+                withAnimation(Theme.springy) { jiggle.isEditing = true }
             }
 
             if let openCollectionID,
@@ -137,12 +145,13 @@ struct GamesTabView: View {
                 AddExternalAppSheet(existing: app, onCommit: commitEditedExternalApp)
             }
         }
-        .confirmationDialog(
+        // A centered alert, not a bottom sheet — the badge that summons it
+        // sits at the top of the screen (owners' UX call, 2026-07-30).
+        .alert(
             Text(verbatim: deletingExternalApp?.name ?? ""),
             isPresented: Binding(
                 get: { deletingExternalApp != nil },
                 set: { if !$0 { deletingExternalApp = nil } }),
-            titleVisibility: .visible,
             presenting: deletingExternalApp
         ) { app in
             Button("Remove", role: .destructive) {
