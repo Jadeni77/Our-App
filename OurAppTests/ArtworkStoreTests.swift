@@ -69,16 +69,20 @@ struct ArtworkStoreTests {
         #expect(replaced != nil)
     }
 
-    @Test func forgetRemovesMemoryAndDisk() async {
+    @Test func forgetRemovesDiskButSparesTheDyingTilesImage() async {
         let directory = tempDirectory()
         let id = UUID()
         let store = ArtworkStore(directory: directory)
         store.storeArtwork(pngData(), for: id)
         store.forget(id)
-        #expect(store.image(for: id) == nil)
+        // The removal animation still renders the tile — wiping the memory
+        // copy mid-fade flashes the 🎮 fallback (owners' report, 2026-07-30).
+        #expect(store.image(for: id) != nil)
         #expect(!FileManager.default.fileExists(
             atPath: directory.appendingPathComponent("\(id.uuidString).png").path))
-        await store.loadIfNeeded(id)               // and the miss stays a miss
-        #expect(store.image(for: id) == nil)
+        // Gone for real once the memory cache is (a fresh launch).
+        let second = ArtworkStore(directory: directory)
+        await second.loadIfNeeded(id)
+        #expect(second.image(for: id) == nil)
     }
 }

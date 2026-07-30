@@ -64,9 +64,10 @@ final class ArtworkStore {
         await refreshArtwork(from: url, for: id)
     }
 
-    /// Deleting an external forgets its artwork — memory and disk.
+    /// Deleting an external forgets its artwork on disk — the in-memory
+    /// image deliberately survives so the tile's removal animation keeps its
+    /// face instead of flashing the 🎮 fallback; memory clears next launch.
     func forget(_ id: UUID) {
-        images[id] = .some(nil)
         try? FileManager.default.removeItem(at: fileURL(for: id))
     }
 
