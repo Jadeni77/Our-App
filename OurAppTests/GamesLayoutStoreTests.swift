@@ -111,7 +111,9 @@ struct GamesLayoutStoreTests {
         let id = try #require(store.formCollection(target: "a", dragged: "b", named: "n"))
         store.addToCollection(id, moduleID: "c")
         store.moveMember(in: id, moduleID: "c", toIndex: 0)
-        guard case .collection(let made) = store.layout.items[0] else { return }
+        guard case .collection(let made) = store.layout.items[0] else {
+            Issue.record("expected collection at items[0]"); return
+        }
         #expect(made.members == ["c", "a", "b"])
     }
 
@@ -131,7 +133,9 @@ struct GamesLayoutStoreTests {
             modules: [descriptor("a"), descriptor("b")], fileURL: tempFile())
         let id = try #require(store.formCollection(target: "a", dragged: "b", named: "n"))
         store.renameCollection(id, to: "  周末去哪儿 🎡 ")
-        guard case .collection(let made) = store.layout.items[0] else { return }
+        guard case .collection(let made) = store.layout.items[0] else {
+            Issue.record("expected collection at items[0]"); return
+        }
         #expect(made.name == "  周末去哪儿 🎡 ")   // verbatim — user data (S6)
     }
 }
