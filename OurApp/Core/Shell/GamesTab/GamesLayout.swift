@@ -63,7 +63,7 @@ struct GamesLayout: Codable, Equatable {
                 }
             }
         }
-        for id in registeredIDs where !seen.contains(id) {
+        for id in registeredIDs where seen.insert(id).inserted {
             result.append(.app(moduleID: id))
         }
         return GamesLayout(version: version, items: result)

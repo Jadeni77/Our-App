@@ -72,4 +72,10 @@ struct GamesLayoutTests {
                                  items: [.collection(collection), .app(moduleID: "a")])
         #expect(layout.reconciled(with: ["a", "b", "c"]) == layout)
     }
+
+    @Test func reconcileToleratesDuplicateRegisteredIDs() {
+        let layout = GamesLayout(version: 1, items: [])
+        let result = layout.reconciled(with: ["z", "z"])
+        #expect(result.items == [.app(moduleID: "z")])
+    }
 }
