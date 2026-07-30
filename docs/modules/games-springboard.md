@@ -16,11 +16,12 @@ The platform log (P11) owns the big forks: tab bar over the rail, springboard co
 |---|----------|-----------|----------------------|
 | S1 | **Custom drag engine**: one `DragGesture` driving a controller that hit-tests per-tile frames (`.onGeometryChange`); gap-vs-target decisions are pure functions | Native SwiftUI DnD gives no control over the lift preview, arm-on-hover timing, or dragging a member out of an open folder — the three things the iPhone feel hangs on | `draggable`/`dropDestination` (fine for lists, wrong shape for a springboard) |
 | S2 | **Arm-on-hover, release-to-act**: hovering a drag over a target ~0.4 s arms it (scale + glow); releasing while armed forms/joins the collection | One rule covers both forming and adding; the delay prevents accidental grouping while dragging past tiles | Acting instantly on hover (accident-prone); iOS-style spring-load that *opens* the folder mid-drag (more machinery than two people need) |
-| S3 | **One vertically scrolling grid**; horizontal paging deferred | The layout is a flat ordered list, so auto-flowing it into pages with dots later is mechanical — paging waits until the grid overflows | Building paging + page dots for a handful of tiles |
+| S3 | ~~**One vertically scrolling grid**; horizontal paging deferred~~ *(superseded by S8)* | The layout is a flat ordered list, so auto-flowing it into pages with dots later is mechanical — paging waits until the grid overflows | Building paging + page dots for a handful of tiles |
 | S4 | **DEBUG-only sample tiles** (2–3 "coming soon" placeholders) | Collections need ≥2 tiles to exercise end-to-end while only one real module exists; RELEASE stays honest and shows only real modules | Shipping placeholder tiles; leaving jiggle untestable until module #2 |
 | S5 | **Reconcile rules**: a registered module missing from the layout auto-appends to the root grid; stale ids are dropped; a collection emptied by either dissolves | Adding a module stays a one-line `AppShell` change; layout drift can never block launching (fail-soft, principle 7) | Strict layout validation (turns drift into dead ends) |
 | S6 | **Collection names are user data** — stored verbatim, never translated; only the default "New collection" is localized | The names are *ours*, written in whichever language we felt like that day — the app has no business rewriting them | Localizing/translating stored names |
 | S7 | **External app tiles** (v2): the springboard also launches real apps installed on the phone — added manually, launched via URL scheme with App Store fallback, official artwork via the iTunes Search API | The Games tab should hold the games we *actually play* (e.g. Identity V) — a launcher with one module tile is a stub next to our real library, and launching from *our* space is the whole point | Module-tiles-only purity (v1's premise — still true for modules, extended for games); embedding another app's UI (impossible on iOS); auto-detecting installed apps (no iOS API — privacy) |
+| S8 | **Horizontal pages** (2026-07-30, supersedes S3): the root grid auto-flows into fixed-capacity pages (4 columns × the rows that fit, measured), swiped left/right with soft page dots; while a tile drag is live the pager's own swipe is off and holding the tile at a screen edge ~0.35 s flips a page (repeats each beat); dots are tappable. The flat ordered list stays the model — pages are pure presentation (`SpringboardPager`), so v1 documents need no migration | S3's own condition arrived: with real games added (S7) the grid overflows, and the owners want the real home-screen feel — swipe, not scroll. During a drag the tile never leaves the page its gesture started on (SwiftUI would tear down the hosting view and cancel the drag), so cross-page previews show no gap on the target page — release still lands correctly | Keeping the vertical scroll (reads as a list, not a home screen); modeling pages in the layout document with gaps/holes like real iOS (heavier model, migration, and nothing the owners asked for); native `TabView(.page)` (no way to disable its swipe during tile drags) |
 
 ---
 
@@ -53,7 +54,7 @@ struct GamesLayout: Codable {          // version: 1
 One JSON file in Application Support, written atomically on every mutation; per device (P11). Corrupt/unreadable → silently rebuild the default (all modules loose, registration order). Reconcile per S5 on load and registration.
 
 ### Rendering
-4-column `LazyVGrid`; app tile = rounded glass square (core `GlassStyle`), large emoji, localized name beneath. Collection tile = same square holding up to 9 member emojis in a 3×3 mini-grid, name beneath. Folder opens as a zoom overlay (matched geometry) titled by the collection's name **above** its grid, like an open iOS folder. Background: `DreamyBackground` without tilt parallax (motion sensors stay Home-only). Launching goes through the existing `ModuleHostView` full-screen cover — the tab bar hides during a ritual. `ModuleDescriptor` is unchanged.
+4-column `LazyVGrid`, auto-flowed into horizontal pages sized to the screen (S8): swipe or tap a dot to change pages; page dots appear only when there's more than one page. Capacity never changes between normal and edit mode, so entering jiggle can't reshuffle pages. App tile = rounded glass square (core `GlassStyle`), large emoji, localized name beneath. Collection tile = same square holding up to 9 member emojis in a 3×3 mini-grid, name beneath. Folder opens as a zoom overlay (matched geometry) titled by the collection's name **above** its grid, like an open iOS folder. Background: `DreamyBackground` without tilt parallax (motion sensors stay Home-only). Launching goes through the existing `ModuleHostView` full-screen cover — the tab bar hides during a ritual. `ModuleDescriptor` is unchanged.
 
 ### Jiggle mode (the behavioral contract)
 
@@ -61,6 +62,7 @@ One JSON file in Application Support, written atomically on every mutation; per 
 |---|---|
 | Enter | Long-press (~0.5 s) any tile — in the root grid or inside an open folder → all tiles wobble (per-tile phase stagger); **Done** glass pill top-trailing; haptic |
 | Reorder | Drag a tile; neighbors spring apart to open a gap; release commits |
+| Change page (S8) | Normal mode: swipe, or tap a dot. Edit mode: the pager's swipe is off (it would swallow tile drags) — hold a dragged tile against a screen edge ~0.35 s to flip (keeps flipping each beat), or tap a dot. On the far page the target tile still arms for foldering, but no reorder gap previews (the dragged tile can't leave its origin page mid-gesture); release still lands where dropped |
 | Form a collection | Drag over another tile → arm-on-hover (S2) → release while armed → collection of {target, dragged}; folder overlay opens with the name field focused |
 | Add to collection | Drag over a collection tile → arm-on-hover → release → appended last |
 | Open a collection | Tap (both modes) → overlay zooms open; normal mode: tap a member to launch; edit mode: opens in editing state |
@@ -93,7 +95,7 @@ In each of en / zh-Hans / zh-Hant, on simulator (and a device pass for feel): th
 
 ## Out of scope for v1
 
-Two-phone sync (direction in `DESIGN.md` §7 — note the layout is a per-device preference and may never sync) · horizontal paging / page dots · Home quick-action row · an Us tab · badges · VoiceOver drag-arranging · widgets / notifications.
+Two-phone sync (direction in `DESIGN.md` §7 — note the layout is a per-device preference and may never sync) · ~~horizontal paging / page dots~~ *(shipped 2026-07-30, S8)* · Home quick-action row · an Us tab · badges · VoiceOver drag-arranging · widgets / notifications.
 
 ## v2 Scope — external app tiles (S7) — ✅ built 2026-07-30, pending the human's on-device pass
 
