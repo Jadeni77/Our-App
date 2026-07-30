@@ -18,6 +18,7 @@ struct AddExternalAppSheet: View {
     @State private var searchResults: [ITunesSearch.Result] = []
     @State private var searchTask: Task<Void, Never>?
     @State private var pendingPick: ITunesSearch.Result?
+    @State private var isSearching = false
 
     /// Starter suggestions (owners' list — Identity V first). An entry
     /// carries its scheme once one is verified with Test launch on a real
@@ -155,7 +156,12 @@ struct AddExternalAppSheet: View {
                             existing == nil ? Text("Add") : Text("Done")
                         }
                     }
-                    .disabled(trimmedName.isEmpty || isDuplicate || isAdding)
+                    // While matches are on screen (or being fetched), the
+                    // picker is the only add path — a bare Add here would
+                    // commit a half-typed search as a tile (owners' report,
+                    // 2026-07-30). Manual Add returns when nothing matches.
+                    .disabled(trimmedName.isEmpty || isDuplicate || isAdding
+                        || (existing == nil && (isSearching || !searchResults.isEmpty)))
                 }
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -173,10 +179,13 @@ struct AddExternalAppSheet: View {
             let query = trimmedName
             guard existing == nil, query.count >= 2 else {
                 searchResults = []
+                isSearching = false
                 return
             }
+            isSearching = true
             searchTask = Task {
-                // Debounce keystrokes; a newer query cancels this one.
+                // Debounce keystrokes; a newer query cancels this one (and
+                // owns the isSearching flag from then on).
                 try? await Task.sleep(for: .milliseconds(400))
                 guard !Task.isCancelled else { return }
                 let found = await ITunesSearch.search(name: query)
@@ -186,6 +195,7 @@ struct AddExternalAppSheet: View {
                                           among: store.layout.externalApps,
                                           excluding: nil)
                 }
+                isSearching = false
             }
         }
         .alert(
@@ -284,7 +294,11 @@ struct AddExternalAppSheet: View {
         // and then swaps.
         isAdding = true
         Task {
-            if let found = await ITunesSearch.lookup(name: app.name) {
+            // Dress only on a plausible title match — fuzzy search must
+            // never put a stranger's icon on a manually named tile.
+            if let found = await ITunesSearch.lookup(name: app.name),
+               ITunesSearch.plausibleMatch(typed: app.name,
+                                           trackName: found.trackName) {
                 app.artworkURL = found.artworkUrl512 ?? app.artworkURL
                 app.storeURL = found.trackViewUrl ?? app.storeURL
                 if let artworkURL = found.artworkUrl512 {

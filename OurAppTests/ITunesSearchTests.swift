@@ -64,4 +64,21 @@ struct ITunesSearchTests {
         #expect(try #require(components.queryItems)
             .contains(URLQueryItem(name: "limit", value: "5")))
     }
+
+    @Test func plausibleMatchAcceptsContainmentEitherWay() {
+        // The store title often wraps the typed name ("Wild Rift" →
+        // "League of Legends: Wild Rift") — and vice versa.
+        #expect(ITunesSearch.plausibleMatch(typed: "Wild Rift",
+                                            trackName: "League of Legends: Wild Rift"))
+        #expect(ITunesSearch.plausibleMatch(typed: "Clash of Clans ",
+                                            trackName: "clash of clans"))
+        #expect(ITunesSearch.plausibleMatch(typed: "League of Legends: Wild Rift",
+                                            trackName: "Wild Rift"))
+    }
+
+    @Test func plausibleMatchRejectsUnrelatedTitles() {
+        #expect(!ITunesSearch.plausibleMatch(typed: "第五人格",
+                                             trackName: "Candy Crush Saga"))
+        #expect(!ITunesSearch.plausibleMatch(typed: "", trackName: "Anything"))
+    }
 }

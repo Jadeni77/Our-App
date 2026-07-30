@@ -49,4 +49,14 @@ enum ITunesSearch {
     static func lookup(name: String) async -> Result? {
         await search(name: name, limit: 1).first
     }
+
+    /// Search is fuzzy; dressing a tile with a stranger's artwork isn't ok.
+    /// A match is plausible when one title contains the other (trimmed,
+    /// case-insensitive) — "Wild Rift" ⊂ "League of Legends: Wild Rift".
+    static func plausibleMatch(typed: String, trackName: String) -> Bool {
+        let a = typed.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let b = trackName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !a.isEmpty, !b.isEmpty else { return false }
+        return a == b || b.contains(a) || a.contains(b)
+    }
 }

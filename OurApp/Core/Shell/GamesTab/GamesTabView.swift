@@ -434,6 +434,10 @@ struct GamesTabView: View {
     private func enrich(_ app: GamesLayout.ExternalApp) {
         Task {
             guard let found = await ITunesSearch.lookup(name: app.name),
+                  // Fuzzy search must never dress a tile with a stranger's
+                  // artwork — only plausible title matches count.
+                  ITunesSearch.plausibleMatch(typed: app.name,
+                                              trackName: found.trackName),
                   var current = store.externalApp(id: app.id)   // gone if deleted meanwhile
             else { return }
             let previousArtworkURL = current.artworkURL
