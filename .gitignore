@@ -5,3 +5,4 @@ build/
 *.xcuserstate
 .claude/*.lock
 .claude/memory/
+.superpowers/
