@@ -9,10 +9,23 @@ struct GamesTabView: View {
     @State private var openModule: ModuleDescriptor?
     @State private var openCollectionID: UUID?
     @State private var renamingNewCollection = false
-    @State private var addingExternalApp = false
-    @State private var editingExternalApp: GamesLayout.ExternalApp?
+    @State private var externalSheet: ExternalSheet?
     @State private var deletingExternalApp: GamesLayout.ExternalApp?
     @State private var launchFailedApp: GamesLayout.ExternalApp?
+
+    /// One sheet for both S7 flows — two stacked `.sheet` modifiers on one
+    /// view are exactly the presentation race this codebase already ruled on.
+    private enum ExternalSheet: Identifiable {
+        case add
+        case edit(GamesLayout.ExternalApp)
+
+        var id: String {
+            switch self {
+            case .add: "add"
+            case .edit(let app): app.id.uuidString
+            }
+        }
+    }
     @State private var jiggle = JiggleController()
     @State private var tileFrames: [GamesLayout.ItemID: CGRect] = [:]
     @State private var dragLocation: CGPoint?
@@ -37,7 +50,9 @@ struct GamesTabView: View {
                 }
                 .animation(Theme.springy, value: displayedItems.map(\.id))
                 .padding(.horizontal, 20)
-                .padding(.top, 24)
+                // Edit mode drops the grid below the + and Done pills so the
+                // corner tiles (and the first tile's delete badge) stay tappable.
+                .padding(.top, jiggle.isEditing ? 72 : 24)
             }
 
             if let openCollectionID,
@@ -102,7 +117,7 @@ struct GamesTabView: View {
             if jiggle.isEditing {
                 Button {
                     Haptics.tap()
-                    addingExternalApp = true
+                    externalSheet = .add
                 } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 16, weight: .semibold))
@@ -114,11 +129,13 @@ struct GamesTabView: View {
                 .accessibilityLabel(Text("Add a game"))
             }
         }
-        .sheet(isPresented: $addingExternalApp) {
-            AddExternalAppSheet(onCommit: commitNewExternalApp)
-        }
-        .sheet(item: $editingExternalApp) { app in
-            AddExternalAppSheet(existing: app, onCommit: commitEditedExternalApp)
+        .sheet(item: $externalSheet) { sheet in
+            switch sheet {
+            case .add:
+                AddExternalAppSheet(onCommit: commitNewExternalApp)
+            case .edit(let app):
+                AddExternalAppSheet(existing: app, onCommit: commitEditedExternalApp)
+            }
         }
         .confirmationDialog(
             Text(verbatim: deletingExternalApp?.name ?? ""),
@@ -131,6 +148,7 @@ struct GamesTabView: View {
             Button("Remove", role: .destructive) {
                 Haptics.tap()
                 withAnimation(Theme.springy) { store.deleteExternalApp(id: app.id) }
+                artwork.forget(app.id)
             }
             Button("Cancel", role: .cancel) {}
         }
@@ -141,7 +159,11 @@ struct GamesTabView: View {
                 set: { if !$0 { launchFailedApp = nil } }),
             presenting: launchFailedApp
         ) { app in
-            Button("Edit") { editingExternalApp = app }
+            Button("Edit") {
+                // Hop past the alert's dismissal transaction before
+                // presenting the sheet, so the two presentations can't race.
+                Task { @MainActor in externalSheet = .edit(app) }
+            }
             Button("OK", role: .cancel) {}
         } message: { _ in
             Text("Couldn't open")
@@ -199,12 +221,13 @@ struct GamesTabView: View {
         case .external(let externalID):
             if let external = store.externalApp(id: externalID) {
                 ExternalTileView(app: external)
-                    .modifier(Wobble(active: jiggle.isEditing, reduceMotion: reduceMotion))
+                    // Badge inside the wobble so it jiggles with its tile.
                     .overlay(alignment: .topLeading) {
                         // The one deletion the springboard allows (S7):
                         // externals are user-added, modules never delete.
                         if jiggle.isEditing { deleteBadge(external) }
                     }
+                    .modifier(Wobble(active: jiggle.isEditing, reduceMotion: reduceMotion))
                     .onTapGesture {
                         guard !jiggle.isEditing else { return }
                         launchExternal(external)
@@ -357,9 +380,14 @@ struct GamesTabView: View {
         enrich(app)
     }
 
-    private func commitEditedExternalApp(_ app: GamesLayout.ExternalApp) {
-        store.updateExternalApp(app)
-        enrich(app)   // refresh the store link if the name changed; fails soft
+    private func commitEditedExternalApp(_ edited: GamesLayout.ExternalApp) {
+        // Merge only the sheet's fields onto the live entry — enrichment may
+        // have written artwork/store links after the sheet snapshotted it.
+        guard var live = store.externalApp(id: edited.id) else { return }
+        live.name = edited.name
+        live.launchURL = edited.launchURL
+        store.updateExternalApp(live)
+        enrich(live)   // refresh the store link/artwork if the name changed
     }
 
     /// S7 launch path (principle 7 — never a dead end): the app's scheme,
@@ -388,8 +416,11 @@ struct GamesTabView: View {
                 .font(.system(size: 22))
                 .symbolRenderingMode(.palette)
                 .foregroundStyle(.white, .black.opacity(0.4))
+                // 44pt hit target (HIG minimum — established review ruling).
+                .frame(width: 44, height: 44)
+                .contentShape(Circle())
         }
-        .offset(x: -8, y: -8)
+        .offset(x: -14, y: -14)
         .accessibilityLabel(Text("Remove"))
     }
 
@@ -400,11 +431,14 @@ struct GamesTabView: View {
             guard let found = await ITunesSearch.lookup(name: app.name),
                   var current = store.externalApp(id: app.id)   // gone if deleted meanwhile
             else { return }
+            let previousArtworkURL = current.artworkURL
             current.artworkURL = found.artworkUrl512 ?? current.artworkURL
             current.storeURL = found.trackViewUrl ?? current.storeURL
             store.updateExternalApp(current)
-            if let artworkURL = found.artworkUrl512 {
-                await artwork.fetchArtwork(from: artworkURL, for: app.id)
+            if let artworkURL = found.artworkUrl512, artworkURL != previousArtworkURL {
+                // New art — first fetch, or a rename resolved to a different
+                // app — so replace whatever icon is cached.
+                await artwork.refreshArtwork(from: artworkURL, for: app.id)
             }
         }
     }

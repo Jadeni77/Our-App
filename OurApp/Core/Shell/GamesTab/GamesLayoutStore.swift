@@ -57,7 +57,15 @@ final class GamesLayoutStore {
               decoded.version <= GamesLayout.currentVersion
         else {
             // Fail-soft (principle 7): a missing, corrupt, or from-the-future
-            // file silently becomes the default layout.
+            // file silently becomes the default layout — but the bytes carry
+            // user-authored externals (S7), so preserve them for hand recovery
+            // before the first save overwrites the file.
+            if FileManager.default.fileExists(atPath: url.path) {
+                let stamp = Int(Date().timeIntervalSince1970)
+                let backup = url.deletingLastPathComponent()
+                    .appendingPathComponent("\(url.lastPathComponent).unreadable-\(stamp)")
+                try? FileManager.default.moveItem(at: url, to: backup)
+            }
             return .default(moduleIDs: moduleIDs)
         }
         return decoded

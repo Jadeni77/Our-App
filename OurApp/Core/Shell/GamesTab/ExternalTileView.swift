@@ -17,11 +17,7 @@ struct ExternalTileView: View {
                         .frame(maxWidth: .infinity)
                         .aspectRatio(1, contentMode: .fit)
                         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                .strokeBorder(.white.opacity(0.25), lineWidth: 1)
-                        )
-                        .shadow(color: .black.opacity(0.15), radius: 12, y: 6)
+                        .glassCard(cornerRadius: 20)   // one chrome source (principle 9)
                 } else {
                     Text(app.emoji)
                         .font(.system(size: 40))
@@ -35,6 +31,14 @@ struct ExternalTileView: View {
                 .foregroundStyle(.white)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
+        }
+        .task(id: app.artworkURL) {
+            // Load the cached icon off the main render path; if a persisted
+            // artworkURL never got its download, self-heal it here.
+            await artwork.loadIfNeeded(app.id)
+            if artwork.image(for: app.id) == nil, let url = app.artworkURL {
+                await artwork.fetchArtwork(from: url, for: app.id)
+            }
         }
     }
 }

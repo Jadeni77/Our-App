@@ -64,7 +64,7 @@ One JSON file in Application Support, written atomically on every mutation; per 
 | Exit | Done or tap empty background; haptic; every mutation already saved |
 | Reduce Motion | Wobble replaced by a static edit affordance; drag behavior unchanged |
 | Add a game (v2) | A **+** glass pill top-leading (opposite Done) opens the S7 add sheet |
-| Delete (v2, externals only) | In edit mode external tiles wear an ⓧ badge → confirm → registry entry, root tile, and collection references all go (S5 dissolve applies); module tiles never delete |
+| Delete (v2, externals only) | In edit mode external tiles wear an ⓧ badge (root grid only — drag a foldered external out first) → confirm → registry entry, root tile, collection references, and cached artwork all go (S5 dissolve applies); module tiles never delete |
 
 No module deletion (modules are code), no badges beyond the external ⓧ. VoiceOver: tiles and folders stay labeled and launchable; drag-arranging under VoiceOver is a logged gap.
 
@@ -89,7 +89,7 @@ In each of en / zh-Hans / zh-Hant, on simulator (and a device pass for feel): th
 
 Two-phone sync (direction in `DESIGN.md` §7 — note the layout is a per-device preference and may never sync) · horizontal paging / page dots · Home quick-action row · an Us tab · badges · VoiceOver drag-arranging · widgets / notifications.
 
-## v2 Scope — external app tiles (S7, next milestone)
+## v2 Scope — external app tiles (S7) — ✅ built 2026-07-30, pending the human's on-device pass
 
 The games we actually play get tiles on **our** springboard; tapping launches the real app — the OS switches to the game full-screen, exactly like tapping it on the system home screen, and you return via the app switcher (not our Close button). iOS can't embed another app's UI or list what's installed, so tiles are added manually and launch via URL scheme with fail-soft fallbacks.
 
@@ -116,7 +116,7 @@ Externals live in the registry and are referenced by id — `Collection.members`
 ### Add flow
 
 In jiggle mode, a **"+" glass pill** (top-leading, opposite Done) opens a sheet:
-- a small **curated catalog** (name + known scheme + store id — starter list is an open question below), and
+- a small **curated catalog** (names only for now — schemes get pinned with Test launch; the starter list is an open question below), and
 - **manual entry** (name + optional scheme) with a **"Test launch"** button that proves a scheme on the spot — this is how we pin down undocumented schemes like Identity V's on a real phone.
 Artwork + store link come from the **iTunes Search API** by name (free, keyless), cached to Application Support; every fetch fails soft to the emoji.
 

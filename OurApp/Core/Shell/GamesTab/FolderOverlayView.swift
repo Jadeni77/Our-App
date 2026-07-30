@@ -59,7 +59,12 @@ struct FolderOverlayView: View {
 
                 LazyVGrid(columns: columns, spacing: 16) {
                     ForEach(collection.members, id: \.self) { memberID in
-                        memberTile(memberID)
+                        // Gate on resolvability so an unresolvable key can't
+                        // produce a phantom cell wearing live gestures.
+                        if store.module(for: memberID) != nil
+                            || store.externalApp(forKey: memberID) != nil {
+                            memberTile(memberID)
+                        }
                     }
                 }
                 .padding(20)

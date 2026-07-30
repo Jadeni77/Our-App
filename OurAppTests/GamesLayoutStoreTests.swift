@@ -43,6 +43,35 @@ struct GamesLayoutStoreTests {
         #expect(store.layout.items == [.app(moduleID: "a")])
     }
 
+    @Test func unreadableFileIsPreservedBeforeOverwrite() throws {
+        // The document carries user-authored externals (S7): fail-soft still
+        // rebuilds the default, but the old bytes must survive for recovery.
+        let url = tempFile()
+        try Data("not json 🙃".utf8).write(to: url)
+        _ = GamesLayoutStore(modules: [descriptor("a")], fileURL: url)
+        let directory = url.deletingLastPathComponent()
+        let backups = try FileManager.default.contentsOfDirectory(atPath: directory.path)
+            .filter { $0.hasPrefix("\(url.lastPathComponent).unreadable-") }
+        #expect(backups.count == 1)
+        let backupURL = directory.appendingPathComponent(try #require(backups.first))
+        #expect(try Data(contentsOf: backupURL) == Data("not json 🙃".utf8))
+    }
+
+    @Test func deleteExternalAppKeepsOtherCollectionMembersInOrder() throws {
+        let store = GamesLayoutStore(
+            modules: [descriptor("a"), descriptor("b")], fileURL: tempFile())
+        let game = identityV()
+        store.addExternalApp(game)
+        let id = try #require(store.formCollection(target: "a", dragged: "b", named: "n"))
+        store.addToCollection(id, member: game.memberKey)
+        store.deleteExternalApp(id: game.id)
+        guard case .collection(let kept) = store.layout.items[0] else {
+            Issue.record("expected the collection to survive"); return
+        }
+        #expect(kept.members == ["a", "b"])
+        #expect(store.layout.externalApps.isEmpty)
+    }
+
     @Test func newerVersionOnDiskFallsBackToDefault() throws {
         let url = tempFile()
         let future = GamesLayout(version: 99, items: [.app(moduleID: "b")])

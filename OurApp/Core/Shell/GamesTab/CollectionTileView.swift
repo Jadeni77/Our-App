@@ -28,6 +28,15 @@ struct CollectionTileView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
         }
+        .task(id: collection.members) {
+            // Pull cached icons for external members into memory so the
+            // mini-grid can render them without touching disk in `body`.
+            for member in collection.members.prefix(9) {
+                if let external = store.externalApp(forKey: member) {
+                    await artwork.loadIfNeeded(external.id)
+                }
+            }
+        }
     }
 
     /// An external member with cached artwork shows its real icon in the

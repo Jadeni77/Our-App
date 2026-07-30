@@ -53,7 +53,9 @@ struct AddExternalAppSheet: View {
                                 Text("Test launch")
                                 Spacer()
                                 if let probeOpened {
-                                    Text(probeOpened ? "Opened" : "Couldn't open")
+                                    // Two literal branches keep both keys
+                                    // visible to catalog extraction.
+                                    (probeOpened ? Text("Opened") : Text("Couldn't open"))
                                         .foregroundStyle(probeOpened ? .green : .secondary)
                                 }
                             }
@@ -65,9 +67,11 @@ struct AddExternalAppSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(existing == nil ? "Add" : "Done") {
+                    Button {
                         Haptics.tap()
                         commit()
+                    } label: {
+                        existing == nil ? Text("Add") : Text("Done")
                     }
                     .disabled(trimmedName.isEmpty)
                 }
