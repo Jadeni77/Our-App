@@ -77,6 +77,7 @@ Keep this to genuinely contested, cross-cutting decisions. Feature-level choices
 | P7 | Shared **theme system in the core** (gradient/glass/spring/haptic tokens) | One place to tune the feel; shell and modules stay visually coherent as the module count grows | Per-module ad-hoc styling (drifts apart within two modules); a third-party design system (needless dependency, less native feel) |
 | P8 | Shell layout v2 (supersedes P4's layout, not its substance): launcher as a **trailing-edge side rail**; avatars in top corners; centered day-counter hero with anniversary date; **brighter** moonlit palette with a code-drawn full moon | The bottom drawer ate the vertical space the couple hero needs; structure loosely follows a reference app the user shared (2026-07-29) while all art stays original per principle 9 | Bottom drawer (shell v1); copying the reference's art (forbidden — layout inspiration only) |
 | P9 | **In-app language picker** (System / English / 简体中文 / 繁體中文) in couple settings, alongside iOS's per-app language setting | Switching languages is part of this couple's daily reality; burying it in the Settings app adds friction — live `\.locale` override + AppleLanguages alignment gives instant switching with system consistency | System-setting-only localization (works, but invisible and slow to reach); a custom re-bundling scheme (needless complexity) |
+| P10 | **Branching model**: `main` = production releases only; `develop` = integration (repo default). Every branch checks out from `develop`; PRs target `develop` and are **squash**-merged. Releases are a `develop → main` PR merged as a **merge commit — never squash** (squashing a release creates a commit `develop` lacks, permanently diverging the branches). Hotfixes: branch from `main`, then merge `main` back into `develop`. CI runs on pushes to `main`/`develop` (post-merge, not on PRs — a deliberate macOS-minutes trade-off) | Separates "what we run on our phones" from work-in-progress; a release becomes a deliberate, reviewable act instead of every merge being production | Single-branch trunk (every merge is instantly "released"); squash-merging releases (branch divergence trap); tag-based releases (heavier than needed for two people) |
 
 *(Principles in §3 are not repeated here — the log is for forks with a rejected alternative worth remembering.)*
 
@@ -108,6 +109,7 @@ Revisited only after module #1 earns daily use:
 ## 8. Working Agreement (AI-assisted sessions)
 
 - Start each session by reading this doc + the relevant module doc; confirm the milestone.
+- **Branching (P10):** always branch from `develop`, PR back into `develop` (squash). `main` is production — it only moves via a `develop → main` release PR merged as a merge commit. Never branch new work from `main`.
 - Prompts are work orders: *"Build slice X per docs/modules/….md."*
 - When a real decision is made, append it to the right log (platform §5, or the module's own log) **in the same session**.
 - Explain module/file structure before generating code so seams can be checked.
