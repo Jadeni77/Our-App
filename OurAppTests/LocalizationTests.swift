@@ -43,4 +43,16 @@ struct LocalizationTests {
         #expect(localizedValue("Find places near us", language: "zh-Hans") == "找找附近的店")
         #expect(localizedValue("Unnamed spot", language: "zh-Hant") == "無名小店")
     }
+
+    @Test func springboardStringsAreTranslated() {
+        #expect(localizedValue("Home", language: "zh-Hans") == "首页")
+        #expect(localizedValue("Home", language: "zh-Hant") == "首頁")
+        #expect(localizedValue("Games", language: "zh-Hans") == "游戏")
+        #expect(localizedValue("Games", language: "zh-Hant") == "遊戲")
+        #expect(localizedValue("Done", language: "zh-Hans") == "完成")
+        #expect(localizedValue("New collection", language: "zh-Hans") == "新合集")
+        #expect(localizedValue("New collection", language: "zh-Hant") == "新合輯")
+        #expect(localizedValue("Collection name", language: "zh-Hant") == "合輯名稱")
+        #expect(localizedValue("Coming soon", language: "zh-Hans") == "敬请期待")
+    }
 }
