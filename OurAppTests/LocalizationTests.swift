@@ -48,7 +48,6 @@ struct LocalizationTests {
         #expect(localizedValue("Add a game", language: "zh-Hans") == "添加游戏")
         #expect(localizedValue("Add a game", language: "zh-Hant") == "新增遊戲")
         #expect(localizedValue("Test launch", language: "zh-Hans") == "测试启动")
-        #expect(localizedValue("Suggested", language: "zh-Hant") == "推薦")
         #expect(localizedValue("Couldn't open", language: "zh-Hans") == "打不开")
         #expect(localizedValue("Cancel", language: "zh-Hant") == "取消")
         #expect(localizedValue("Add", language: "zh-Hans") == "添加")

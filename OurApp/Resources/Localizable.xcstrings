@@ -1185,29 +1185,6 @@
         }
       }
     },
-    "Suggested" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Suggested"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "推荐"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "推薦"
-          }
-        }
-      }
-    },
     "Surprise us" : {
       "extractionState" : "manual",
       "localizations" : {

@@ -402,13 +402,32 @@ struct GamesTabView: View {
         enrich(live)   // refresh the store link/artwork if the name changed
     }
 
-    /// S7 launch path (principle 7 — never a dead end): the app's scheme,
-    /// else its App Store page, else a friendly message with an Edit way out.
+    /// S7 launch path (principle 7 — never a dead end): the saved link,
+    /// else a self-healing walk of the verified catalog and the likely
+    /// candidates (a success opens the game AND repairs the tile), else the
+    /// App Store page, else a friendly message with an Edit way out.
     private func launchExternal(_ app: GamesLayout.ExternalApp) {
         Haptics.tap()
-        guard let launchURL = app.launchURL else { openStoreOrFail(app); return }
-        UIApplication.shared.open(launchURL, options: [:]) { opened in
-            if !opened { openStoreOrFail(app) }
+        Task {
+            if let launchURL = app.launchURL,
+               await UIApplication.shared.open(launchURL) { return }
+
+            let saved = app.launchURL?.absoluteString
+            var seen = Set<String>()
+            let fallbacks = ([SchemeCatalog.verified(for: app.name)].compactMap { $0 }
+                + SchemeCatalog.candidates(from: app.name))
+                .filter { $0 != saved && seen.insert($0).inserted }
+            for candidate in fallbacks {
+                guard let url = URL(string: candidate) else { continue }
+                if await UIApplication.shared.open(url) {
+                    if var healed = store.externalApp(id: app.id) {
+                        healed.launchURL = url
+                        store.updateExternalApp(healed)
+                    }
+                    return
+                }
+            }
+            openStoreOrFail(app)
         }
     }
 

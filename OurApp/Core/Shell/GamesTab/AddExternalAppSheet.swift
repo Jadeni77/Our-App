@@ -22,71 +22,9 @@ struct AddExternalAppSheet: View {
     @State private var isProbing = false
     @State private var schemeSetByProbe = false
 
-    /// Starter suggestions (owners' list — Identity V first). An entry
-    /// carries its scheme once one is verified with Test launch on a real
-    /// phone; until then, tapping a suggestion derives a testable guess
-    /// from the name.
-    private struct Suggestion {
-        let name: String
-        /// Verified on-device — nil means "derive a guess to test".
-        var scheme: String?
-    }
-
-    private static let suggestions: [Suggestion] = [
-        .init(name: "Identity V"),
-        .init(name: "第五人格"),
-        .init(name: "Wild Rift", scheme: "wildrift://"),           // verified 2026-07-30
-        .init(name: "Clash of Clans", scheme: "clashofclans://"),  // verified 2026-07-30
-    ]
-
-    /// Best-effort scheme guess: the latin letters and digits of the name,
-    /// lowercased, plus `://` — a starting point for Test launch, not a
-    /// promise. Fully non-latin names get an empty field instead of junk.
-    static func derivedScheme(from name: String) -> String {
-        let ascii = name.lowercased().unicodeScalars.filter {
-            $0.isASCII && CharacterSet.alphanumerics.contains($0)
-        }
-        guard !ascii.isEmpty else { return "" }
-        return String(String.UnicodeScalarView(ascii)) + "://"
-    }
-
-    /// The likely schemes for a name, in try-order: the squashed name
-    /// ("honorofkings://"), the initials ("hok://"), the first word
-    /// ("honor://") — deduped, empty for fully non-latin names. The probe
-    /// walks these so nobody has to guess by hand.
-    static func schemeCandidates(from name: String) -> [String] {
-        let words = name.lowercased()
-            .components(separatedBy: CharacterSet.alphanumerics.inverted)
-            .filter { !$0.isEmpty && $0.allSatisfy(\.isASCII) }
-        guard !words.isEmpty else { return [] }
-        var candidates = [words.joined() + "://"]
-        if words.count >= 2 {
-            candidates.append(words.map { String($0.prefix(1)) }.joined() + "://")
-            candidates.append(words[0] + "://")
-        }
-        var seen = Set<String>()
-        return candidates.filter { seen.insert($0).inserted }
-    }
-
     var body: some View {
         NavigationStack {
             Form {
-                if existing == nil {
-                    Section("Suggested") {
-                        ForEach(Self.suggestions, id: \.name) { suggestion in
-                            Button {
-                                Haptics.tap()
-                                name = suggestion.name
-                                scheme = suggestion.scheme
-                                    ?? Self.derivedScheme(from: suggestion.name)
-                                probeOpened = nil
-                            } label: {
-                                Text(verbatim: suggestion.name)   // game titles are data
-                            }
-                        }
-                    }
-                }
-
                 Section {
                     TextField("Name", text: $name)
                     if isDuplicate {
@@ -129,7 +67,7 @@ struct AddExternalAppSheet: View {
                         }
                     }
 
-                    if !Self.schemeCandidates(from: trimmedName).isEmpty {
+                    if !SchemeCatalog.candidates(from: trimmedName).isEmpty {
                         Button {
                             Haptics.tap()
                             probeCandidates()
@@ -262,7 +200,7 @@ struct AddExternalAppSheet: View {
         isProbing = true
         probeOpened = nil
         Task {
-            for candidate in Self.schemeCandidates(from: trimmedName) {
+            for candidate in SchemeCatalog.candidates(from: trimmedName) {
                 guard let url = URL(string: candidate) else { continue }
                 if await UIApplication.shared.open(url) {
                     schemeSetByProbe = true
@@ -279,16 +217,18 @@ struct AddExternalAppSheet: View {
     }
 
     /// A picked store entry commits with its exact title and artwork; the
-    /// launch link starts as a derived guess (Test launch refines it later
-    /// via Edit — a wrong guess still falls back to the store page).
+    /// launch link comes from the verified catalog when it knows the game,
+    /// else the strongest candidate guess (the self-healing launch walks
+    /// the rest — a wrong guess still falls back to the store page).
     private func addPicked(_ pick: ITunesSearch.Result) {
         guard !isAdding else { return }
         var app = GamesLayout.ExternalApp(
             id: UUID(), name: pick.trackName, emoji: "🎮",
             artworkURL: pick.artworkUrl512, launchURL: nil,
             storeURL: pick.trackViewUrl)
-        app.launchURL = Self.normalizedLaunchURL(
-            from: Self.derivedScheme(from: pick.trackName))
+        let guess = SchemeCatalog.verified(for: pick.trackName)
+            ?? SchemeCatalog.candidates(from: pick.trackName).first
+        app.launchURL = guess.flatMap { Self.normalizedLaunchURL(from: $0) }
         isAdding = true
         Task {
             if let artworkURL = pick.artworkUrl512 {
