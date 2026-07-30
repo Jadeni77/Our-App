@@ -87,8 +87,9 @@ struct CouplesHomeView: View {
         }
         .onDisappear { tilt.stop() }
         .onChange(of: showSettings) { _, covered in
-            // The home is the root view, so onDisappear never fires in normal
-            // use — bracket tilt by cover/sheet visibility instead.
+            // Switching tabs fires onAppear/onDisappear, which brackets tilt
+            // when Games is frontmost; a sheet doesn't unmount the view, so
+            // this brackets tilt around the settings sheet instead.
             if covered { tilt.stop() } else { tilt.start() }
         }
     }

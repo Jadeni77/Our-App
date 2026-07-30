@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// The springboard (P11): the platform's launcher surface. v1 of this view
-/// renders the layout and launches modules; folders open in FolderOverlayView
-/// and arranging arrives with the jiggle wiring.
+/// The springboard (P11): the platform's launcher surface. Renders the tile
+/// grid and folder overlay (FolderOverlayView), drives full jiggle-mode
+/// arranging, and launches modules full-screen.
 struct GamesTabView: View {
     @Environment(GamesLayoutStore.self) private var store
     @State private var openModule: ModuleDescriptor?
@@ -254,6 +254,7 @@ struct GamesTabView: View {
                 .appendingPathComponent("preview-games-tab.json")))
 }
 
+#if DEBUG
 #Preview("With a collection") {
     let modules = [FoodDecisionModule.descriptor] + SampleModules.descriptors
     let url = FileManager.default.temporaryDirectory
@@ -263,3 +264,4 @@ struct GamesTabView: View {
                                  named: "Play 🎲")
     GamesTabView().environment(store)
 }
+#endif
