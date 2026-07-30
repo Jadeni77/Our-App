@@ -27,6 +27,17 @@ struct AddExternalAppSheetTests {
                                                      excluding: identity.id))
     }
 
+    @Test func schemeCandidatesCoverSquashInitialsAndFirstWord() {
+        #expect(AddExternalAppSheet.schemeCandidates(from: "Honor of Kings")
+                == ["honorofkings://", "hok://", "honor://"])
+        #expect(AddExternalAppSheet.schemeCandidates(from: "Minecraft")
+                == ["minecraft://"])
+        // Squash and initials collide for short names — no duplicates.
+        #expect(AddExternalAppSheet.schemeCandidates(from: "Wild Rift")
+                == ["wildrift://", "wr://", "wild://"])
+        #expect(AddExternalAppSheet.schemeCandidates(from: "第五人格") == [])
+    }
+
     @Test func launchURLNormalizationEncodesSpacesAndAddsScheme() throws {
         // A bare word becomes a scheme; a shortcuts link with a spaced name
         // gets percent-encoded instead of silently failing.

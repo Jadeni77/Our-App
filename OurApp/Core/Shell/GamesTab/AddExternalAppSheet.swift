@@ -19,6 +19,8 @@ struct AddExternalAppSheet: View {
     @State private var searchTask: Task<Void, Never>?
     @State private var pendingPick: ITunesSearch.Result?
     @State private var isSearching = false
+    @State private var isProbing = false
+    @State private var schemeSetByProbe = false
 
     /// Starter suggestions (owners' list — Identity V first). An entry
     /// carries its scheme once one is verified with Test launch on a real
@@ -46,6 +48,24 @@ struct AddExternalAppSheet: View {
         }
         guard !ascii.isEmpty else { return "" }
         return String(String.UnicodeScalarView(ascii)) + "://"
+    }
+
+    /// The likely schemes for a name, in try-order: the squashed name
+    /// ("honorofkings://"), the initials ("hok://"), the first word
+    /// ("honor://") — deduped, empty for fully non-latin names. The probe
+    /// walks these so nobody has to guess by hand.
+    static func schemeCandidates(from name: String) -> [String] {
+        let words = name.lowercased()
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { !$0.isEmpty && $0.allSatisfy(\.isASCII) }
+        guard !words.isEmpty else { return [] }
+        var candidates = [words.joined() + "://"]
+        if words.count >= 2 {
+            candidates.append(words.map { String($0.prefix(1)) }.joined() + "://")
+            candidates.append(words[0] + "://")
+        }
+        var seen = Set<String>()
+        return candidates.filter { seen.insert($0).inserted }
     }
 
     var body: some View {
@@ -78,7 +98,15 @@ struct AddExternalAppSheet: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .keyboardType(.URL)
-                        .onChange(of: scheme) { probeOpened = nil }
+                        .onChange(of: scheme) {
+                            // A hand-edited link invalidates the last probe
+                            // result; a probe-written one IS the result.
+                            if schemeSetByProbe {
+                                schemeSetByProbe = false
+                            } else {
+                                probeOpened = nil
+                            }
+                        }
 
                     if let url = normalizedSchemeURL {
                         Button {
@@ -99,6 +127,20 @@ struct AddExternalAppSheet: View {
                                 }
                             }
                         }
+                    }
+
+                    if !Self.schemeCandidates(from: trimmedName).isEmpty {
+                        Button {
+                            Haptics.tap()
+                            probeCandidates()
+                        } label: {
+                            HStack {
+                                Text("Find launch link")
+                                Spacer()
+                                if isProbing { ProgressView() }
+                            }
+                        }
+                        .disabled(isProbing)
                     }
                 } footer: {
                     // Most people can't know an app's scheme — explain why it
@@ -209,6 +251,30 @@ struct AddExternalAppSheet: View {
             Button("Cancel", role: .cancel) {}
         } message: { _ in
             Text("Add this game?")
+        }
+    }
+
+    /// Walks the likely schemes for the typed name. A failed attempt is
+    /// silent and instant; the first success visibly opens the game — which
+    /// IS the confirmation — and lands in the link field, tested.
+    private func probeCandidates() {
+        guard !isProbing else { return }
+        isProbing = true
+        probeOpened = nil
+        Task {
+            for candidate in Self.schemeCandidates(from: trimmedName) {
+                guard let url = URL(string: candidate) else { continue }
+                if await UIApplication.shared.open(url) {
+                    schemeSetByProbe = true
+                    scheme = candidate
+                    probeOpened = true
+                    Haptics.success()
+                    isProbing = false
+                    return
+                }
+            }
+            probeOpened = false
+            isProbing = false
         }
     }
 

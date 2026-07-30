@@ -518,6 +518,29 @@
         }
       }
     },
+    "Find launch link" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find launch link"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动查找启动链接"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動尋找啟動連結"
+          }
+        }
+      }
+    },
     "Find places near us" : {
       "extractionState" : "manual",
       "localizations" : {
