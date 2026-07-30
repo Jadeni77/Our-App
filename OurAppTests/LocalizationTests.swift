@@ -91,5 +91,9 @@ struct LocalizationTests {
         #expect(localizedValue("New collection", language: "zh-Hant") == "新合輯")
         #expect(localizedValue("Collection name", language: "zh-Hant") == "合輯名稱")
         #expect(localizedValue("Coming soon", language: "zh-Hans") == "敬请期待")
+        #expect(localizedValue("Page %lld of %lld", language: "zh-Hans")
+                == "第 %1$lld 页，共 %2$lld 页")
+        #expect(localizedValue("Page %lld of %lld", language: "zh-Hant")
+                == "第 %1$lld 頁，共 %2$lld 頁")
     }
 }
