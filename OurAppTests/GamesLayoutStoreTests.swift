@@ -258,6 +258,33 @@ struct GamesLayoutStoreTests {
         #expect(onDisk.version == GamesLayout.currentVersion)
     }
 
+    @Test func learningASchemeUpsertsAndPersists() throws {
+        let url = tempFile()
+        let store = GamesLayoutStore(modules: [], fileURL: url)
+        store.learnScheme(name: "Honor of Kings", scheme: "wrongguess://")
+        store.learnScheme(name: "honor of kings ", scheme: "smoba://")   // upsert
+        #expect(store.layout.learnedSchemes.count == 1)
+        #expect(store.layout.learnedSchemes.first?.scheme == "smoba://")
+
+        let reloaded = GamesLayoutStore(modules: [], fileURL: url)
+        #expect(reloaded.layout.learnedSchemes.first?.scheme == "smoba://")
+    }
+
+    @Test func verifiedLookupsPreferLearnedOverSeeds() {
+        let store = GamesLayoutStore(modules: [], fileURL: tempFile())
+        // Seeds still answer for games the code catalog knows…
+        #expect(store.verifiedScheme(for: "League of Legends: Wild Rift")
+                == "wildrift://")
+        // …runtime learning answers for everything else, and the learned
+        // name doubles as the home-screen-style display name.
+        store.learnScheme(name: "Honor of Kings", scheme: "smoba://")
+        #expect(store.verifiedScheme(for: "Honor of Kings: MOBA Battle")
+                == "smoba://")
+        #expect(store.verifiedDisplayName(for: "Honor of Kings: MOBA Battle")
+                == "Honor of Kings")
+        #expect(store.verifiedScheme(for: "Candy Crush Saga") == nil)
+    }
+
     @Test func externalLookupResolvesByMemberKey() {
         let store = GamesLayoutStore(modules: [], fileURL: tempFile())
         let game = identityV()

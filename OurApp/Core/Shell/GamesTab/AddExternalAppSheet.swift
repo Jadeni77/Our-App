@@ -101,7 +101,7 @@ struct AddExternalAppSheet: View {
                                         // Tiles read like the home screen, not
                                         // the store: catalog names win, and the
                                         // confirm field stays editable.
-                                        pickName = SchemeCatalog.displayName(
+                                        pickName = store.verifiedDisplayName(
                                             for: result.trackName) ?? result.trackName
                                         pendingPick = result
                                     } label: {
@@ -242,7 +242,7 @@ struct AddExternalAppSheet: View {
             id: UUID(), name: finalName, emoji: "🎮",
             artworkURL: pick.artworkUrl512, launchURL: nil,
             storeURL: pick.trackViewUrl)
-        let guess = SchemeCatalog.verified(for: pick.trackName)
+        let guess = store.verifiedScheme(for: pick.trackName)
             ?? SchemeCatalog.candidates(from: finalName).first
             ?? SchemeCatalog.candidates(from: pick.trackName).first
         app.launchURL = guess.flatMap { Self.normalizedLaunchURL(from: $0) }
@@ -303,6 +303,12 @@ struct AddExternalAppSheet: View {
             artworkURL: nil, launchURL: nil, storeURL: nil)
         app.name = trimmedName        // user data — stored verbatim (S6)
         app.launchURL = normalizedSchemeURL
+
+        // A link that Test launch (or the probe) just proved is knowledge —
+        // the catalog learns it with the name the owners chose.
+        if probeOpened == true, let scheme = app.launchURL?.absoluteString {
+            store.learnScheme(name: app.name, scheme: scheme)
+        }
 
         // Edits commit instantly (the tile already exists on screen).
         guard existing == nil else {

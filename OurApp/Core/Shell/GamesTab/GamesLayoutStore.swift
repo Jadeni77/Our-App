@@ -42,6 +42,35 @@ final class GamesLayoutStore {
         module(for: member)?.emoji ?? externalApp(forKey: member)?.emoji ?? ""
     }
 
+    // MARK: - Learned schemes (runtime-verified, S7)
+
+    /// Records a scheme the moment it's proven (probe, Test launch, or a
+    /// self-healed tap) — upserted by name, persisted, and consulted before
+    /// the code-seeded catalog from then on. No code edits per game.
+    func learnScheme(name: String, scheme: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, !scheme.isEmpty else { return }
+        let key = trimmed.lowercased()
+        layout.learnedSchemes.removeAll { $0.name.lowercased() == key }
+        layout.learnedSchemes.append(.init(name: trimmed, scheme: scheme))
+        save()
+    }
+
+    /// Learned knowledge first, code seeds second (SchemeCatalog).
+    func verifiedScheme(for title: String) -> String? {
+        learnedEntry(for: title)?.scheme ?? SchemeCatalog.verified(for: title)
+    }
+
+    func verifiedDisplayName(for title: String) -> String? {
+        learnedEntry(for: title)?.name ?? SchemeCatalog.displayName(for: title)
+    }
+
+    private func learnedEntry(for title: String) -> GamesLayout.LearnedScheme? {
+        let haystack = title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !haystack.isEmpty else { return nil }
+        return layout.learnedSchemes.first { haystack.contains($0.name.lowercased()) }
+    }
+
     // MARK: - Persistence
 
     nonisolated static func defaultFileURL() -> URL {

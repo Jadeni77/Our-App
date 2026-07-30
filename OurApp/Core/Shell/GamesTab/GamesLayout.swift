@@ -12,25 +12,40 @@ struct GamesLayout: Codable, Equatable {
     /// The registry external items and collection members reference (S7).
     /// Source of truth for external tiles — user data, never auto-dropped.
     var externalApps: [ExternalApp]
+    /// Schemes proven on this phone (probe, Test launch, or a self-healed
+    /// tap) — knowledge, not tiles: it outlives deletions and, once sync
+    /// lands, travels to the other phone.
+    var learnedSchemes: [LearnedScheme]
 
-    init(version: Int, items: [Item], externalApps: [ExternalApp] = []) {
+    init(version: Int, items: [Item], externalApps: [ExternalApp] = [],
+         learnedSchemes: [LearnedScheme] = []) {
         self.version = version
         self.items = items
         self.externalApps = externalApps
+        self.learnedSchemes = learnedSchemes
     }
 
     private enum CodingKeys: String, CodingKey {
-        case version, items, externalApps
+        case version, items, externalApps, learnedSchemes
     }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         version = try container.decode(Int.self, forKey: .version)
         items = try container.decode([Item].self, forKey: .items)
-        // Version-1 documents predate externals — an absent key means none,
-        // and the rest of the document decodes losslessly (S7 migration).
+        // Older documents predate these keys — absent means none, and the
+        // rest of the document decodes losslessly (S7 migration pattern).
         externalApps = try container.decodeIfPresent([ExternalApp].self,
                                                      forKey: .externalApps) ?? []
+        learnedSchemes = try container.decodeIfPresent([LearnedScheme].self,
+                                                       forKey: .learnedSchemes) ?? []
+    }
+
+    /// A runtime-verified launch scheme, named the way the owners see the
+    /// game (S6 — the name is user data).
+    struct LearnedScheme: Codable, Equatable {
+        var name: String
+        var scheme: String
     }
 
     /// Uniform identity for anything that occupies a grid slot.
@@ -131,6 +146,8 @@ struct GamesLayout: Codable, Equatable {
         for app in externalApps where seen.insert(app.memberKey).inserted {
             result.append(.external(externalID: app.id))
         }
-        return GamesLayout(version: version, items: result, externalApps: externalApps)
+        return GamesLayout(version: version, items: result,
+                           externalApps: externalApps,
+                           learnedSchemes: learnedSchemes)
     }
 }

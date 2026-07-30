@@ -410,11 +410,15 @@ struct GamesTabView: View {
         Haptics.tap()
         Task {
             if let launchURL = app.launchURL,
-               await UIApplication.shared.open(launchURL) { return }
+               await UIApplication.shared.open(launchURL) {
+                // Every working launch is proof — keep the catalog learning.
+                store.learnScheme(name: app.name, scheme: launchURL.absoluteString)
+                return
+            }
 
             let saved = app.launchURL?.absoluteString
             var seen = Set<String>()
-            let fallbacks = ([SchemeCatalog.verified(for: app.name)].compactMap { $0 }
+            let fallbacks = ([store.verifiedScheme(for: app.name)].compactMap { $0 }
                 + SchemeCatalog.candidates(from: app.name))
                 .filter { $0 != saved && seen.insert($0).inserted }
             for candidate in fallbacks {
@@ -424,6 +428,7 @@ struct GamesTabView: View {
                         healed.launchURL = url
                         store.updateExternalApp(healed)
                     }
+                    store.learnScheme(name: app.name, scheme: candidate)
                     return
                 }
             }

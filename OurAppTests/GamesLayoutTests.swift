@@ -107,6 +107,20 @@ struct GamesLayoutTests {
         }
         #expect(collection.members == ["a", "b"])
         #expect(decoded.externalApps.isEmpty)
+        #expect(decoded.learnedSchemes.isEmpty)
+    }
+
+    @Test func learnedSchemesRoundTripAndSurviveReconcile() throws {
+        let learned = GamesLayout.LearnedScheme(name: "Wild Rift",
+                                                scheme: "wildrift://")
+        let layout = GamesLayout(version: GamesLayout.currentVersion,
+                                 items: [.app(moduleID: "a")],
+                                 learnedSchemes: [learned])
+        let data = try JSONEncoder().encode(layout)
+        let decoded = try JSONDecoder().decode(GamesLayout.self, from: data)
+        #expect(decoded.learnedSchemes == [learned])
+        // Knowledge is never dropped by reconcile — it isn't a tile.
+        #expect(layout.reconciled(with: ["a"]).learnedSchemes == [learned])
     }
 
     @Test func codableRoundTripsExternalsExactly() throws {
