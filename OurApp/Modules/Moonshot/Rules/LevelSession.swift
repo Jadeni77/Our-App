@@ -19,6 +19,8 @@ final class LevelSession {
     private(set) var flingsUsed = 0
     private(set) var gloomsRemaining: Int
     private(set) var abilityUsedThisFlight = false
+    /// Cumulative across the whole level — feeds the NO ABILITY feat (M23).
+    private(set) var usedAnyAbility = false
 
     /// Head of the queue; nil once exhausted. The head stays current through
     /// the whole flight and is consumed on `settled()`.
@@ -66,6 +68,7 @@ final class LevelSession {
     func tapAbility() -> CharacterID? {
         guard phase == .inFlight, !abilityUsedThisFlight, let character = currentCharacter else { return nil }
         abilityUsedThisFlight = true
+        usedAnyAbility = true
         return character
     }
 

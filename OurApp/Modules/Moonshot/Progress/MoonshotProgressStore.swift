@@ -26,7 +26,8 @@ final class MoonshotProgressStore {
     /// Merge toward the best run: `cleared` never un-clears, stars max,
     /// flings min among clearing runs.
     @discardableResult
-    func recordSolo(levelID: UUID, cleared: Bool, stars: Int, flings: Int) -> MoonshotLevelResult {
+    func recordSolo(levelID: UUID, cleared: Bool, stars: Int, flings: Int,
+                    feats: Set<Feat> = []) -> MoonshotLevelResult {
         let row = result(for: levelID) ?? {
             let fresh = MoonshotLevelResult(partnerID: partnerID, levelID: levelID, mode: .solo,
                                             cleared: false, bestStars: 0, bestFlings: 0)
@@ -37,6 +38,9 @@ final class MoonshotProgressStore {
             row.bestFlings = row.cleared ? min(row.bestFlings, flings) : flings
             row.cleared = true
             row.bestStars = max(row.bestStars, stars)
+            row.featOneFling = row.featOneFling || feats.contains(.oneFling)
+            row.featNoAbility = row.featNoAbility || feats.contains(.noAbility)
+            row.featCleanSweep = row.featCleanSweep || feats.contains(.cleanSweep)
         }
         row.updatedAt = .now
         try? context.save()

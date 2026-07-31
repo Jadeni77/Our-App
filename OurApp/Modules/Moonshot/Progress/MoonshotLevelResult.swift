@@ -16,6 +16,10 @@ final class MoonshotLevelResult {
     /// Slice (d): the helper's partner id on "cleared — assist" rows (M12).
     var assistedBy: String?
     var updatedAt: Date
+    /// Feat badges (M23) — or-merged like `cleared`; never currency.
+    var featOneFling: Bool = false
+    var featNoAbility: Bool = false
+    var featCleanSweep: Bool = false
 
     init(partnerID: String, levelID: UUID, mode: PlayMode, cleared: Bool, bestStars: Int, bestFlings: Int) {
         id = UUID()
