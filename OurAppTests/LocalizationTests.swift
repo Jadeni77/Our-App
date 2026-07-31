@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+@testable import OurApp
 
 struct LocalizationTests {
     private func localizedValue(_ key: String, language: String) -> String? {
@@ -87,6 +88,28 @@ struct LocalizationTests {
                 == "iOS 需要应用的链接（URL Scheme）才能直接打开它。没有链接时，会改为打开它的 App Store 页面。")
         #expect(localizedValue(schemeFooter, language: "zh-Hant")
                 == "iOS 需要應用程式的連結（URL Scheme）才能直接開啟它。沒有連結時，會改為開啟它的 App Store 頁面。")
+    }
+
+    @Test func currentBundleFollowsTheInAppOverrideImmediately() throws {
+        // String(localized:) follows AppleLanguages, which realigns only at
+        // the next launch — AppLanguage.currentBundle is how mid-session
+        // lookups agree with the on-screen language (post-#14 follow-up).
+        // A private suite, never the standard domain: suites run in parallel
+        // and a shared-default write would race every other lookup.
+        let suite = "localization-tests-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        defaults.set(AppLanguage.simplifiedChinese.rawValue,
+                     forKey: AppLanguage.storageKey)
+        // The production call form, deliberately: String(localized:bundle:)
+        // resolves via the bundle's preferred localization (it ignores any
+        // locale hint), so the single-lproj bundle IS the mechanism — pin it.
+        #expect(String(localized: "New collection",
+                       bundle: AppLanguage.currentBundle(defaults)) == "新合集")
+
+        defaults.set(AppLanguage.system.rawValue, forKey: AppLanguage.storageKey)
+        #expect(AppLanguage.currentBundle(defaults) == .main)
     }
 
     @Test func springboardStringsAreTranslated() {

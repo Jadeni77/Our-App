@@ -6,6 +6,8 @@ import SwiftUI
 /// - Bundle-based lookups (`String(localized:)`, `preferredLocalizations`) and
 ///   system formatters follow the app's `AppleLanguages` default, which
 ///   `applyToBundleDomain()` keeps in sync — fully effective on next launch.
+///   Lookups that must agree with the on-screen language *before* that
+///   relaunch go through `currentBundle()` instead.
 /// When set to `.system`, the app follows the device language AND iOS's
 /// per-app language setting (Settings → OurApp → Language), which writes the
 /// same underlying default.
@@ -46,5 +48,23 @@ enum AppLanguage: String, CaseIterable, Identifiable {
         } else {
             UserDefaults.standard.set([rawValue], forKey: "AppleLanguages")
         }
+    }
+
+    /// The bundle `String(localized:)` lookups must use to agree with what's
+    /// on screen *right now*: plain `String(localized:)` follows
+    /// AppleLanguages, which only realigns at the next launch — so between an
+    /// in-app language switch and that relaunch it hands back the *old*
+    /// language. `.system` (or a missing lproj) falls through to `.main`.
+    /// (`defaults` is injectable so tests never race each other over the
+    /// real domain — suites run in parallel.)
+    static func currentBundle(_ defaults: UserDefaults = .standard) -> Bundle {
+        guard let raw = defaults.string(forKey: storageKey),
+              let language = AppLanguage(rawValue: raw),
+              language != .system,
+              let path = Bundle.main.path(forResource: language.rawValue,
+                                          ofType: "lproj"),
+              let bundle = Bundle(path: path)
+        else { return .main }
+        return bundle
     }
 }

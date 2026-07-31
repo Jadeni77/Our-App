@@ -7,21 +7,27 @@ struct AppShell: View {
         case home, games
     }
 
-    private let modules: [ModuleDescriptor]
-    @State private var store: GamesLayoutStore
-    @State private var artwork: ArtworkStore
-    @State private var selection: AppTab
-
-    init() {
+    private static let modules: [ModuleDescriptor] = {
         var modules = [
             FoodDecisionModule.descriptor,
         ]
         #if DEBUG
         modules += SampleModules.descriptors
         #endif
-        self.modules = modules
-        _store = State(initialValue: GamesLayoutStore(modules: modules))
-        _artwork = State(initialValue: ArtworkStore())
+        return modules
+    }()
+
+    /// Once per process, not per render: the shell struct is re-inited by
+    /// every App-level invalidation (a language switch, say), and the store's
+    /// init does disk I/O — `@State(initialValue:)` would discard a freshly
+    /// built store each time but still pay for building it (post-#14
+    /// follow-up: store re-init churn).
+    @MainActor private static let store = GamesLayoutStore(modules: modules)
+    @MainActor private static let artwork = ArtworkStore()
+
+    @State private var selection: AppTab
+
+    init() {
         _selection = State(initialValue:
             Self.launchArguments.contains("-selectGames") ? .games : .home)
     }
@@ -36,8 +42,8 @@ struct AppShell: View {
                 .tag(AppTab.games)
         }
         .tint(Theme.indigo)   // reads on the gradient's peach bottom, where the bar sits
-        .environment(store)
-        .environment(artwork)
+        .environment(Self.store)
+        .environment(Self.artwork)
     }
 
     private static var launchArguments: [String] {

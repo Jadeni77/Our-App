@@ -248,6 +248,20 @@ struct GamesLayoutStoreTests {
         #expect(store.layout.items.map(\.id) == [.collection(id), .external(game.id)])
     }
 
+    @Test func duplicateModuleRegistrationNeverTraps() throws {
+        // Reconcile (S5) dedupes tiles by id; the id-lookup table must be
+        // just as tolerant — first registration wins, launch never crashes
+        // (post-#14 follow-up: the old uniqueKeysWithValues trapped).
+        let url = tempFile()
+        let first = ModuleDescriptor(id: "dup", name: "First", emoji: "1️⃣",
+                                     makeEntryView: { AnyView(EmptyView()) })
+        let second = ModuleDescriptor(id: "dup", name: "Second", emoji: "2️⃣",
+                                      makeEntryView: { AnyView(EmptyView()) })
+        let store = GamesLayoutStore(modules: [first, second], fileURL: url)
+        #expect(store.layout.items == [.app(moduleID: "dup")])
+        #expect(store.module(for: "dup")?.emoji == "1️⃣")
+    }
+
     @Test func savedDocumentsStampCurrentVersion() throws {
         let url = tempFile()
         let v1 = GamesLayout(version: 1, items: [.app(moduleID: "a")])
