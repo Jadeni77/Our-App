@@ -29,8 +29,8 @@ final class PieceNode: SKSpriteNode {
 
         let body = SKPhysicsBody(rectangleOf: size)
         body.density = piece.material.density
-        body.friction = 0.8
-        body.restitution = 0.05
+        body.friction = MoonshotTuning.pieceFriction
+        body.restitution = MoonshotTuning.pieceRestitution
         body.isDynamic = piece.material != .frame
         body.categoryBitMask = PhysicsCategory.piece
         body.contactTestBitMask = PhysicsCategory.sprite | PhysicsCategory.piece | PhysicsCategory.ground
@@ -40,7 +40,10 @@ final class PieceNode: SKSpriteNode {
     required init?(coder: NSCoder) { fatalError("unused") }
 
     func applyDamage(_ damage: Double) -> Fate {
-        guard damage > 0, hp.isFinite else { return .intact }
+        // Idempotency latch: one physics step can queue several contacts for
+        // the same piece — only the killing blow may report .destroyed, or
+        // demolition scoring (slice c) and audio (PR 5) double-count.
+        guard damage > 0, hp.isFinite, hp > 0 else { return .intact }
         hp -= damage
         if hp <= 0 { return .destroyed }
         if !showedCrack, hp <= material.hp / 2 {
@@ -88,9 +91,9 @@ final class GloomNode: SKShapeNode {
         }
 
         let body = SKPhysicsBody(circleOfRadius: radius)
-        body.density = 0.8
-        body.friction = 0.9
-        body.restitution = 0.05
+        body.density = MoonshotTuning.gloomDensity
+        body.friction = MoonshotTuning.gloomFriction
+        body.restitution = MoonshotTuning.pieceRestitution
         body.categoryBitMask = PhysicsCategory.gloom
         body.contactTestBitMask = PhysicsCategory.sprite | PhysicsCategory.piece | PhysicsCategory.ground
         physicsBody = body
@@ -112,7 +115,7 @@ final class StarSpriteNode: SKShapeNode {
     init(character: CharacterID) {
         self.character = character
         super.init()
-        let radius: CGFloat = 16
+        let radius = MoonshotTuning.spriteRadius
         path = CGPath(ellipseIn: CGRect(x: -radius, y: -radius, width: radius * 2, height: radius * 2), transform: nil)
         fillColor = UIColor(Theme.glow)
         strokeColor = UIColor.white.withAlphaComponent(0.9)
@@ -124,10 +127,13 @@ final class StarSpriteNode: SKShapeNode {
     required init?(coder: NSCoder) { fatalError("unused") }
 
     func activatePhysics() {
-        let body = SKPhysicsBody(circleOfRadius: 16)
-        body.density = 1.2
-        body.friction = 0.6
-        body.restitution = 0.2
+        let body = SKPhysicsBody(circleOfRadius: MoonshotTuning.spriteRadius)
+        body.density = MoonshotTuning.spriteDensity
+        body.friction = MoonshotTuning.spriteFriction
+        body.restitution = MoonshotTuning.spriteRestitution
+        // Zero air drag: the trajectory hint samples an ideal parabola, and
+        // the real arc must land where the dots promised.
+        body.linearDamping = 0
         body.categoryBitMask = PhysicsCategory.sprite
         body.contactTestBitMask = PhysicsCategory.piece | PhysicsCategory.gloom | PhysicsCategory.ground
         physicsBody = body
@@ -198,8 +204,13 @@ enum SpriteFactory {
         }
     }
 
-    /// The dreamy sky, rendered once per scene size from the core gradient.
+    private static var skyTextureCache: [String: SKTexture] = [:]
+
+    /// The dreamy sky, rendered once per scene size from the core gradient
+    /// (cached — retry and next-level rebuild the scene, not the texture).
     static func skyTexture(size: CGSize) -> SKTexture {
+        let key = "\(size.width)x\(size.height)"
+        if let cached = skyTextureCache[key] { return cached }
         let image = UIGraphicsImageRenderer(size: size).image { context in
             let colors = [Theme.indigo, Theme.violet, Theme.rose, Theme.peach].map { UIColor($0).cgColor }
             let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
@@ -210,7 +221,9 @@ enum SpriteFactory {
                                                  end: CGPoint(x: 0, y: size.height),
                                                  options: [])
         }
-        return SKTexture(image: image)
+        let texture = SKTexture(image: image)
+        skyTextureCache[key] = texture
+        return texture
     }
 }
 

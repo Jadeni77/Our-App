@@ -101,11 +101,12 @@ final class SlingshotNode: SKNode {
 
     private func drawBands(to point: CGPoint) {
         bands.removeFromParent()
+        guard let parent else { return }
         let path = CGMutablePath()
         let tips = forkTips
-        path.move(to: convert(tips.left, from: parent!))
-        path.addLine(to: convert(point, from: parent!))
-        path.addLine(to: convert(tips.right, from: parent!))
+        path.move(to: convert(tips.left, from: parent))
+        path.addLine(to: convert(point, from: parent))
+        path.addLine(to: convert(tips.right, from: parent))
         bands = SKShapeNode(path: path)
         bands.strokeColor = UIColor(red: 0.35, green: 0.24, blue: 0.18, alpha: 1)
         bands.lineWidth = 3.5
@@ -118,13 +119,15 @@ final class SlingshotNode: SKNode {
 
     /// Sampled parabola: p(t) = p₀ + v·t + ½g·t². SpriteKit gravity is in
     /// m/s² with 1 m = 150 pt, so the point-space acceleration is g × 150 —
-    /// easy to get wrong and the dots land nowhere near the real arc.
+    /// easy to get wrong and the dots land nowhere near the real arc. The
+    /// gravity knob is shared with the scene via MoonshotTuning, and launched
+    /// sprites fly with zero linearDamping, so the ideal parabola IS the arc.
     private func updateTrajectory(from origin: CGPoint, velocity: CGVector) {
         clearTrajectory()
         guard showsTrajectoryHint, let parent else { return }
-        let gravity = -9.8 * 150.0
+        let gravity = Double(MoonshotTuning.gravityMetersPerSecond) * 150.0
         for i in 1...MoonshotTuning.trajectoryDots {
-            let t = Double(i) * 0.11
+            let t = Double(i) * MoonshotTuning.trajectorySampleStep
             let x = Double(origin.x) + Double(velocity.dx) * t
             let y = Double(origin.y) + Double(velocity.dy) * t + 0.5 * gravity * t * t
             guard y > Double(MoonshotTuning.groundY) else { break }

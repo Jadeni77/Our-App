@@ -38,6 +38,8 @@ final class GameScene: SKScene {
     override func didMove(to view: SKView) {
         backgroundColor = .black
         physicsWorld.contactDelegate = self
+        // Explicit, from tuning: the trajectory hint samples the same knob.
+        physicsWorld.gravity = CGVector(dx: 0, dy: MoonshotTuning.gravityMetersPerSecond)
         buildWorld()
     }
 
@@ -73,7 +75,7 @@ final class GameScene: SKScene {
         path.addLine(to: CGPoint(x: size.width, y: floorY))
         path.addLine(to: CGPoint(x: size.width, y: size.height * 2))
         let body = SKPhysicsBody(edgeChainFrom: path)
-        body.friction = 0.9
+        body.friction = MoonshotTuning.groundFriction
         body.restitution = 0
         body.categoryBitMask = PhysicsCategory.ground
         bounds.physicsBody = body
@@ -147,7 +149,9 @@ final class GameScene: SKScene {
     }
 
     private func finishFling() {
-        guard let velocity = slingshot.endPull(), let sprite = seatedSprite else {
+        // seatedSprite first: endPull() is side-effectful (clears the
+        // slingshot's loaded sprite on success), so it must run last.
+        guard let sprite = seatedSprite, let velocity = slingshot.endPull() else {
             session.cancelAim()
             return
         }
@@ -271,18 +275,20 @@ extension GameScene: SKPhysicsContactDelegate {
         guard impulse > 0 else { return }
         let nodes = [contact.bodyA.node, contact.bodyB.node]
 
-        for case let piece as PieceNode in nodes.compactMap({ $0 }) {
+        for case let piece as PieceNode in nodes.compactMap({ $0 }) where piece.parent != nil {
             let multiplier = abilityMultiplier(against: piece.material, in: nodes)
             let damage = DamageModel.damage(impulse: impulse, against: piece.material, multiplier: multiplier)
             guard damage > 0 else { continue }
-            onEvent?(.impact(piece.material))
+            // Event semantics for PR 5's audio: a damaging hit is .impact,
+            // a kill is .pieceDestroyed — never both for one contact.
             switch piece.applyDamage(damage) {
             case .intact:
-                break
+                onEvent?(.impact(piece.material))
             case .cracked:
                 piece.showCrackOverlay()
+                onEvent?(.impact(piece.material))
             case .destroyed:
-                SpriteFactory.burst(at: piece.position, material: piece.material, in: self)
+                SpriteFactory.burst(at: piece.position, material: piece.material, in: worldNode)
                 piece.removeFromParent()
                 onEvent?(.pieceDestroyed(piece.material))
             }

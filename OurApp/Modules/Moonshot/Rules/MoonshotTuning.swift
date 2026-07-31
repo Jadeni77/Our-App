@@ -42,6 +42,22 @@ enum MoonshotTuning {
     static let trajectoryHintLevels = 3
     static let trajectoryDots = 8
 
+    // MARK: Physics feel
+    /// World gravity in m/s² (SpriteKit's unit; 150 pt = 1 m). The scene sets
+    /// this explicitly AND the trajectory hint samples it — one knob, never two.
+    static let gravityMetersPerSecond: CGFloat = -9.8
+    static let pieceFriction: CGFloat = 0.8
+    static let pieceRestitution: CGFloat = 0.05
+    static let gloomDensity: CGFloat = 0.8
+    static let gloomFriction: CGFloat = 0.9
+    static let spriteRadius: CGFloat = 16
+    static let spriteDensity: CGFloat = 1.2
+    static let spriteFriction: CGFloat = 0.6
+    static let spriteRestitution: CGFloat = 0.2
+    static let groundFriction: CGFloat = 0.9
+    /// Seconds between trajectory-hint dots.
+    static let trajectorySampleStep: TimeInterval = 0.11
+
     // MARK: Impulse calibration
     /// SpriteKit's collisionImpulse is kg·m/s (150 pt = 1 m), so real hits
     /// measure ~0.05–0.5. The damage model speaks in abstract units — this

@@ -14,7 +14,7 @@ struct MoonshotGameView: View {
     @State private var session: LevelSession?
     @State private var recordedOutcome = false
 
-    private let catalog = CampaignCatalog.load()
+    private let catalog = CampaignCatalog.bundled
 
     init(levelIndex: Int) {
         _currentIndex = State(initialValue: levelIndex)
@@ -184,4 +184,5 @@ private struct MoonshotOverlayButton: ButtonStyle {
 
 #Preview {
     MoonshotGameView(levelIndex: 0)
+        .modelContainer(try! Persistence.makeContainer(inMemory: true))
 }
