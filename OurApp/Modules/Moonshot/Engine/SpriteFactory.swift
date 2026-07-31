@@ -94,6 +94,9 @@ final class GloomNode: SKShapeNode {
         body.density = MoonshotTuning.gloomDensity
         body.friction = MoonshotTuning.gloomFriction
         body.restitution = MoonshotTuning.pieceRestitution
+        // Glooms perch, they don't roll — a ball on a 22pt column top would
+        // roll off during the settle and un-author every pillar level.
+        body.allowsRotation = false
         body.categoryBitMask = PhysicsCategory.gloom
         body.contactTestBitMask = PhysicsCategory.sprite | PhysicsCategory.piece | PhysicsCategory.ground
         physicsBody = body

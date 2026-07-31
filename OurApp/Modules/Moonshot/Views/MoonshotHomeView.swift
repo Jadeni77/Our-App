@@ -76,6 +76,11 @@ struct MoonshotHomeView: View {
         for level in levels.prefix((target + 2) / 3) {
             store.recordSolo(levelID: level.id, cleared: true, stars: 3, flings: 1)
         }
+        if let flag = arguments.firstIndex(of: "-moonshotEquipTrail"),
+           arguments.indices.contains(flag + 1),
+           let trail = TrailID(rawValue: arguments[flag + 1]) {
+            store.equipTrail(trail)
+        }
         #endif
     }
 
