@@ -41,4 +41,22 @@ enum MoonshotTuning {
     /// Levels 1..N show the dotted trajectory hint while aiming.
     static let trajectoryHintLevels = 3
     static let trajectoryDots = 8
+
+    // MARK: Impulse calibration
+    /// SpriteKit's collisionImpulse is kg·m/s (150 pt = 1 m), so real hits
+    /// measure ~0.05–0.5. The damage model speaks in abstract units — this
+    /// factor converts; raise it and the whole world gets more fragile.
+    static let collisionImpulseScale: Double = 25
+
+    // MARK: Flight & settle detection
+    /// A launched sprite is spent after moving slower than spentSpeed for
+    /// spentDuration, leaving the world, or flying longer than flightTimeout.
+    static let spriteSpentSpeed: CGFloat = 20
+    static let spriteSpentDuration: TimeInterval = 0.6
+    static let flightTimeout: TimeInterval = 6
+    /// The world has settled when every dynamic body is slower than
+    /// settleSpeed for settleDuration (or the cap expires).
+    static let settleSpeed: CGFloat = 12
+    static let settleDuration: TimeInterval = 0.5
+    static let settleTimeout: TimeInterval = 4
 }

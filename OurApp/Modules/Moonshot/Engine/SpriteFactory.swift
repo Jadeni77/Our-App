@@ -49,6 +49,23 @@ final class PieceNode: SKSpriteNode {
         }
         return .intact
     }
+
+    /// Jagged white fractures across the face — the "one more hit" warning.
+    func showCrackOverlay() {
+        let path = CGMutablePath()
+        let w = size.width / 2, h = size.height / 2
+        path.move(to: CGPoint(x: -w * 0.6, y: h))
+        path.addLine(to: CGPoint(x: -w * 0.2, y: h * 0.2))
+        path.addLine(to: CGPoint(x: -w * 0.5, y: -h * 0.4))
+        path.move(to: CGPoint(x: w * 0.7, y: h * 0.6))
+        path.addLine(to: CGPoint(x: w * 0.2, y: -h * 0.1))
+        path.addLine(to: CGPoint(x: w * 0.4, y: -h))
+        let crack = SKShapeNode(path: path)
+        crack.strokeColor = UIColor.white.withAlphaComponent(0.85)
+        crack.lineWidth = 1.5
+        crack.lineJoin = .miter
+        addChild(crack)
+    }
 }
 
 /// A shadow critter — pop it and its stolen starlight is free.
@@ -88,6 +105,9 @@ final class StarSpriteNode: SKShapeNode {
     let character: CharacterID
     var launched = false
     var abilityActive = false
+    /// Flight bookkeeping for spent detection (scene time).
+    var launchedAt: TimeInterval?
+    var slowSince: TimeInterval?
 
     init(character: CharacterID) {
         self.character = character
@@ -153,6 +173,29 @@ enum SpriteFactory {
         let texture = SKTexture(image: image)
         pieceTextureCache[key] = texture
         return texture
+    }
+
+    /// Six physicsless shards scattering and fading — destruction feedback
+    /// without particle-emitter machinery.
+    static func burst(at point: CGPoint, material: Material, in parent: SKNode) {
+        for _ in 0..<6 {
+            let shard = SKShapeNode(rectOf: CGSize(width: 5, height: 5), cornerRadius: 1)
+            shard.fillColor = material.fillColor
+            shard.strokeColor = .clear
+            shard.position = point
+            shard.zPosition = 20
+            parent.addChild(shard)
+            let dx = CGFloat.random(in: -70...70)
+            let dy = CGFloat.random(in: 20...110)
+            shard.run(.sequence([
+                .group([
+                    .moveBy(x: dx, y: dy, duration: 0.4),
+                    .fadeOut(withDuration: 0.4),
+                    .rotate(byAngle: .random(in: -3...3), duration: 0.4),
+                ]),
+                .removeFromParent(),
+            ]))
+        }
     }
 
     /// The dreamy sky, rendered once per scene size from the core gradient.

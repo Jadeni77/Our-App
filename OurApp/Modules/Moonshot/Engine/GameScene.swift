@@ -17,7 +17,7 @@ enum GameEvent: Equatable {
 final class GameScene: SKScene {
     private let level: MoonshotLevel
     private let showsTrajectoryHint: Bool
-    private(set) var session: LevelSession
+    let session: LevelSession
     var onEvent: ((GameEvent) -> Void)?
 
     private var worldNode = SKNode()
@@ -37,12 +37,7 @@ final class GameScene: SKScene {
 
     override func didMove(to view: SKView) {
         backgroundColor = .black
-        buildWorld()
-    }
-
-    /// Fresh session, fresh fort — the retry path.
-    func retry() {
-        session = LevelSession(level: level)
+        physicsWorld.contactDelegate = self
         buildWorld()
     }
 
@@ -186,5 +181,133 @@ final class GameScene: SKScene {
         _ = slingshot.endPull()
         seatedSprite.map { slingshot.loadSprite($0) }
         session.cancelAim()
+    }
+
+    // MARK: Flight & settle detection
+
+    private var settlingSince: TimeInterval?
+    private var calmSince: TimeInterval?
+
+    override func update(_ currentTime: TimeInterval) {
+        switch session.phase {
+        case .inFlight:
+            trackFlight(at: currentTime)
+        case .settling:
+            trackSettle(at: currentTime)
+        default:
+            break
+        }
+    }
+
+    private func trackFlight(at now: TimeInterval) {
+        for sprite in activeSprites {
+            if sprite.launchedAt == nil { sprite.launchedAt = now }
+            let speed = sprite.physicsBody.map {
+                ($0.velocity.dx * $0.velocity.dx + $0.velocity.dy * $0.velocity.dy).squareRoot()
+            } ?? 0
+            if speed < MoonshotTuning.spriteSpentSpeed {
+                if sprite.slowSince == nil { sprite.slowSince = now }
+            } else {
+                sprite.slowSince = nil
+            }
+            let outOfWorld = sprite.position.x < -50 || sprite.position.x > size.width + 50
+                || sprite.position.y < -50
+            let restedOut = sprite.slowSince.map { now - $0 >= MoonshotTuning.spriteSpentDuration } ?? false
+            let timedOut = sprite.launchedAt.map { now - $0 >= MoonshotTuning.flightTimeout } ?? false
+            if outOfWorld || restedOut || timedOut {
+                spend(sprite)
+            }
+        }
+        if activeSprites.isEmpty {
+            settlingSince = nil
+            calmSince = nil
+            session.flightEnded()
+        }
+    }
+
+    private func spend(_ sprite: StarSpriteNode) {
+        activeSprites.removeAll { $0 === sprite }
+        sprite.physicsBody = nil
+        sprite.run(.sequence([.fadeOut(withDuration: 0.25), .removeFromParent()]))
+    }
+
+    private func trackSettle(at now: TimeInterval) {
+        if settlingSince == nil { settlingSince = now }
+        let everythingCalm = !worldNode.children.contains { node in
+            guard let body = node.physicsBody, body.isDynamic else { return false }
+            let speed = (body.velocity.dx * body.velocity.dx + body.velocity.dy * body.velocity.dy).squareRoot()
+            return speed >= MoonshotTuning.settleSpeed
+        }
+        if everythingCalm {
+            if calmSince == nil { calmSince = now }
+        } else {
+            calmSince = nil
+        }
+        let calmedDown = calmSince.map { now - $0 >= MoonshotTuning.settleDuration } ?? false
+        let capExpired = settlingSince.map { now - $0 >= MoonshotTuning.settleTimeout } ?? false
+        guard calmedDown || capExpired else { return }
+
+        settlingSince = nil
+        calmSince = nil
+        session.settled()
+        switch session.phase {
+        case .won(let stars):
+            onEvent?(.levelWon(stars: stars))
+        case .failed:
+            onEvent?(.levelFailed)
+        case .ready:
+            seatNextSprite()
+        default:
+            break
+        }
+    }
+}
+
+// MARK: - Contacts → damage
+
+extension GameScene: SKPhysicsContactDelegate {
+    func didBegin(_ contact: SKPhysicsContact) {
+        let impulse = Double(contact.collisionImpulse) * MoonshotTuning.collisionImpulseScale
+        guard impulse > 0 else { return }
+        let nodes = [contact.bodyA.node, contact.bodyB.node]
+
+        for case let piece as PieceNode in nodes.compactMap({ $0 }) {
+            let multiplier = abilityMultiplier(against: piece.material, in: nodes)
+            let damage = DamageModel.damage(impulse: impulse, against: piece.material, multiplier: multiplier)
+            guard damage > 0 else { continue }
+            onEvent?(.impact(piece.material))
+            switch piece.applyDamage(damage) {
+            case .intact:
+                break
+            case .cracked:
+                piece.showCrackOverlay()
+            case .destroyed:
+                SpriteFactory.burst(at: piece.position, material: piece.material, in: self)
+                piece.removeFromParent()
+                onEvent?(.pieceDestroyed(piece.material))
+            }
+        }
+
+        for case let gloom as GloomNode in nodes.compactMap({ $0 }) {
+            guard impulse > MoonshotTuning.gloomPopImpulse, gloom.physicsBody != nil else { continue }
+            gloom.physicsBody = nil
+            gloom.run(.sequence([
+                .group([.scale(to: 1.5, duration: 0.15), .fadeOut(withDuration: 0.15)]),
+                .removeFromParent(),
+            ]))
+            session.gloomPopped()
+            onEvent?(.gloomPopped)
+        }
+    }
+
+    /// The star sprite's ability multiplier applies only to contacts the
+    /// sprite itself is part of — collapsing debris always hits at ×1.
+    private func abilityMultiplier(against material: Material, in nodes: [SKNode?]) -> Double {
+        for case let sprite as StarSpriteNode in nodes.compactMap({ $0 }) where sprite.launched {
+            return AbilityEffects.damageMultiplier(for: sprite.character,
+                                                   abilityActive: sprite.abilityActive,
+                                                   against: material)
+        }
+        return 1
     }
 }
