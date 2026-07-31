@@ -50,8 +50,7 @@ enum MoonshotTuning {
     static let pieceRestitution: CGFloat = 0.05
     static let gloomDensity: CGFloat = 0.8
     static let gloomFriction: CGFloat = 0.9
-    static let spriteRadius: CGFloat = 16
-    static let spriteDensity: CGFloat = 1.2
+    // Sprite radius/density are per-character (MoonshotCharacters.swift).
     static let spriteFriction: CGFloat = 0.6
     static let spriteRestitution: CGFloat = 0.2
     static let groundFriction: CGFloat = 0.9
