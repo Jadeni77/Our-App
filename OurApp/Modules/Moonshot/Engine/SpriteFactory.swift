@@ -108,6 +108,9 @@ final class StarSpriteNode: SKShapeNode {
     let character: CharacterID
     var launched = false
     var abilityActive = false
+    /// True while an ability keeps this sprite "flying" though motionless
+    /// (Nox's well freezes him mid-air) — spent detection skips it.
+    var holdsFlight = false
     /// Flight bookkeeping for spent detection (scene time).
     var launchedAt: TimeInterval?
     var slowSince: TimeInterval?

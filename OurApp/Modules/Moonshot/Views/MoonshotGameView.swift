@@ -69,9 +69,17 @@ struct MoonshotGameView: View {
         session = newSession
         scene = newScene
         #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("-moonshotAutoFling") {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-                newScene.debugFling(pull: CGVector(dx: -63, dy: -63))
+        if arguments.contains("-moonshotAutoFling") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak newScene] in
+                newScene?.debugFling(pull: CGVector(dx: -63, dy: -63))
+            }
+            // `-moonshotAbilityDelay 0.5` taps the ability that long after release.
+            if let flag = arguments.firstIndex(of: "-moonshotAbilityDelay"),
+               arguments.indices.contains(flag + 1),
+               let delay = Double(arguments[flag + 1]) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2 + 0.6 + delay) { [weak newScene] in
+                    newScene?.debugTapAbility()
+                }
             }
         }
         #endif
