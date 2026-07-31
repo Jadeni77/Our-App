@@ -153,6 +153,12 @@ struct LocalizationTests {
         #expect(localizedValue("Equipped", language: "zh-Hans") == "已装备")
         #expect(localizedValue("Every star either of us earns lights this up",
                                language: "zh-Hans") == "我们俩赢得的每颗星都会点亮这里")
+        #expect(localizedValue("The Moonlit Fields", language: "zh-Hans") == "月光原野")
+        #expect(localizedValue("The Moonlit Fields", language: "zh-Hant") == "月光原野")
+        #expect(localizedValue("The Cloudfoam Skies", language: "zh-Hans") == "云绵天空")
+        #expect(localizedValue("The Cloudfoam Skies", language: "zh-Hant") == "雲綿天空")
+        #expect(localizedValue("The Storm Heights", language: "zh-Hans") == "风暴之巅")
+        #expect(localizedValue("The Storm Heights", language: "zh-Hant") == "風暴之巔")
     }
 
     @Test func springboardStringsAreTranslated() {

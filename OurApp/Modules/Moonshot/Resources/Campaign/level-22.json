@@ -1,0 +1,86 @@
+{
+  "buildZone": {
+    "height": 340,
+    "width": 370,
+    "x": 470,
+    "y": 0
+  },
+  "createdAt": "2026-07-31T00:00:00Z",
+  "glooms": [
+    {
+      "x": 600,
+      "y": 16
+    },
+    {
+      "x": 680,
+      "y": 16
+    },
+    {
+      "x": 760,
+      "y": 16
+    }
+  ],
+  "id": "AA000000-0000-4000-8000-000000000022",
+  "kind": "campaign",
+  "par": 3,
+  "pieces": [
+    {
+      "material": "cloudfoam",
+      "rotation": 0,
+      "shape": "plank",
+      "x": 440,
+      "y": 12
+    },
+    {
+      "material": "crystal",
+      "rotation": 0,
+      "shape": "column",
+      "x": 560,
+      "y": 45
+    },
+    {
+      "material": "crystal",
+      "rotation": 0,
+      "shape": "column",
+      "x": 560,
+      "y": 134
+    },
+    {
+      "material": "moonwood",
+      "rotation": 0,
+      "shape": "column",
+      "x": 630,
+      "y": 45
+    },
+    {
+      "material": "moonwood",
+      "rotation": 0,
+      "shape": "column",
+      "x": 630,
+      "y": 134
+    },
+    {
+      "material": "crystal",
+      "rotation": 0,
+      "shape": "column",
+      "x": 720,
+      "y": 45
+    },
+    {
+      "material": "crystal",
+      "rotation": 0,
+      "shape": "column",
+      "x": 720,
+      "y": 134
+    }
+  ],
+  "queue": [
+    "zip",
+    "twinkle",
+    "mochi",
+    "zip"
+  ],
+  "schemaVersion": 1,
+  "updatedAt": "2026-07-31T00:00:00Z",
+  "world": 2
+}

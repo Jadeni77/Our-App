@@ -156,6 +156,11 @@ try writeCAF("well", { () -> [Float] in
     }
 }(), to: out)
 
+// Cloudfoam's boing: a springy downward sweep with an octave sparkle.
+try writeCAF("boing", mix(
+    tone(from: 180, to: 60, duration: 0.25, amplitude: 0.5, decay: 6),
+    tone(from: 360, to: 120, duration: 0.2, amplitude: 0.15, decay: 8)), to: out)
+
 // The ambience: a 16 s moonlit pad. Every component completes an integer
 // number of cycles over the loop (frequencies are multiples of 1/16 Hz,
 // LFO is exactly one cycle), so the loop point is mathematically seamless.
