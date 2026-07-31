@@ -80,14 +80,14 @@ final class GameScene: SKScene {
         ground.zPosition = -10
         addChild(ground)
 
-        // One edge loop: floor at the ground top plus side walls, top open.
+        // Floor only — NO side walls (they made overshooting flings bounce
+        // back like a pinball). The floor overhangs both visible edges so
+        // anything shoved out of view still comes to rest and settles.
         let bounds = SKNode()
         let floorY = MoonshotTuning.groundY
         let path = CGMutablePath()
-        path.move(to: CGPoint(x: 0, y: size.height * 2))
-        path.addLine(to: CGPoint(x: 0, y: floorY))
-        path.addLine(to: CGPoint(x: size.width, y: floorY))
-        path.addLine(to: CGPoint(x: size.width, y: size.height * 2))
+        path.move(to: CGPoint(x: -MoonshotTuning.floorOverhang, y: floorY))
+        path.addLine(to: CGPoint(x: size.width + MoonshotTuning.floorOverhang, y: floorY))
         let body = SKPhysicsBody(edgeChainFrom: path)
         body.friction = MoonshotTuning.groundFriction
         body.restitution = 0
@@ -254,6 +254,7 @@ final class GameScene: SKScene {
     private var calmSince: TimeInterval?
 
     override func update(_ currentTime: TimeInterval) {
+        sweepEscapedGlooms()
         switch session.phase {
         case .inFlight:
             trackFlight(at: currentTime)
@@ -262,6 +263,27 @@ final class GameScene: SKScene {
         default:
             break
         }
+    }
+
+    /// With no side walls, a gloom can be shoved clean off the map —
+    /// off the map is gone (the genre's ruling): count it popped.
+    private func sweepEscapedGlooms() {
+        let margin = MoonshotTuning.gloomRadius * 2
+        for case let gloom as GloomNode in worldNode.children where gloom.physicsBody != nil {
+            if gloom.position.x < -margin || gloom.position.x > size.width + margin {
+                pop(gloom)
+            }
+        }
+    }
+
+    private func pop(_ gloom: GloomNode) {
+        gloom.physicsBody = nil
+        gloom.run(.sequence([
+            .group([.scale(to: 1.5, duration: 0.15), .fadeOut(withDuration: 0.15)]),
+            .removeFromParent(),
+        ]))
+        session.gloomPopped()
+        emit(.gloomPopped)
     }
 
     private func trackFlight(at now: TimeInterval) {
@@ -383,13 +405,7 @@ extension GameScene: SKPhysicsContactDelegate {
             let hits = GloomDamage.hits(forImpulse: impulse)
             guard hits > 0 else { continue }
             guard gloom.applyHits(hits) else { continue }   // bruised, still standing
-            gloom.physicsBody = nil
-            gloom.run(.sequence([
-                .group([.scale(to: 1.5, duration: 0.15), .fadeOut(withDuration: 0.15)]),
-                .removeFromParent(),
-            ]))
-            session.gloomPopped()
-            emit(.gloomPopped)
+            pop(gloom)
         }
     }
 

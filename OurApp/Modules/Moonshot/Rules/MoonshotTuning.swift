@@ -33,6 +33,10 @@ enum MoonshotTuning {
 
     // MARK: Scene (design canvas — every phone sees this world via aspectFit)
     static let sceneSize = CGSize(width: 840, height: 390)
+    /// The floor extends this far past both visible edges (device-pass
+    /// ruling 2026-07-31: no side walls — overshooting flings sail off-screen
+    /// instead of bouncing back; shoved debris comes to rest out of sight).
+    static let floorOverhang: CGFloat = 1000
     /// Scene-space y of the ground top; level y=0 maps here.
     static let groundY: CGFloat = 40
     static let slingshotX: CGFloat = 110
