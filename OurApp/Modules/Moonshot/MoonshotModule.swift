@@ -9,6 +9,7 @@ enum MoonshotModule {
             id: "moonshot",
             name: "Moonshot",
             emoji: "🌙",
+            orientation: .landscape,   // M13 — the whole module rotates, one coherent space
             makeEntryView: { AnyView(MoonshotHomeView()) }
         )
     }

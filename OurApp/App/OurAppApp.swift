@@ -3,6 +3,8 @@ import SwiftData
 
 @main
 struct OurAppApp: App {
+    /// Only for per-rotation orientation answers (OrientationGate, M13).
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     private let container: ModelContainer
     /// In-app language override (P9): SwiftUI Text re-renders live when the
     /// \.locale environment changes; .system falls through to Locale.current

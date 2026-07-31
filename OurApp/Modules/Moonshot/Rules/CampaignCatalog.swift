@@ -5,6 +5,10 @@ import Foundation
 struct CampaignCatalog {
     let levels: [MoonshotLevel]
 
+    /// The app-bundle campaign, decoded once per process — views use this;
+    /// tests exercise `load(from:)` directly.
+    static let bundled = CampaignCatalog.load()
+
     /// Fail soft (principle 7): an unreadable or undecodable level file is
     /// skipped, never fatal — a broken level can't brick the campaign.
     /// Synchronized folder groups flatten resources into the bundle root, so

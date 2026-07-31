@@ -121,6 +121,12 @@ struct LocalizationTests {
         #expect(localizedValue("1v1", language: "zh-Hant") == "對決")
         #expect(localizedValue("Relight our sky", language: "zh-Hans") == "点亮我们的星空")
         #expect(localizedValue("Level %lld", language: "zh-Hant") == "第 %lld 關")
+        #expect(localizedValue("Fling %lld", language: "zh-Hans") == "第 %lld 发")
+        #expect(localizedValue("Par %lld", language: "zh-Hant") == "標準 %lld 發")
+        #expect(localizedValue("Next level", language: "zh-Hans") == "下一关")
+        #expect(localizedValue("Replay", language: "zh-Hant") == "重玩")
+        #expect(localizedValue("Try again", language: "zh-Hans") == "再试一次")
+        #expect(localizedValue("%lld stars", language: "zh-Hant") == "%lld 顆星")
     }
 
     @Test func springboardStringsAreTranslated() {

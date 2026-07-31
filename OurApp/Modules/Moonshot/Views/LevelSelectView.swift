@@ -1,25 +1,28 @@
 import SwiftUI
 import SwiftData
 
-/// Level picker v0: a plain list with lock and star states. The engine PR
-/// wires row taps into the game scene; the campaign PR replaces this list
-/// with the relighting constellation (M1).
+/// Level picker v0: a plain list with lock and star states. The campaign PR
+/// replaces this list with the relighting constellation (M1). Results come
+/// through @Query so a win recorded in the pushed game view refreshes the
+/// list deterministically on pop-back.
 struct LevelSelectView: View {
-    @Environment(\.modelContext) private var modelContext
-    private let catalog = CampaignCatalog.load()
+    @Query private var results: [MoonshotLevelResult]
+    private let catalog = CampaignCatalog.bundled
+    private let partnerID = MoonshotProgressStore.devicePartnerID
 
     var body: some View {
         ZStack {
             DreamyBackground()
-            let store = MoonshotProgressStore(context: modelContext)
-            let snapshots = store.snapshots()
+            let snapshots = results.map(\.snapshot)
             List(catalog.levels.indices, id: \.self) { index in
                 let level = catalog.levels[index]
                 let unlocked = catalog.isUnlocked(index: index,
                                                   snapshots: snapshots,
-                                                  partnerID: store.partnerID)
-                let result = store.result(for: level.id)
-                HStack {
+                                                  partnerID: partnerID)
+                let result = results.first {
+                    $0.partnerID == partnerID && $0.levelID == level.id && $0.mode == .solo
+                }
+                let row = HStack {
                     Text("Level \(index + 1)")
                         .font(Theme.display(18))
                     Spacer()
@@ -28,6 +31,13 @@ struct LevelSelectView: View {
                     } else if !unlocked {
                         Image(systemName: "lock.fill")
                             .foregroundStyle(.secondary)
+                    }
+                }
+                Group {
+                    if unlocked {
+                        NavigationLink { MoonshotGameView(levelIndex: index) } label: { row }
+                    } else {
+                        row
                     }
                 }
                 .listRowBackground(Color.white.opacity(unlocked ? 0.25 : 0.12))

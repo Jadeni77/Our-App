@@ -1,9 +1,12 @@
 import Foundation
+import Observation
 
 /// The fling state machine — pure Rules, no SpriteKit. The Engine drives it
 /// (aim, fling, ability tap, flight end, settle) and reads phase back; win is
 /// only ever evaluated at settle, matching the spec's "all Glooms popped after
-/// physics settles".
+/// physics settles". @Observable so the HUD re-renders as phases change —
+/// Observation is Foundation-tier, so the no-UI-imports rule holds.
+@Observable
 final class LevelSession {
     enum Phase: Equatable {
         case ready, aiming, inFlight, settling

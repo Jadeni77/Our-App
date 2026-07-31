@@ -3,6 +3,21 @@ import SwiftUI
 /// Moonshot's front door: Campaign is live; Co-op and 1v1 show themselves
 /// locked (M14 — the roadmap teases itself, one card flips live per slice).
 struct MoonshotHomeView: View {
+    /// Headless screenshot path: `-moonshotLevel N` jumps straight into
+    /// level N (1-based). DEBUG-only, like the shell's launch args.
+    @State private var debugLevelIndex: Int?
+
+    init() {
+        #if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments
+        if let flag = arguments.firstIndex(of: "-moonshotLevel"),
+           arguments.indices.contains(flag + 1),
+           let number = Int(arguments[flag + 1]) {
+            _debugLevelIndex = State(initialValue: number - 1)
+        }
+        #endif
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -31,6 +46,9 @@ struct MoonshotHomeView: View {
                     Spacer()
                 }
                 .padding(.horizontal, 28)
+            }
+            .navigationDestination(item: $debugLevelIndex) { index in
+                MoonshotGameView(levelIndex: index)
             }
         }
     }
