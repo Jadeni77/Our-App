@@ -112,6 +112,17 @@ struct LocalizationTests {
         #expect(AppLanguage.currentBundle(defaults) == .main)
     }
 
+    @Test func moonshotShellStringsAreTranslated() {
+        #expect(localizedValue("Moonshot", language: "zh-Hans") == "奔月")
+        #expect(localizedValue("Moonshot", language: "zh-Hant") == "奔月")
+        #expect(localizedValue("Campaign", language: "zh-Hans") == "闯关")
+        #expect(localizedValue("Campaign", language: "zh-Hant") == "闖關")
+        #expect(localizedValue("Co-op", language: "zh-Hans") == "双人合作")
+        #expect(localizedValue("1v1", language: "zh-Hant") == "對決")
+        #expect(localizedValue("Relight our sky", language: "zh-Hans") == "点亮我们的星空")
+        #expect(localizedValue("Level %lld", language: "zh-Hant") == "第 %lld 關")
+    }
+
     @Test func springboardStringsAreTranslated() {
         #expect(localizedValue("Home", language: "zh-Hans") == "首页")
         #expect(localizedValue("Home", language: "zh-Hant") == "首頁")

@@ -10,6 +10,7 @@ struct AppShell: View {
     private static let modules: [ModuleDescriptor] = {
         var modules = [
             FoodDecisionModule.descriptor,
+            MoonshotModule.descriptor,
         ]
         #if DEBUG
         modules += SampleModules.descriptors
@@ -26,10 +27,15 @@ struct AppShell: View {
     @MainActor private static let artwork = ArtworkStore()
 
     @State private var selection: AppTab
+    /// Headless screenshot path (like -selectGames): mounts a module's host
+    /// directly, since simctl can't tap tiles. DEBUG-only via launchArguments.
+    @State private var debugModule: ModuleDescriptor?
 
     init() {
         _selection = State(initialValue:
             Self.launchArguments.contains("-selectGames") ? .games : .home)
+        _debugModule = State(initialValue:
+            Self.launchArguments.contains("-moonshot") ? MoonshotModule.descriptor : nil)
     }
 
     var body: some View {
@@ -44,6 +50,7 @@ struct AppShell: View {
         .tint(Theme.indigo)   // reads on the gradient's peach bottom, where the bar sits
         .environment(Self.store)
         .environment(Self.artwork)
+        .fullScreenCover(item: $debugModule) { ModuleHostView(module: $0) }
     }
 
     private static var launchArguments: [String] {
