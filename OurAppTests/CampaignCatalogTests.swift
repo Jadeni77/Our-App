@@ -6,6 +6,10 @@ struct CampaignCatalogTests {
     @Test func everyPresentWorldShipsExactlyTwelveLevels() {
         let catalog = CampaignCatalog.load()
         #expect(Set(catalog.levels.map(\.id)).count == catalog.levels.count)   // unique ids
+        guard catalog.worldCount >= 1 else {
+            Issue.record("the bundle shipped no campaign levels at all")
+            return
+        }
         for world in 1...catalog.worldCount {
             let levels = catalog.levels(inWorld: world)
             #expect(levels.count == 12, "world \(world) must ship exactly 12 levels")
@@ -36,6 +40,12 @@ struct CampaignCatalogTests {
         // where entry mathematically guarantees his 24★ unlock.
         for level in catalog.levels where level.worldNumber < 3 {
             #expect(!level.queue.contains(.nox))
+        }
+        // Misty appears in NO queue at all (M22): she's pure reward, and her
+        // ability ships as a stub until the storm PR — a queued Misty would
+        // ship a character whose tap does nothing.
+        for level in catalog.levels {
+            #expect(!level.queue.contains(.misty))
         }
     }
 

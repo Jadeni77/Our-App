@@ -75,7 +75,9 @@ enum MoonshotRewards {
         switch character {
         case .nox, .misty:
             grants(pool: pool).contains(.character(character))
-        default:
+        case .mochi, .zip, .twinkle:
+            // Exhaustive on purpose: a future earned character must make a
+            // conscious appearance here, not inherit "always unlocked".
             true
         }
     }
