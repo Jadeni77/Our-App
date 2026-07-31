@@ -97,6 +97,29 @@
         }
       }
     },
+    "%lld stars" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld stars"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 颗星"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 顆星"
+          }
+        }
+      }
+    },
     "Level %lld" : {
       "extractionState" : "manual",
       "localizations" : {

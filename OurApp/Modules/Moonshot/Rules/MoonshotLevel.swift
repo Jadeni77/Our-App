@@ -80,11 +80,11 @@ struct MoonshotLevel: Codable, Equatable, Identifiable {
         // for v1 (the editor snaps rotations; a rotated piece's footprint
         // never exceeds its diagonal, and the budget is the real fairness lever).
         for piece in pieces {
-            let half = piece.shape.size
-            if piece.x - Double(half.width) / 2 < buildZone.x
-                || piece.x + Double(half.width) / 2 > buildZone.x + buildZone.width
-                || piece.y - Double(half.height) / 2 < buildZone.y
-                || piece.y + Double(half.height) / 2 > buildZone.y + buildZone.height {
+            let size = piece.shape.size
+            if piece.x - Double(size.width) / 2 < buildZone.x
+                || piece.x + Double(size.width) / 2 > buildZone.x + buildZone.width
+                || piece.y - Double(size.height) / 2 < buildZone.y
+                || piece.y + Double(size.height) / 2 > buildZone.y + buildZone.height {
                 return .outsideZone
             }
         }

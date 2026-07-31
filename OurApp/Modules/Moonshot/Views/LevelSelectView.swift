@@ -46,10 +46,11 @@ struct LevelSelectView: View {
                     .foregroundStyle(i < stars ? Color.yellow : .secondary)
             }
         }
-        .accessibilityLabel(Text("\(stars)★"))
+        .accessibilityLabel(Text("\(stars) stars"))
     }
 }
 
 #Preview {
     NavigationStack { LevelSelectView() }
+        .modelContainer(try! Persistence.makeContainer(inMemory: true))
 }
