@@ -24,6 +24,8 @@ struct MoonshotHomeView: View {
         #endif
     }
 
+    @State private var musicEnabled = MoonshotAudio.shared.musicEnabled
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -38,6 +40,22 @@ struct MoonshotHomeView: View {
                             .foregroundStyle(.white.opacity(0.85))
                     }
                     .padding(.top, 24)
+                    .overlay(alignment: .trailing) {
+                        Button {
+                            Haptics.tap()
+                            musicEnabled.toggle()
+                            MoonshotAudio.shared.musicEnabled = musicEnabled
+                        } label: {
+                            Image(systemName: musicEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .frame(width: 38, height: 38)
+                        }
+                        .glassCard(cornerRadius: 19)
+                        .offset(x: 52)
+                        .accessibilityLabel(Text("Music"))
+                        .accessibilityValue(musicEnabled ? Text("On") : Text("Off"))
+                    }
 
                     NavigationLink {
                         LevelSelectView()

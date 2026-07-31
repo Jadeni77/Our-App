@@ -8,12 +8,19 @@ import SpriteKit
 /// result record exactly once per outcome.
 struct MoonshotGameView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var currentIndex: Int
     @State private var scene: GameScene?
     @State private var session: LevelSession?
     @State private var recordedOutcome = false
     @State private var newGrants: [RewardGrant] = []
+    /// Bumped per rebuild: SpriteView keeps presenting its ORIGINAL scene
+    /// when the scene parameter changes, so Replay/Next level showed the old
+    /// rubble driving a dead session (found on the owners' device pass —
+    /// headless verification could never press Replay). New identity forces
+    /// a fresh SKView that presents the new scene.
+    @State private var sceneGeneration = 0
     /// Pinned at level build — the pool can't change mid-level, and the HUD
     /// re-evaluates far too often to refetch every result row each time.
     @State private var noxUnlocked = false
@@ -28,6 +35,7 @@ struct MoonshotGameView: View {
         ZStack {
             if let scene {
                 SpriteView(scene: scene)
+                    .id(sceneGeneration)
                     .ignoresSafeArea()
             } else {
                 DreamyBackground()
@@ -37,6 +45,10 @@ struct MoonshotGameView: View {
         }
         .onAppear {
             if scene == nil { buildLevel(currentIndex) }
+            MoonshotAudio.shared.startAmbience()
+        }
+        .onDisappear {
+            MoonshotAudio.shared.stopAmbience()
         }
         .onChange(of: session?.phase) { _, phase in
             guard case .won(let stars) = phase, !recordedOutcome, let session else { return }
@@ -50,6 +62,19 @@ struct MoonshotGameView: View {
             let grantsAfter = MoonshotRewards.grants(pool: store.starPool)
             newGrants = grantsAfter.filter { !grantsBefore.contains($0) }
             Haptics.success()
+            #if DEBUG
+            // `-moonshotAutoReplay`: after a win, drive the exact rebuild
+            // path the Replay button uses, then fling again — the headless
+            // stand-in for pressing Replay (which simctl can't tap).
+            if ProcessInfo.processInfo.arguments.contains("-moonshotAutoReplay") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    buildLevel(currentIndex)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                        scene?.debugFling(pull: CGVector(dx: -63, dy: -63))
+                    }
+                }
+            }
+            #endif
         }
     }
 
@@ -58,6 +83,7 @@ struct MoonshotGameView: View {
         currentIndex = index
         recordedOutcome = false
         newGrants = []
+        sceneGeneration += 1
         noxUnlocked = MoonshotRewards.isUnlocked(
             .nox, pool: MoonshotProgressStore(context: modelContext).starPool)
         var level = catalog.levels[index]
@@ -77,6 +103,15 @@ struct MoonshotGameView: View {
                                  session: newSession,
                                  showsTrajectoryHint: index < MoonshotTuning.trajectoryHintLevels,
                                  trail: MoonshotProgressStore(context: modelContext).equippedTrail)
+        // Haptics live here, not in the Engine — the scene stays a physics
+        // world; the view decides what the hand feels.
+        newScene.onEvent = { event in
+            switch event {
+            case .flung, .gloomPopped: Haptics.tap()
+            case .pieceDestroyed: Haptics.thud()
+            case .impact, .levelWon, .levelFailed: break   // won/failed haptics ride onChange
+            }
+        }
         session = newSession
         scene = newScene
         #if DEBUG
@@ -104,7 +139,13 @@ struct MoonshotGameView: View {
                 if let session {
                     HStack(spacing: 10) {
                         queueDots(session)
-                        Text("Fling \(min(session.flingsUsed + 1, max(session.level.queue.count, 1)))")
+                        // "Current fling" = the airborne one mid-flight, the
+                        // next one when ready (review note from the engine PR).
+                        let current = switch session.phase {
+                        case .ready, .aiming: session.flingsUsed + 1
+                        default: max(session.flingsUsed, 1)
+                        }
+                        Text("Fling \(min(current, max(session.level.queue.count, 1)))")
                         Text("Par \(session.level.par)")
                             .foregroundStyle(.white.opacity(0.7))
                     }
@@ -202,6 +243,7 @@ struct MoonshotGameView: View {
         case .failed:
             outcomeCard {
                 Text("😵‍💫").font(.system(size: 40))
+                    .accessibilityLabel(Text("Level failed"))
                 Button { buildLevel(currentIndex) } label: { Text("Try again") }
                     .buttonStyle(MoonshotOverlayButton(prominent: true))
             }
@@ -216,7 +258,7 @@ struct MoonshotGameView: View {
         }
         .padding(28)
         .glassCard(cornerRadius: 28)
-        .transition(.scale.combined(with: .opacity))
+        .transition(reduceMotion ? .opacity : .scale.combined(with: .opacity))
     }
 
     private func grantLabel(_ grant: RewardGrant) -> Text {

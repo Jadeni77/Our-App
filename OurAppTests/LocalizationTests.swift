@@ -139,6 +139,15 @@ struct LocalizationTests {
         #expect(localizedValue("Aurora", language: "zh-Hans") == "极光")
         #expect(localizedValue("Play as %@", language: "zh-Hant") == "讓 %@ 上場")
         #expect(localizedValue("Level %lld, locked", language: "zh-Hans") == "第 %lld 关，未解锁")
+        #expect(localizedValue("Music", language: "zh-Hans") == "音乐")
+        #expect(localizedValue("Music", language: "zh-Hant") == "音樂")
+        #expect(localizedValue("On", language: "zh-Hans") == "开")
+        #expect(localizedValue("Off", language: "zh-Hant") == "關")
+        #expect(localizedValue("Level failed", language: "zh-Hans") == "挑战失败")
+        #expect(localizedValue("Not equipped", language: "zh-Hant") == "未裝備")
+        #expect(localizedValue("Equipped", language: "zh-Hans") == "已装备")
+        #expect(localizedValue("Every star either of us earns lights this up",
+                               language: "zh-Hans") == "我们俩赢得的每颗星都会点亮这里")
     }
 
     @Test func springboardStringsAreTranslated() {

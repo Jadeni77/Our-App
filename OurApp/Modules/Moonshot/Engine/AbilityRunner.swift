@@ -5,6 +5,7 @@ import SpriteKit
 @MainActor
 enum AbilityRunner {
     static func run(_ character: CharacterID, sprite: StarSpriteNode, in scene: GameScene) {
+        scene.run(SoundBank.abilityAction(for: character))
         switch character {
         case .mochi: slam(sprite, in: scene)
         case .zip: dash(sprite, in: scene)
