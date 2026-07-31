@@ -57,7 +57,7 @@ final class SlingshotNode: SKNode {
     /// Grabbing does NOT move the sprite (device-pass ruling 2026-07-31: a
     /// stray tap near the seat teleported the band taut and fired on lift).
     /// Only real drag movement pulls; a grab just shows the bands.
-    func beginPull(at scenePoint: CGPoint) {
+    func beginPull() {
         guard let sprite = loadedSprite else { return }
         drawBands(to: sprite.position)
     }

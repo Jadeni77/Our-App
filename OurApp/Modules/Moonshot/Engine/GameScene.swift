@@ -152,13 +152,16 @@ final class GameScene: SKScene {
     private weak var aimingTouch: UITouch?
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard let touch = touches.first else { return }
-        let point = touch.location(in: self)
         switch session.phase {
-        case .ready where distance(point, slingshot.seatPosition) <= MoonshotTuning.grabRadius:
+        case .ready:
+            // Set is unordered: with a palm and the thumb landing together,
+            // pick the touch that's actually grabbing, or the grab won't take.
+            guard let touch = touches.first(where: {
+                distance($0.location(in: self), slingshot.seatPosition) <= MoonshotTuning.grabRadius
+            }) else { return }
             aimingTouch = touch
             session.beginAim()
-            slingshot.beginPull(at: point)
+            slingshot.beginPull()
             run(SoundBank.stretch)
         case .inFlight:
             tapAbilityNow()
@@ -234,10 +237,11 @@ final class GameScene: SKScene {
     /// path the touch handlers use, so screenshots can watch a real fling.
     func debugFling(pull: CGVector, holdFor: TimeInterval = 0.6) {
         guard slingshot != nil, worldArmed, session.phase == .ready else { return }
+        aimingTouch = nil   // this aim has no owning touch; handlers must match nothing
         session.beginAim()
         let target = CGPoint(x: slingshot.seatPosition.x + pull.dx,
                              y: slingshot.seatPosition.y + pull.dy)
-        slingshot.beginPull(at: target)
+        slingshot.beginPull()
         slingshot.movePull(to: target)
         run(.wait(forDuration: holdFor)) { [weak self] in
             self?.finishFling()
