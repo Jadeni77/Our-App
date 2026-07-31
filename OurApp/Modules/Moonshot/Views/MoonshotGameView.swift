@@ -24,7 +24,17 @@ struct MoonshotGameView: View {
             let levels = CampaignCatalog.load().levels
             guard levels.indices.contains(levelIndex) else { return }
             let level = levels[levelIndex]
-            scene = GameScene(level: level, session: LevelSession(level: level))
+            let newScene = GameScene(level: level,
+                                     session: LevelSession(level: level),
+                                     showsTrajectoryHint: levelIndex < MoonshotTuning.trajectoryHintLevels)
+            scene = newScene
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("-moonshotAutoFling") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                    newScene.debugFling(pull: CGVector(dx: -63, dy: -63))
+                }
+            }
+            #endif
         }
     }
 }

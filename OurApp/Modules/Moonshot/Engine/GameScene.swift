@@ -16,14 +16,19 @@ enum GameEvent: Equatable {
 /// camera (M16) — levels are authored to fit the 840×390 design canvas.
 final class GameScene: SKScene {
     private let level: MoonshotLevel
+    private let showsTrajectoryHint: Bool
     private(set) var session: LevelSession
     var onEvent: ((GameEvent) -> Void)?
 
     private var worldNode = SKNode()
+    private var slingshot: SlingshotNode!
+    /// All launched, still-live sprites (Split will add siblings in PR 3).
+    private(set) var activeSprites: [StarSpriteNode] = []
 
-    init(level: MoonshotLevel, session: LevelSession) {
+    init(level: MoonshotLevel, session: LevelSession, showsTrajectoryHint: Bool = false) {
         self.level = level
         self.session = session
+        self.showsTrajectoryHint = showsTrajectoryHint
         super.init(size: MoonshotTuning.sceneSize)
         scaleMode = .aspectFit
     }
@@ -89,7 +94,10 @@ final class GameScene: SKScene {
             worldNode.addChild(SpriteFactory.makeGloom(at: levelPoint(gloom.x, gloom.y)))
         }
 
-        addChild(makeSlingshotPost())
+        slingshot = SlingshotNode(showsTrajectoryHint: showsTrajectoryHint)
+        slingshot.position = CGPoint(x: MoonshotTuning.slingshotX, y: MoonshotTuning.groundY)
+        addChild(slingshot)
+        activeSprites.removeAll()
         seatNextSprite()
 
         // Freeze the fort for the settle pause so authored stacks can relax
@@ -101,46 +109,82 @@ final class GameScene: SKScene {
         }
     }
 
-    /// A simple forked post — the band and pull mechanics arrive with the
-    /// slingshot task; the post gives the world its landmark now.
-    private func makeSlingshotPost() -> SKNode {
-        let post = SKNode()
-        post.position = CGPoint(x: MoonshotTuning.slingshotX, y: MoonshotTuning.groundY)
-
-        let trunk = SKShapeNode(rectOf: CGSize(width: 8, height: MoonshotTuning.slingshotHeight - 18), cornerRadius: 3)
-        trunk.fillColor = UIColor(red: 0.45, green: 0.32, blue: 0.24, alpha: 1)
-        trunk.strokeColor = .clear
-        trunk.position = CGPoint(x: 0, y: (MoonshotTuning.slingshotHeight - 18) / 2)
-        post.addChild(trunk)
-
-        for side in [-1.0, 1.0] {
-            let arm = SKShapeNode(rectOf: CGSize(width: 6, height: 26), cornerRadius: 3)
-            arm.fillColor = trunk.fillColor
-            arm.strokeColor = .clear
-            arm.zRotation = side * 0.35
-            arm.position = CGPoint(x: side * 7, y: MoonshotTuning.slingshotHeight - 22)
-            post.addChild(arm)
-        }
-        post.zPosition = 5
-        post.name = "slingshot-post"
-        return post
-    }
-
     private(set) var seatedSprite: StarSpriteNode?
-
-    var seatPosition: CGPoint {
-        CGPoint(x: MoonshotTuning.slingshotX,
-                y: MoonshotTuning.groundY + MoonshotTuning.slingshotHeight)
-    }
 
     private func seatNextSprite() {
         seatedSprite?.removeFromParent()
         seatedSprite = nil
         guard let character = session.currentCharacter else { return }
         let sprite = SpriteFactory.makeStar(character)
-        sprite.position = seatPosition
         sprite.zPosition = 10
         addChild(sprite)
+        slingshot.loadSprite(sprite)
         seatedSprite = sprite
+    }
+
+    // MARK: Input
+
+    private func distance(_ a: CGPoint, _ b: CGPoint) -> CGFloat {
+        ((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y)).squareRoot()
+    }
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let point = touches.first?.location(in: self) else { return }
+        switch session.phase {
+        case .ready where distance(point, slingshot.seatPosition) <= MoonshotTuning.grabRadius:
+            session.beginAim()
+            slingshot.beginPull(at: point)
+        case .inFlight:
+            break   // ability tap — arrives with the characters PR
+        default:
+            break
+        }
+    }
+
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard session.phase == .aiming, let point = touches.first?.location(in: self) else { return }
+        slingshot.movePull(to: point)
+    }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard session.phase == .aiming else { return }
+        finishFling()
+    }
+
+    private func finishFling() {
+        guard let velocity = slingshot.endPull(), let sprite = seatedSprite else {
+            session.cancelAim()
+            return
+        }
+        sprite.activatePhysics()
+        sprite.physicsBody?.velocity = velocity
+        sprite.launched = true
+        activeSprites.append(sprite)
+        seatedSprite = nil
+        session.fling()
+        onEvent?(.flung)
+    }
+
+    #if DEBUG
+    /// Headless verification: drives the exact aim → pull → hold → release
+    /// path the touch handlers use, so screenshots can watch a real fling.
+    func debugFling(pull: CGVector, holdFor: TimeInterval = 0.6) {
+        guard session.phase == .ready else { return }
+        session.beginAim()
+        let target = CGPoint(x: slingshot.seatPosition.x + pull.dx,
+                             y: slingshot.seatPosition.y + pull.dy)
+        slingshot.beginPull(at: target)
+        slingshot.movePull(to: target)
+        run(.wait(forDuration: holdFor)) { [weak self] in
+            self?.finishFling()
+        }
+    }
+    #endif
+
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard session.phase == .aiming else { return }
+        _ = slingshot.endPull()
+        seatedSprite.map { slingshot.loadSprite($0) }
+        session.cancelAim()
     }
 }

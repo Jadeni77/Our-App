@@ -28,4 +28,17 @@ enum MoonshotTuning {
     /// Authored positions may drop a point or two — let the world settle
     /// before input unlocks so the fort never wobbles under the first aim.
     static let settlePauseAfterBuild: TimeInterval = 0.5
+
+    // MARK: Slingshot
+    static let maxPullDistance: CGFloat = 90
+    /// Releases shorter than this reseat instead of flinging (accidental taps).
+    static let minPullDistance: CGFloat = 14
+    /// Launch speed per point of pull — velocity, not impulse, so the feel
+    /// is mass-independent across characters.
+    static let launchVelocityPerPoint: CGFloat = 8.5
+    /// How far from the seat a touch may start and still grab the sprite.
+    static let grabRadius: CGFloat = 60
+    /// Levels 1..N show the dotted trajectory hint while aiming.
+    static let trajectoryHintLevels = 3
+    static let trajectoryDots = 8
 }
