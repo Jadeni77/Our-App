@@ -7,6 +7,12 @@ enum PhysicsCategory {
     static let piece: UInt32 = 1 << 1
     static let gloom: UInt32 = 1 << 2
     static let ground: UInt32 = 1 << 3
+    /// A phasing Misty (M22). SpriteKit collision masks are per-body and
+    /// ONE-WAY — clearing piece from HER mask alone would leave the piece
+    /// side still resolving the collision, turning the mist into a
+    /// zero-damage battering ram (review finding). Pieces exclude this
+    /// category explicitly, making the pass-through two-sided.
+    static let mist: UInt32 = 1 << 4
 }
 
 /// Field categories (M21): wind moves ONLY flying sprites — pieces and
@@ -42,6 +48,7 @@ final class PieceNode: SKSpriteNode {
         body.isDynamic = piece.material != .frame
         body.fieldBitMask = FieldCategory.well
         body.categoryBitMask = PhysicsCategory.piece
+        body.collisionBitMask = ~PhysicsCategory.mist   // the mist passes; flesh collides
         body.contactTestBitMask = PhysicsCategory.sprite | PhysicsCategory.piece | PhysicsCategory.ground
         physicsBody = body
     }
@@ -174,9 +181,14 @@ final class StarSpriteNode: SKShapeNode {
     /// (Nox's well freezes him mid-air) — spent detection skips it.
     var holdsFlight = false
     /// Misty mid-phase (M22): intangible to pieces, translucent, and
-    /// remembering the one piece she's currently inside.
+    /// remembering every piece she's currently inside. Weak entries: a
+    /// piece destroyed beneath her vanishes from the set on its own, so
+    /// the drain check in trackFlight re-forms her even without a didEnd.
     var phasing = false
-    weak var phasingThrough: PieceNode?
+    let phasingThrough = NSHashTable<PieceNode>.weakObjects()
+    /// Set on her first piece contact — the drain check must not re-form
+    /// a mist that simply hasn't reached the wall yet.
+    var phaseEnteredPiece = false
     /// Flight bookkeeping for spent detection (scene time).
     var launchedAt: TimeInterval?
     var slowSince: TimeInterval?
@@ -211,13 +223,16 @@ final class StarSpriteNode: SKShapeNode {
         physicsBody = body
     }
 
-    /// Flesh and starlight again: restore piece collisions and full opacity.
-    /// Idempotent — GameScene.didEnd and the phase timeout can race.
+    /// Flesh and starlight again: restore her category, piece collisions,
+    /// and full opacity. Idempotent — the drain check and the phase
+    /// timeout can race.
     func resolidify() {
         guard phasing else { return }
         phasing = false
-        phasingThrough = nil
+        phaseEnteredPiece = false
+        phasingThrough.removeAllObjects()
         alpha = 1
+        physicsBody?.categoryBitMask = PhysicsCategory.sprite
         physicsBody?.collisionBitMask |= PhysicsCategory.piece
     }
 
@@ -390,9 +405,12 @@ enum SpriteFactory {
     static func makeWindStreaks(size: CGSize, forceX: Double, forceY: Double) -> SKEmitterNode {
         let emitter = SKEmitterNode()
         let magnitude = max((forceX * forceX + forceY * forceY).squareRoot(), 0.1)
+        // Zone extent along the force direction, so an updraft's streaks
+        // live long enough to cross its HEIGHT; capped for near-zero winds.
+        let extent = (abs(forceX) * size.width + abs(forceY) * size.height) / magnitude
         emitter.particleTexture = particleDot
         emitter.particleBirthRate = 26
-        emitter.particleLifetime = CGFloat(Double(size.width) / (magnitude * 40))
+        emitter.particleLifetime = CGFloat(min(extent / (magnitude * 40), 6))
         emitter.particleSpeed = CGFloat(magnitude * 40)
         emitter.emissionAngle = CGFloat(atan2(forceY, forceX))
         emitter.particleAlpha = 0.28

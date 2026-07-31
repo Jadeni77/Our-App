@@ -22,12 +22,17 @@ enum AbilityRunner {
         guard let body = sprite.physicsBody else { return }
         sprite.phasing = true
         sprite.alpha = 0.45
-        // Collision off, contact tests still on — didBegin keeps firing so
-        // the scene can remember which piece she's inside.
+        // Two-sided intangibility: she stops answering to pieces AND her
+        // category becomes mist, which pieces' collision masks exclude —
+        // contact tests still fire so the scene can track the pass.
         body.collisionBitMask &= ~PhysicsCategory.piece
+        body.categoryBitMask = PhysicsCategory.mist
         flashRing(at: sprite.position, in: scene, color: CharacterID.misty.bodyUIColor)
         scene.run(.wait(forDuration: MoonshotTuning.phaseTimeout)) { [weak sprite, weak scene] in
-            guard let sprite, sprite.phasing, sprite.phasingThrough == nil else { return }
+            // Covers only a mist that never reached a wall; once she enters
+            // a piece, the drain check in trackFlight owns her re-forming.
+            guard let sprite, sprite.phasing, !sprite.phaseEnteredPiece,
+                  sprite.parent != nil else { return }
             sprite.resolidify()
             if let scene {
                 flashRing(at: sprite.position, in: scene, color: CharacterID.misty.bodyUIColor)

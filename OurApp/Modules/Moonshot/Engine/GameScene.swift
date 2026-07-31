@@ -346,6 +346,15 @@ final class GameScene: SKScene {
 
     private func trackFlight(at now: TimeInterval) {
         for sprite in activeSprites {
+            // A drained phase — she left every piece (didEnd) or the piece
+            // died beneath her (weak entries vanish without a didEnd) —
+            // re-forms her here, so no path leaves a permanent ghost.
+            if sprite.phasing, sprite.phaseEnteredPiece,
+               sprite.phasingThrough.allObjects.isEmpty {
+                sprite.resolidify()
+                AbilityRunner.flashRing(at: sprite.position, in: self,
+                                        color: CharacterID.misty.bodyUIColor)
+            }
             if sprite.holdsFlight { continue }   // Nox's well: motionless but not spent
             if sprite.launchedAt == nil { sprite.launchedAt = now }
             let speed = sprite.physicsBody.map {
@@ -429,12 +438,13 @@ extension GameScene: SKPhysicsContactDelegate {
         }
 
         // Misty mid-phase (M22): a piece contact deals no damage, must not
-        // land-damp her (she's passing through, not landing), and is the
-        // piece didEnd waits on to re-solidify her. Ground and gloom
-        // contacts stay normal.
+        // land-damp her (she's passing through, not landing), and joins the
+        // overlap set the drain check in trackFlight waits on. Ground and
+        // gloom contacts stay normal.
         for case let sprite as StarSpriteNode in nodes.compactMap({ $0 }) where sprite.phasing {
             if let piece = nodes.compactMap({ $0 as? PieceNode }).first {
-                sprite.phasingThrough = piece
+                sprite.phasingThrough.add(piece)
+                sprite.phaseEnteredPiece = true
                 return
             }
         }
@@ -478,17 +488,15 @@ extension GameScene: SKPhysicsContactDelegate {
         }
     }
 
-    /// The mist leaves her piece: flesh and starlight again, with a soft
-    /// re-form flash. Only the remembered piece ends the phase — grazing a
-    /// second surface mid-pass must not re-solidify her inside the first.
+    /// The mist leaves a piece: drop it from her overlap set. Re-forming
+    /// waits for the set to DRAIN (trackFlight) — grazing a second surface
+    /// mid-pass must not re-solidify her inside the first.
     func didEnd(_ contact: SKPhysicsContact) {
         let nodes = [contact.bodyA.node, contact.bodyB.node]
         for case let sprite as StarSpriteNode in nodes.compactMap({ $0 }) where sprite.phasing {
-            guard let through = sprite.phasingThrough,
-                  nodes.contains(where: { $0 === through }) else { continue }
-            sprite.resolidify()
-            AbilityRunner.flashRing(at: sprite.position, in: self,
-                                    color: CharacterID.misty.bodyUIColor)
+            for case let piece as PieceNode in nodes.compactMap({ $0 }) {
+                sprite.phasingThrough.remove(piece)
+            }
         }
     }
 
