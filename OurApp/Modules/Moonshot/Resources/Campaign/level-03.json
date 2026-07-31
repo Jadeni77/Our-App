@@ -1,0 +1,62 @@
+{
+  "buildZone": {
+    "height": 340,
+    "width": 320,
+    "x": 500,
+    "y": 0
+  },
+  "createdAt": "2026-07-31T00:00:00Z",
+  "glooms": [
+    {
+      "x": 640,
+      "y": 16
+    }
+  ],
+  "id": "AA000000-0000-4000-8000-000000000003",
+  "kind": "campaign",
+  "par": 1,
+  "pieces": [
+    {
+      "material": "meteorstone",
+      "rotation": 0,
+      "shape": "column",
+      "x": 600,
+      "y": 45
+    },
+    {
+      "material": "meteorstone",
+      "rotation": 0,
+      "shape": "column",
+      "x": 680,
+      "y": 45
+    },
+    {
+      "material": "meteorstone",
+      "rotation": 0,
+      "shape": "square",
+      "x": 595,
+      "y": 113
+    },
+    {
+      "material": "meteorstone",
+      "rotation": 0,
+      "shape": "square",
+      "x": 685,
+      "y": 113
+    },
+    {
+      "material": "crystal",
+      "rotation": 0,
+      "shape": "plank",
+      "x": 640,
+      "y": 148
+    }
+  ],
+  "queue": [
+    "mochi",
+    "mochi",
+    "mochi"
+  ],
+  "schemaVersion": 1,
+  "updatedAt": "2026-07-31T00:00:00Z"
+}

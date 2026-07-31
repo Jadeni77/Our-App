@@ -3,9 +3,13 @@ import SwiftUI
 /// Moonshot's front door: Campaign is live; Co-op and 1v1 show themselves
 /// locked (M14 — the roadmap teases itself, one card flips live per slice).
 struct MoonshotHomeView: View {
-    /// Headless screenshot path: `-moonshotLevel N` jumps straight into
-    /// level N (1-based). DEBUG-only, like the shell's launch args.
+    @Environment(\.modelContext) private var modelContext
+    /// Headless screenshot paths: `-moonshotLevel N` jumps into level N
+    /// (1-based); `-moonshotConstellation` / `-moonshotRewards` open those
+    /// screens. DEBUG-only, like the shell's launch args.
     @State private var debugLevelIndex: Int?
+    @State private var debugShowConstellation = false
+    @State private var debugShowRewards = false
 
     init() {
         #if DEBUG
@@ -15,6 +19,8 @@ struct MoonshotHomeView: View {
            let number = Int(arguments[flag + 1]) {
             _debugLevelIndex = State(initialValue: number - 1)
         }
+        _debugShowConstellation = State(initialValue: arguments.contains("-moonshotConstellation"))
+        _debugShowRewards = State(initialValue: arguments.contains("-moonshotRewards"))
         #endif
     }
 
@@ -50,7 +56,32 @@ struct MoonshotHomeView: View {
             .navigationDestination(item: $debugLevelIndex) { index in
                 MoonshotGameView(levelIndex: index)
             }
+            .navigationDestination(isPresented: $debugShowConstellation) { LevelSelectView() }
+            .navigationDestination(isPresented: $debugShowRewards) { RewardTrackView() }
+            .onAppear(perform: seedStarsIfAsked)
         }
+    }
+
+    /// `-moonshotSeedStars N` writes 3★ solo clears for ⌈N/3⌉ levels so
+    /// screenshots can exercise reward-track states headlessly. Idempotent
+    /// (recordSolo max-merges); DEBUG-only.
+    private func seedStarsIfAsked() {
+        #if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments
+        let store = MoonshotProgressStore(context: modelContext)
+        if let flag = arguments.firstIndex(of: "-moonshotSeedStars"),
+           arguments.indices.contains(flag + 1),
+           let target = Int(arguments[flag + 1]) {
+            for level in CampaignCatalog.bundled.levels.prefix((target + 2) / 3) {
+                store.recordSolo(levelID: level.id, cleared: true, stars: 3, flings: 1)
+            }
+        }
+        if let flag = arguments.firstIndex(of: "-moonshotEquipTrail"),
+           arguments.indices.contains(flag + 1),
+           let trail = TrailID(rawValue: arguments[flag + 1]) {
+            store.equipTrail(trail)
+        }
+        #endif
     }
 
     private func modeCard(emoji: String, title: LocalizedStringKey, locked: Bool) -> some View {

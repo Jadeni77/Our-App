@@ -33,6 +33,18 @@ final class LevelSession {
         gloomsRemaining = level.glooms.count
     }
 
+    /// One free-choice swap per level (M-design: Nox is a choice, never a
+    /// requirement). The session enforces phase + once-only; whether the
+    /// character is unlocked is the caller's job — Rules doesn't know pools.
+    private(set) var usedCharacterSwap = false
+
+    func swapCurrentCharacter(to character: CharacterID) {
+        guard phase == .ready, !usedCharacterSwap,
+              !remainingQueue.isEmpty, remainingQueue[0] != character else { return }
+        usedCharacterSwap = true
+        remainingQueue[0] = character
+    }
+
     func beginAim() {
         guard phase == .ready, currentCharacter != nil else { return }
         phase = .aiming

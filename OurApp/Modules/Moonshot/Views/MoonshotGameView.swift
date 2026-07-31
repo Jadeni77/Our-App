@@ -13,6 +13,10 @@ struct MoonshotGameView: View {
     @State private var scene: GameScene?
     @State private var session: LevelSession?
     @State private var recordedOutcome = false
+    @State private var newGrants: [RewardGrant] = []
+    /// Pinned at level build — the pool can't change mid-level, and the HUD
+    /// re-evaluates far too often to refetch every result row each time.
+    @State private var noxUnlocked = false
 
     private let catalog = CampaignCatalog.bundled
 
@@ -37,11 +41,14 @@ struct MoonshotGameView: View {
         .onChange(of: session?.phase) { _, phase in
             guard case .won(let stars) = phase, !recordedOutcome, let session else { return }
             recordedOutcome = true
-            MoonshotProgressStore(context: modelContext)
-                .recordSolo(levelID: session.level.id,
-                            cleared: true,
-                            stars: stars,
-                            flings: session.flingsUsed)
+            let store = MoonshotProgressStore(context: modelContext)
+            let grantsBefore = MoonshotRewards.grants(pool: store.starPool)
+            store.recordSolo(levelID: session.level.id,
+                             cleared: true,
+                             stars: stars,
+                             flings: session.flingsUsed)
+            let grantsAfter = MoonshotRewards.grants(pool: store.starPool)
+            newGrants = grantsAfter.filter { !grantsBefore.contains($0) }
             Haptics.success()
         }
     }
@@ -50,6 +57,9 @@ struct MoonshotGameView: View {
         guard catalog.levels.indices.contains(index) else { return }
         currentIndex = index
         recordedOutcome = false
+        newGrants = []
+        noxUnlocked = MoonshotRewards.isUnlocked(
+            .nox, pool: MoonshotProgressStore(context: modelContext).starPool)
         var level = catalog.levels[index]
         #if DEBUG
         // `-moonshotQueue zip,twinkle,nox` swaps the loaded level's lineup —
@@ -65,7 +75,8 @@ struct MoonshotGameView: View {
         let newSession = LevelSession(level: level)
         let newScene = GameScene(level: level,
                                  session: newSession,
-                                 showsTrajectoryHint: index < MoonshotTuning.trajectoryHintLevels)
+                                 showsTrajectoryHint: index < MoonshotTuning.trajectoryHintLevels,
+                                 trail: MoonshotProgressStore(context: modelContext).equippedTrail)
         session = newSession
         scene = newScene
         #if DEBUG
@@ -114,6 +125,29 @@ struct MoonshotGameView: View {
                     }
                     .glassCard(cornerRadius: 18)
                     .accessibilityLabel(Text("Replay"))
+
+                    // Nox is a choice, never a requirement: once the couple
+                    // pool unlocks him, any ready fling can be swapped once.
+                    if noxUnlocked,
+                       session.phase == .ready,
+                       session.currentCharacter != .nox,
+                       !session.usedCharacterSwap {
+                        Button {
+                            Haptics.tap()
+                            scene?.swapSeatedCharacter(to: .nox)
+                        } label: {
+                            HStack(spacing: 5) {
+                                Circle().fill(CharacterID.nox.chipColor)
+                                    .frame(width: 10, height: 10)
+                                Text("Play as \(String(localized: "Nox"))")
+                            }
+                            .font(Theme.display(13))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                        }
+                        .glassCard(cornerRadius: 18)
+                    }
                 }
                 Spacer()
             }
@@ -144,6 +178,18 @@ struct MoonshotGameView: View {
         case .won(let stars):
             outcomeCard {
                 starRow(stars)
+                if !newGrants.isEmpty {
+                    VStack(spacing: 4) {
+                        Text("New unlock!")
+                            .font(Theme.display(15))
+                            .foregroundStyle(Theme.glow)
+                        ForEach(Array(newGrants.enumerated()), id: \.offset) { _, grant in
+                            grantLabel(grant)
+                                .font(Theme.display(20))
+                                .foregroundStyle(.white)
+                        }
+                    }
+                }
                 HStack(spacing: 14) {
                     Button { buildLevel(currentIndex) } label: { Text("Replay") }
                         .buttonStyle(MoonshotOverlayButton(prominent: false))
@@ -171,6 +217,15 @@ struct MoonshotGameView: View {
         .padding(28)
         .glassCard(cornerRadius: 28)
         .transition(.scale.combined(with: .opacity))
+    }
+
+    private func grantLabel(_ grant: RewardGrant) -> Text {
+        switch grant {
+        case .trail(.stardust): Text("Stardust")
+        case .trail(.petals): Text("Petals")
+        case .trail(.aurora): Text("Aurora")
+        case .character: Text("Nox")
+        }
     }
 
     private func starRow(_ stars: Int) -> some View {

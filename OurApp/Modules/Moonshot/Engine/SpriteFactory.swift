@@ -94,6 +94,9 @@ final class GloomNode: SKShapeNode {
         body.density = MoonshotTuning.gloomDensity
         body.friction = MoonshotTuning.gloomFriction
         body.restitution = MoonshotTuning.pieceRestitution
+        // Glooms perch, they don't roll — a ball on a 22pt column top would
+        // roll off during the settle and un-author every pillar level.
+        body.allowsRotation = false
         body.categoryBitMask = PhysicsCategory.gloom
         body.contactTestBitMask = PhysicsCategory.sprite | PhysicsCategory.piece | PhysicsCategory.ground
         physicsBody = body
@@ -265,6 +268,49 @@ enum SpriteFactory {
         let texture = SKTexture(image: image)
         pieceTextureCache[key] = texture
         return texture
+    }
+
+    private static var particleDot: SKTexture = {
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 8, height: 8)).image { _ in
+            UIColor.white.setFill()
+            UIBezierPath(ovalIn: CGRect(x: 0, y: 0, width: 8, height: 8)).fill()
+        }
+        return SKTexture(image: image)
+    }()
+
+    /// The equipped flight trail (M6 reward cosmetics), programmatic —
+    /// `targetNode` should be the scene so particles linger behind the arc.
+    static func makeTrail(_ trail: TrailID) -> SKEmitterNode {
+        let emitter = SKEmitterNode()
+        emitter.particleTexture = particleDot
+        emitter.particleBirthRate = 42
+        emitter.particleLifetime = 0.7
+        emitter.particleAlpha = 0.85
+        emitter.particleAlphaSpeed = -1.2
+        emitter.particleScale = 0.5
+        emitter.particleScaleSpeed = -0.5
+        emitter.particleColorBlendFactor = 1
+        emitter.zPosition = 8
+        switch trail {
+        case .stardust:
+            emitter.particleColor = UIColor(Theme.glow)
+            emitter.particleSpeed = 8
+        case .petals:
+            emitter.particleColor = UIColor(Theme.rose)
+            emitter.particleScale = 0.65
+            emitter.particleRotationSpeed = 3
+            emitter.particleSpeed = 20
+            emitter.emissionAngleRange = .pi * 2
+        case .aurora:
+            emitter.particleColor = UIColor(red: 0.4, green: 0.85, blue: 0.75, alpha: 1)
+            emitter.particleColorSequence = SKKeyframeSequence(
+                keyframeValues: [UIColor(red: 0.4, green: 0.85, blue: 0.75, alpha: 1),
+                                 UIColor(Theme.violet)],
+                times: [0, 1])
+            emitter.particleBirthRate = 70
+            emitter.particleLifetime = 0.9
+        }
+        return emitter
     }
 
     /// Six physicsless shards scattering and fading — destruction feedback
