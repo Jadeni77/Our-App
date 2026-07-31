@@ -100,6 +100,9 @@ enum MoonshotTuning {
     static let wellDuration: TimeInterval = 1.0
     static let wellStrength: Float = 7
     static let wellRadius: Float = 220
+    /// Phase: a mist that never enters a piece re-solidifies after this —
+    /// a ghost drifting forever would break spent detection's promises.
+    static let phaseTimeout: TimeInterval = 1.5
 
     // MARK: Impulse calibration
     /// SpriteKit's collisionImpulse is kg·m/s (150 pt = 1 m), so real hits

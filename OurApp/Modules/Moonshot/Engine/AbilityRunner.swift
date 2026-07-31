@@ -11,9 +11,27 @@ enum AbilityRunner {
         case .zip: dash(sprite, in: scene)
         case .twinkle: split(sprite, in: scene)
         case .nox: gravityWell(sprite, in: scene)
-        case .misty:
-            // Phase lands in the storm PR; until then the tap just shimmers.
-            flashRing(at: sprite.position, in: scene, color: CharacterID.misty.bodyUIColor)
+        case .misty: phase(sprite, in: scene)
+        }
+    }
+
+    /// Phase: Misty turns to mist — through one piece, then flesh and
+    /// starlight again. GameScene.didEnd re-solidifies her as she leaves the
+    /// piece; the timeout covers a phase that never touches anything.
+    private static func phase(_ sprite: StarSpriteNode, in scene: GameScene) {
+        guard let body = sprite.physicsBody else { return }
+        sprite.phasing = true
+        sprite.alpha = 0.45
+        // Collision off, contact tests still on — didBegin keeps firing so
+        // the scene can remember which piece she's inside.
+        body.collisionBitMask &= ~PhysicsCategory.piece
+        flashRing(at: sprite.position, in: scene, color: CharacterID.misty.bodyUIColor)
+        scene.run(.wait(forDuration: MoonshotTuning.phaseTimeout)) { [weak sprite, weak scene] in
+            guard let sprite, sprite.phasing, sprite.phasingThrough == nil else { return }
+            sprite.resolidify()
+            if let scene {
+                flashRing(at: sprite.position, in: scene, color: CharacterID.misty.bodyUIColor)
+            }
         }
     }
 
@@ -126,7 +144,7 @@ enum AbilityRunner {
         }
     }
 
-    private static func flashRing(at point: CGPoint, in scene: SKScene, color: UIColor) {
+    static func flashRing(at point: CGPoint, in scene: SKScene, color: UIColor) {
         let ring = SKShapeNode(circleOfRadius: 10)
         ring.strokeColor = color.withAlphaComponent(0.85)
         ring.fillColor = .clear

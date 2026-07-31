@@ -428,6 +428,17 @@ extension GameScene: SKPhysicsContactDelegate {
             return
         }
 
+        // Misty mid-phase (M22): a piece contact deals no damage, must not
+        // land-damp her (she's passing through, not landing), and is the
+        // piece didEnd waits on to re-solidify her. Ground and gloom
+        // contacts stay normal.
+        for case let sprite as StarSpriteNode in nodes.compactMap({ $0 }) where sprite.phasing {
+            if let piece = nodes.compactMap({ $0 as? PieceNode }).first {
+                sprite.phasingThrough = piece
+                return
+            }
+        }
+
         // Contact ends the trajectory-hint promise: restore damping so the
         // sprite settles instead of skating (device-pass fix). Runs on every
         // contact, idempotently — which also re-damps after an ability
@@ -464,6 +475,20 @@ extension GameScene: SKPhysicsContactDelegate {
             guard hits > 0 else { continue }
             guard gloom.applyHits(hits) else { continue }   // bruised, still standing
             pop(gloom)
+        }
+    }
+
+    /// The mist leaves her piece: flesh and starlight again, with a soft
+    /// re-form flash. Only the remembered piece ends the phase — grazing a
+    /// second surface mid-pass must not re-solidify her inside the first.
+    func didEnd(_ contact: SKPhysicsContact) {
+        let nodes = [contact.bodyA.node, contact.bodyB.node]
+        for case let sprite as StarSpriteNode in nodes.compactMap({ $0 }) where sprite.phasing {
+            guard let through = sprite.phasingThrough,
+                  nodes.contains(where: { $0 === through }) else { continue }
+            sprite.resolidify()
+            AbilityRunner.flashRing(at: sprite.position, in: self,
+                                    color: CharacterID.misty.bodyUIColor)
         }
     }
 

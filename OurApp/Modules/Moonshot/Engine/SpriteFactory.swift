@@ -173,6 +173,10 @@ final class StarSpriteNode: SKShapeNode {
     /// True while an ability keeps this sprite "flying" though motionless
     /// (Nox's well freezes him mid-air) — spent detection skips it.
     var holdsFlight = false
+    /// Misty mid-phase (M22): intangible to pieces, translucent, and
+    /// remembering the one piece she's currently inside.
+    var phasing = false
+    weak var phasingThrough: PieceNode?
     /// Flight bookkeeping for spent detection (scene time).
     var launchedAt: TimeInterval?
     var slowSince: TimeInterval?
@@ -205,6 +209,16 @@ final class StarSpriteNode: SKShapeNode {
         body.categoryBitMask = PhysicsCategory.sprite
         body.contactTestBitMask = PhysicsCategory.piece | PhysicsCategory.gloom | PhysicsCategory.ground
         physicsBody = body
+    }
+
+    /// Flesh and starlight again: restore piece collisions and full opacity.
+    /// Idempotent — GameScene.didEnd and the phase timeout can race.
+    func resolidify() {
+        guard phasing else { return }
+        phasing = false
+        phasingThrough = nil
+        alpha = 1
+        physicsBody?.collisionBitMask |= PhysicsCategory.piece
     }
 
     // MARK: Code-drawn faces (M3 — no image assets, characters renameable)
