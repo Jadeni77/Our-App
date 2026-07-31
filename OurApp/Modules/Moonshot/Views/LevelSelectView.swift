@@ -9,17 +9,27 @@ import SwiftData
 /// pushed game view refreshes the map deterministically on pop-back.
 struct LevelSelectView: View {
     @Query private var results: [MoonshotLevelResult]
+    @Query private var cosmetics: [MoonshotCosmeticSetting]
     private let catalog = CampaignCatalog.bundled
     private let partnerID = MoonshotProgressStore.devicePartnerID
     @State private var world = 1
     @State private var pickedInitialWorld = false
 
+    private var dawnVeil: Bool {
+        cosmetics.first { $0.partnerID == partnerID }?.theme == .dawn
+    }
+
     var body: some View {
         ZStack {
             DreamyBackground()
+            if dawnVeil {
+                // The 78★ dawn veil (M6 track): a rose-gold wash over every
+                // world; nodes warm their glow to match.
+                Theme.rose.opacity(0.15).ignoresSafeArea()
+            }
             TabView(selection: $world) {
                 ForEach(1...max(catalog.worldCount, 1), id: \.self) { number in
-                    WorldConstellationView(world: number, results: results)
+                    WorldConstellationView(world: number, results: results, dawnVeil: dawnVeil)
                         .tag(number)
                 }
             }
@@ -125,7 +135,12 @@ private struct WorldStyle {
 private struct WorldConstellationView: View {
     let world: Int
     let results: [MoonshotLevelResult]
+    let dawnVeil: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var glow: Color {
+        dawnVeil ? Color(red: 1.0, green: 0.72, blue: 0.5) : Theme.glow
+    }
     private let catalog = CampaignCatalog.bundled
     private let partnerID = MoonshotProgressStore.devicePartnerID
 
@@ -204,7 +219,10 @@ private struct WorldConstellationView: View {
                              cleared: cleared,
                              stars: result?.bestStars ?? 0,
                              unlocked: unlocked,
-                             isNext: unlocked && !cleared)
+                             isNext: unlocked && !cleared,
+                             feats: [result?.featOneFling == true,
+                                     result?.featNoAbility == true,
+                                     result?.featCleanSweep == true])
                         .position(point)
                 }
             }
@@ -221,13 +239,14 @@ private struct WorldConstellationView: View {
     }
 
     @ViewBuilder
-    private func starNode(index: Int, cleared: Bool, stars: Int, unlocked: Bool, isNext: Bool) -> some View {
+    private func starNode(index: Int, cleared: Bool, stars: Int, unlocked: Bool, isNext: Bool,
+                          feats: [Bool]) -> some View {
         let node = VStack(spacing: 4) {
             ZStack {
                 Circle()
-                    .fill(cleared ? Theme.glow : Color.white.opacity(unlocked ? 0.32 : 0.14))
+                    .fill(cleared ? glow : Color.white.opacity(unlocked ? 0.32 : 0.14))
                     .frame(width: 44, height: 44)
-                    .shadow(color: cleared ? Theme.glow.opacity(0.8) : .clear, radius: 10)
+                    .shadow(color: cleared ? glow.opacity(0.8) : .clear, radius: 10)
                 if cleared {
                     Text("\(index + 1)")
                         .font(Theme.display(17))
@@ -244,6 +263,7 @@ private struct WorldConstellationView: View {
             }
             if cleared {
                 miniStars(stars)
+                featPips(feats)
             }
         }
         .accessibilityElement(children: .ignore)
@@ -261,6 +281,19 @@ private struct WorldConstellationView: View {
         } else {
             node
         }
+    }
+
+    /// Three 4pt feat pips (M23) under the mini stars — one fling, no
+    /// ability, clean sweep — lit from the result record's flags.
+    private func featPips(_ feats: [Bool]) -> some View {
+        HStack(spacing: 3) {
+            ForEach(0..<3) { i in
+                Circle()
+                    .fill(feats[i] ? glow : Color.white.opacity(0.25))
+                    .frame(width: 4, height: 4)
+            }
+        }
+        .accessibilityHidden(true)
     }
 
     private func miniStars(_ stars: Int) -> some View {

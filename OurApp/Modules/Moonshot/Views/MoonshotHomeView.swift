@@ -99,6 +99,16 @@ struct MoonshotHomeView: View {
            let trail = TrailID(rawValue: arguments[flag + 1]) {
             store.equipTrail(trail)
         }
+        if let flag = arguments.firstIndex(of: "-moonshotEquipTheme"),
+           arguments.indices.contains(flag + 1),
+           let theme = ConstellationTheme(rawValue: arguments[flag + 1]) {
+            store.equipTheme(theme)
+        }
+        if let flag = arguments.firstIndex(of: "-moonshotEquipSkin"),
+           arguments.indices.contains(flag + 1),
+           let skin = SlingshotSkin(rawValue: arguments[flag + 1]) {
+            store.equipSkin(skin)
+        }
         #endif
     }
 

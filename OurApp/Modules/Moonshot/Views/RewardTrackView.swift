@@ -14,6 +14,12 @@ struct RewardTrackView: View {
     private var equippedTrail: TrailID? {
         cosmetics.first { $0.partnerID == partnerID }?.trail
     }
+    private var equippedTheme: ConstellationTheme? {
+        cosmetics.first { $0.partnerID == partnerID }?.theme
+    }
+    private var equippedSkin: SlingshotSkin? {
+        cosmetics.first { $0.partnerID == partnerID }?.skin
+    }
 
     var body: some View {
         ZStack {
@@ -67,25 +73,45 @@ struct RewardTrackView: View {
             Spacer()
 
             if case .trail(let trail) = grant, reached {
-                Button {
-                    Haptics.tap()
-                    let store = MoonshotProgressStore(context: modelContext)
-                    store.equipTrail(equippedTrail == trail ? nil : trail)
-                } label: {
-                    Image(systemName: equippedTrail == trail ? "checkmark.circle.fill" : "circle")
-                        .font(.system(size: 24))
-                        .foregroundStyle(equippedTrail == trail ? Theme.glow : .white.opacity(0.6))
+                equipToggle(equipped: equippedTrail == trail, title: grantTitle(grant)) {
+                    MoonshotProgressStore(context: modelContext)
+                        .equipTrail(equippedTrail == trail ? nil : trail)
                 }
-                .accessibilityLabel(grantTitle(grant))
-                .accessibilityValue(equippedTrail == trail ? Text("Equipped") : Text("Not equipped"))
             }
-            if case .character = grant, reached {
-                Text("🕳️").font(.system(size: 24))
+            if case .theme(let theme) = grant, reached {
+                equipToggle(equipped: equippedTheme == theme, title: grantTitle(grant)) {
+                    MoonshotProgressStore(context: modelContext)
+                        .equipTheme(equippedTheme == theme ? nil : theme)
+                }
+            }
+            if case .skin(let skin) = grant, reached {
+                equipToggle(equipped: equippedSkin == skin, title: grantTitle(grant)) {
+                    MoonshotProgressStore(context: modelContext)
+                        .equipSkin(equippedSkin == skin ? nil : skin)
+                }
+            }
+            if case .character(let character) = grant, reached {
+                Text(character == .nox ? "🕳️" : "🌫️").font(.system(size: 24))
             }
         }
         .padding(16)
         .glassCard(cornerRadius: 22)
         .opacity(reached ? 1 : 0.6)
+    }
+
+    /// One equip circle, shared by every cosmetic kind — trail, theme, skin
+    /// each equip independently (one slot per kind, per partner, LWW).
+    private func equipToggle(equipped: Bool, title: Text, action: @escaping () -> Void) -> some View {
+        Button {
+            Haptics.tap()
+            action()
+        } label: {
+            Image(systemName: equipped ? "checkmark.circle.fill" : "circle")
+                .font(.system(size: 24))
+                .foregroundStyle(equipped ? Theme.glow : .white.opacity(0.6))
+        }
+        .accessibilityLabel(title)
+        .accessibilityValue(equipped ? Text("Equipped") : Text("Not equipped"))
     }
 
     private func grantTitle(_ grant: RewardGrant) -> Text {
