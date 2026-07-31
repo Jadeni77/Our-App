@@ -19,7 +19,7 @@ struct LevelSelectView: View {
                                                   snapshots: snapshots,
                                                   partnerID: store.partnerID)
                 let result = store.result(for: level.id)
-                HStack {
+                let row = HStack {
                     Text("Level \(index + 1)")
                         .font(Theme.display(18))
                     Spacer()
@@ -28,6 +28,13 @@ struct LevelSelectView: View {
                     } else if !unlocked {
                         Image(systemName: "lock.fill")
                             .foregroundStyle(.secondary)
+                    }
+                }
+                Group {
+                    if unlocked {
+                        NavigationLink { MoonshotGameView(levelIndex: index) } label: { row }
+                    } else {
+                        row
                     }
                 }
                 .listRowBackground(Color.white.opacity(unlocked ? 0.25 : 0.12))
