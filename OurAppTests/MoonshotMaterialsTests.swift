@@ -34,11 +34,13 @@ struct MoonshotMaterialsTests {
         #expect(GloomDamage.hits(forImpulse: MoonshotTuning.gloomBruiseImpulse - 0.1) == 0)
         #expect(GloomDamage.hits(forImpulse: MoonshotTuning.gloomBruiseImpulse) == 1)
         #expect(GloomDamage.hits(forImpulse: MoonshotTuning.gloomInstantPopImpulse - 0.1) == 1)
-        #expect(GloomDamage.hits(forImpulse: MoonshotTuning.gloomInstantPopImpulse) == 2)
+        // The one-shot invariant: an instant-tier hit deals full HP,
+        // whatever gloomHP is tuned to.
+        #expect(GloomDamage.hits(forImpulse: MoonshotTuning.gloomInstantPopImpulse)
+                >= MoonshotTuning.gloomHP)
     }
 
     @Test func twoBruisesEqualOneGloom() {
-        #expect(MoonshotTuning.gloomHP == 2)   // the bruise state exists because of this
         #expect(GloomDamage.hits(forImpulse: MoonshotTuning.gloomBruiseImpulse) * 2
                 >= MoonshotTuning.gloomHP)
     }

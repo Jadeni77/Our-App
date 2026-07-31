@@ -18,9 +18,12 @@ enum MoonshotTuning {
     /// Gloom toughness (device-pass ruling 2026-07-31: they died to a touch).
     /// Grazes below bruise do nothing; bruise-to-instant hits cost 1 HP;
     /// instant and above pops outright — a clean direct hit still one-shots.
+    /// Calibration anchors (review-computed): split twins hit ~2.1, a
+    /// column-top fall lands ~2.6 — both must bruise or L7's authored
+    /// knock-them-off solution deals no damage; see-saw planks ~9 still pop.
     static let gloomHP = 2
-    static let gloomBruiseImpulse: Double = 3.0
-    static let gloomInstantPopImpulse: Double = 7.0
+    static let gloomBruiseImpulse: Double = 2.0
+    static let gloomInstantPopImpulse: Double = 5.0
 
     // MARK: Scene (design canvas — every phone sees this world via aspectFit)
     static let sceneSize = CGSize(width: 840, height: 390)

@@ -16,6 +16,9 @@ enum AbilityRunner {
 
     /// Moon Slam: kill horizontal motion, drop like the moon itself.
     private static func slam(_ sprite: StarSpriteNode, in scene: GameScene) {
+        // Post-bounce slams must fall undamped (landed damping would cap the
+        // drop below its own speed); the next contact re-damps.
+        sprite.physicsBody?.linearDamping = 0
         sprite.physicsBody?.velocity = CGVector(dx: 0, dy: MoonshotTuning.slamVerticalVelocity)
         sprite.abilityActive = true
         flashRing(at: sprite.position, in: scene, color: .white)
@@ -33,6 +36,9 @@ enum AbilityRunner {
             flashRing(at: sprite.position, in: scene, color: CharacterID.zip.bodyUIColor)
             return
         }
+        // Same reasoning as slam: a post-bounce dash shouldn't decay against
+        // landed damping — the next contact restores it.
+        body.linearDamping = 0
         body.velocity = CGVector(dx: v.dx * MoonshotTuning.dashSpeedMultiplier,
                                  dy: v.dy * MoonshotTuning.dashSpeedMultiplier)
         sprite.abilityActive = true

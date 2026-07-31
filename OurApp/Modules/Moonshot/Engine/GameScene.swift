@@ -335,26 +335,29 @@ final class GameScene: SKScene {
 extension GameScene: SKPhysicsContactDelegate {
     func didBegin(_ contact: SKPhysicsContact) {
         let impulse = Double(contact.collisionImpulse) * MoonshotTuning.collisionImpulseScale
+        let nodes = [contact.bodyA.node, contact.bodyB.node]
+
         guard worldArmed else {
             #if DEBUG
-            // Authoring aid: a swallowed above-threshold contact during the
-            // grace means the fort is unstable as authored — retune it.
-            if impulse > MoonshotTuning.gloomBruiseImpulse {
+            // Authoring aid: a swallowed contact that could damage the most
+            // fragile material means the fort is unstable as authored.
+            if impulse > Material.crystal.impactThreshold {
                 NSLog("Moonshot: settle grace swallowed impulse %.2f — authored fort unstable?", impulse)
             }
             #endif
             return
         }
-        guard impulse > 0 else { return }
 
-        // A launched sprite's first contact ends the trajectory-hint promise:
-        // restore damping so it settles instead of skating (device-pass fix).
-        for case let sprite as StarSpriteNode in [contact.bodyA.node, contact.bodyB.node].compactMap({ $0 })
-        where sprite.launched {
+        // Contact ends the trajectory-hint promise: restore damping so the
+        // sprite settles instead of skating (device-pass fix). Runs on every
+        // contact, idempotently — which also re-damps after an ability
+        // zeroed it for a post-bounce boost. Above the impulse guard on
+        // purpose: a zero-impulse skim must still end the free slide.
+        for case let sprite as StarSpriteNode in nodes.compactMap({ $0 }) where sprite.launched {
             sprite.physicsBody?.linearDamping = MoonshotTuning.spriteLandedLinearDamping
             sprite.physicsBody?.angularDamping = MoonshotTuning.spriteLandedAngularDamping
         }
-        let nodes = [contact.bodyA.node, contact.bodyB.node]
+        guard impulse > 0 else { return }
 
         for case let piece as PieceNode in nodes.compactMap({ $0 }) where piece.parent != nil {
             let multiplier = abilityMultiplier(against: piece.material, in: nodes)

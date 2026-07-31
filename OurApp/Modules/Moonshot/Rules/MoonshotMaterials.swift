@@ -52,7 +52,9 @@ enum DamageModel {
 /// 1 = bruise, 2 = pop outright.
 enum GloomDamage {
     static func hits(forImpulse impulse: Double) -> Int {
-        if impulse >= MoonshotTuning.gloomInstantPopImpulse { return 2 }
+        // Full HP at the instant tier: "a clean hit one-shots" must survive
+        // any future gloomHP retune.
+        if impulse >= MoonshotTuning.gloomInstantPopImpulse { return MoonshotTuning.gloomHP }
         if impulse >= MoonshotTuning.gloomBruiseImpulse { return 1 }
         return 0
     }
