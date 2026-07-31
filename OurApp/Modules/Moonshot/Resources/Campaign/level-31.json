@@ -1,0 +1,70 @@
+{
+  "buildZone": {
+    "height": 340,
+    "width": 370,
+    "x": 470,
+    "y": 0
+  },
+  "createdAt": "2026-07-31T00:00:00Z",
+  "glooms": [
+    {
+      "x": 640,
+      "y": 16
+    },
+    {
+      "x": 760,
+      "y": 16
+    }
+  ],
+  "id": "AA000000-0000-4000-8000-000000000031",
+  "kind": "campaign",
+  "par": 2,
+  "pieces": [
+    {
+      "material": "frame",
+      "rotation": 0,
+      "shape": "column",
+      "x": 590,
+      "y": 45
+    },
+    {
+      "material": "frame",
+      "rotation": 0,
+      "shape": "column",
+      "x": 590,
+      "y": 133
+    },
+    {
+      "material": "frame",
+      "rotation": 0,
+      "shape": "column",
+      "x": 710,
+      "y": 45
+    },
+    {
+      "material": "frame",
+      "rotation": 0,
+      "shape": "column",
+      "x": 710,
+      "y": 133
+    }
+  ],
+  "queue": [
+    "mochi",
+    "mochi",
+    "nox"
+  ],
+  "schemaVersion": 1,
+  "updatedAt": "2026-07-31T00:00:00Z",
+  "wind": [
+    {
+      "forceX": 5,
+      "forceY": 0,
+      "height": 220,
+      "width": 480,
+      "x": 220,
+      "y": 120
+    }
+  ],
+  "world": 3
+}

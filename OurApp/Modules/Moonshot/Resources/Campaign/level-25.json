@@ -1,0 +1,41 @@
+{
+  "buildZone": {
+    "height": 340,
+    "width": 370,
+    "x": 470,
+    "y": 0
+  },
+  "createdAt": "2026-07-31T00:00:00Z",
+  "glooms": [
+    {
+      "x": 660,
+      "y": 16
+    },
+    {
+      "x": 720,
+      "y": 16
+    }
+  ],
+  "id": "AA000000-0000-4000-8000-000000000025",
+  "kind": "campaign",
+  "par": 1,
+  "pieces": [],
+  "queue": [
+    "mochi",
+    "mochi",
+    "mochi"
+  ],
+  "schemaVersion": 1,
+  "updatedAt": "2026-07-31T00:00:00Z",
+  "wind": [
+    {
+      "forceX": -4,
+      "forceY": 0,
+      "height": 280,
+      "width": 380,
+      "x": 240,
+      "y": 60
+    }
+  ],
+  "world": 3
+}

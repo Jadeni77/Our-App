@@ -1,0 +1,119 @@
+{
+  "buildZone": {
+    "height": 340,
+    "width": 370,
+    "x": 470,
+    "y": 0
+  },
+  "createdAt": "2026-07-31T00:00:00Z",
+  "glooms": [
+    {
+      "x": 690,
+      "y": 16
+    },
+    {
+      "x": 690,
+      "y": 130
+    },
+    {
+      "x": 690,
+      "y": 244
+    },
+    {
+      "x": 580,
+      "y": 106
+    },
+    {
+      "x": 800,
+      "y": 16
+    }
+  ],
+  "id": "AA000000-0000-4000-8000-000000000036",
+  "kind": "campaign",
+  "par": 4,
+  "pieces": [
+    {
+      "material": "cloudfoam",
+      "rotation": 0,
+      "shape": "plank",
+      "x": 360,
+      "y": 12
+    },
+    {
+      "material": "cloudfoam",
+      "rotation": 0,
+      "shape": "plank",
+      "x": 500,
+      "y": 12
+    },
+    {
+      "material": "frame",
+      "rotation": 0,
+      "shape": "column",
+      "x": 580,
+      "y": 45
+    },
+    {
+      "material": "meteorstone",
+      "rotation": 0,
+      "shape": "column",
+      "x": 640,
+      "y": 45
+    },
+    {
+      "material": "meteorstone",
+      "rotation": 0,
+      "shape": "column",
+      "x": 740,
+      "y": 45
+    },
+    {
+      "material": "meteorstone",
+      "rotation": 0,
+      "shape": "plank",
+      "x": 690,
+      "y": 102
+    },
+    {
+      "material": "moonwood",
+      "rotation": 0,
+      "shape": "column",
+      "x": 660,
+      "y": 159
+    },
+    {
+      "material": "moonwood",
+      "rotation": 0,
+      "shape": "column",
+      "x": 720,
+      "y": 159
+    },
+    {
+      "material": "moonwood",
+      "rotation": 0,
+      "shape": "plank",
+      "x": 690,
+      "y": 216
+    }
+  ],
+  "queue": [
+    "mochi",
+    "zip",
+    "nox",
+    "twinkle",
+    "mochi"
+  ],
+  "schemaVersion": 1,
+  "updatedAt": "2026-07-31T00:00:00Z",
+  "wind": [
+    {
+      "forceX": -3.5,
+      "forceY": 0,
+      "height": 260,
+      "width": 340,
+      "x": 240,
+      "y": 80
+    }
+  ],
+  "world": 3
+}
