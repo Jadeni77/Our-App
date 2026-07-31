@@ -8,6 +8,7 @@ import SpriteKit
 /// result record exactly once per outcome.
 struct MoonshotGameView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var currentIndex: Int
     @State private var scene: GameScene?
@@ -37,6 +38,10 @@ struct MoonshotGameView: View {
         }
         .onAppear {
             if scene == nil { buildLevel(currentIndex) }
+            MoonshotAudio.shared.startAmbience()
+        }
+        .onDisappear {
+            MoonshotAudio.shared.stopAmbience()
         }
         .onChange(of: session?.phase) { _, phase in
             guard case .won(let stars) = phase, !recordedOutcome, let session else { return }
@@ -77,6 +82,15 @@ struct MoonshotGameView: View {
                                  session: newSession,
                                  showsTrajectoryHint: index < MoonshotTuning.trajectoryHintLevels,
                                  trail: MoonshotProgressStore(context: modelContext).equippedTrail)
+        // Haptics live here, not in the Engine — the scene stays a physics
+        // world; the view decides what the hand feels.
+        newScene.onEvent = { event in
+            switch event {
+            case .flung, .gloomPopped: Haptics.tap()
+            case .pieceDestroyed: Haptics.thud()
+            case .impact, .levelWon, .levelFailed: break   // won/failed haptics ride onChange
+            }
+        }
         session = newSession
         scene = newScene
         #if DEBUG
@@ -104,7 +118,13 @@ struct MoonshotGameView: View {
                 if let session {
                     HStack(spacing: 10) {
                         queueDots(session)
-                        Text("Fling \(min(session.flingsUsed + 1, max(session.level.queue.count, 1)))")
+                        // "Current fling" = the airborne one mid-flight, the
+                        // next one when ready (review note from the engine PR).
+                        let current = switch session.phase {
+                        case .ready, .aiming: session.flingsUsed + 1
+                        default: max(session.flingsUsed, 1)
+                        }
+                        Text("Fling \(min(current, max(session.level.queue.count, 1)))")
                         Text("Par \(session.level.par)")
                             .foregroundStyle(.white.opacity(0.7))
                     }
@@ -202,6 +222,7 @@ struct MoonshotGameView: View {
         case .failed:
             outcomeCard {
                 Text("😵‍💫").font(.system(size: 40))
+                    .accessibilityLabel(Text("Level failed"))
                 Button { buildLevel(currentIndex) } label: { Text("Try again") }
                     .buttonStyle(MoonshotOverlayButton(prominent: true))
             }
@@ -216,7 +237,7 @@ struct MoonshotGameView: View {
         }
         .padding(28)
         .glassCard(cornerRadius: 28)
-        .transition(.scale.combined(with: .opacity))
+        .transition(reduceMotion ? .opacity : .scale.combined(with: .opacity))
     }
 
     private func grantLabel(_ grant: RewardGrant) -> Text {

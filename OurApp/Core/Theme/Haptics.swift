@@ -6,6 +6,11 @@ enum Haptics {
         UIImpactFeedbackGenerator(style: .soft).impactOccurred()
     }
 
+    /// A hard knock — destruction, collisions (Moonshot's pieces shattering).
+    static func thud() {
+        UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+    }
+
     static func success() {
         UINotificationFeedbackGenerator().notificationOccurred(.success)
     }
