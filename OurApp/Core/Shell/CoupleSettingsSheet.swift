@@ -47,6 +47,15 @@ struct CoupleSettingsSheet: View {
                         AppLanguage(rawValue: languageRaw)?.applyToBundleDomain()
                     }
                 }
+
+                Section {
+                } footer: {
+                    // Which build is on which phone (P13) — read at runtime,
+                    // never hardcoded.
+                    Text("OurApp \(AppVersion.display())")
+                        .frame(maxWidth: .infinity)
+                        .multilineTextAlignment(.center)
+                }
             }
             .navigationTitle(Text("Our details"))
             .navigationBarTitleDisplayMode(.inline)
