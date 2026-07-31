@@ -191,7 +191,7 @@ final class GameScene: SKScene {
     /// Headless verification: drives the exact aim → pull → hold → release
     /// path the touch handlers use, so screenshots can watch a real fling.
     func debugFling(pull: CGVector, holdFor: TimeInterval = 0.6) {
-        guard slingshot != nil, session.phase == .ready else { return }
+        guard slingshot != nil, worldArmed, session.phase == .ready else { return }
         session.beginAim()
         let target = CGPoint(x: slingshot.seatPosition.x + pull.dx,
                              y: slingshot.seatPosition.y + pull.dy)
@@ -301,8 +301,17 @@ final class GameScene: SKScene {
 
 extension GameScene: SKPhysicsContactDelegate {
     func didBegin(_ contact: SKPhysicsContact) {
-        guard worldArmed else { return }
         let impulse = Double(contact.collisionImpulse) * MoonshotTuning.collisionImpulseScale
+        guard worldArmed else {
+            #if DEBUG
+            // Authoring aid: a swallowed above-threshold contact during the
+            // grace means the fort is unstable as authored — retune it.
+            if impulse > MoonshotTuning.gloomPopImpulse {
+                NSLog("Moonshot: settle grace swallowed impulse %.2f — authored fort unstable?", impulse)
+            }
+            #endif
+            return
+        }
         guard impulse > 0 else { return }
         let nodes = [contact.bodyA.node, contact.bodyB.node]
 

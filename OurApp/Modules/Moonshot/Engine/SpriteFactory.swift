@@ -102,6 +102,19 @@ final class GloomNode: SKShapeNode {
     required init?(coder: NSCoder) { fatalError("unused") }
 }
 
+extension CharacterID {
+    /// The one place a character's body color lives — faces, ability
+    /// effects, and HUD chips all derive from it.
+    var bodyUIColor: UIColor {
+        switch self {
+        case .mochi: UIColor(Theme.glow)
+        case .zip: UIColor(red: 0.35, green: 0.76, blue: 0.80, alpha: 1)
+        case .twinkle: UIColor(Theme.rose)
+        case .nox: UIColor(red: 0.16, green: 0.14, blue: 0.30, alpha: 1)
+        }
+    }
+}
+
 /// A flingable star-sprite. Faces arrive with the characters PR; abilities
 /// set `abilityActive` so contacts read the right damage multiplier.
 final class StarSpriteNode: SKShapeNode {
@@ -148,7 +161,7 @@ final class StarSpriteNode: SKShapeNode {
         switch character {
         case .mochi:
             // The starter: a round pale-gold moon — sleepy eyes and blush.
-            fillColor = UIColor(Theme.glow)
+            fillColor = character.bodyUIColor
             strokeColor = UIColor.white.withAlphaComponent(0.9)
             for side in [-1.0, 1.0] {
                 let eye = SKShapeNode(rectOf: CGSize(width: 6, height: 1.8), cornerRadius: 0.9)
@@ -164,7 +177,7 @@ final class StarSpriteNode: SKShapeNode {
             }
         case .zip:
             // The comet: teal dart with swept-back tail fins.
-            fillColor = UIColor(red: 0.35, green: 0.76, blue: 0.80, alpha: 1)
+            fillColor = character.bodyUIColor
             strokeColor = UIColor.white.withAlphaComponent(0.85)
             for side in [-1.0, 1.0] {
                 let fin = CGMutablePath()
@@ -182,7 +195,7 @@ final class StarSpriteNode: SKShapeNode {
             addDotEyes(color: .white)
         case .twinkle:
             // The twins: one warm-pink star with a seam — it splits!
-            fillColor = UIColor(Theme.rose)
+            fillColor = character.bodyUIColor
             strokeColor = UIColor.white.withAlphaComponent(0.85)
             let seam = SKShapeNode(rectOf: CGSize(width: 1.2, height: radius * 1.7))
             seam.fillColor = UIColor.white.withAlphaComponent(0.65)
@@ -191,7 +204,7 @@ final class StarSpriteNode: SKShapeNode {
             addDotEyes(color: UIColor(white: 0.2, alpha: 1), spread: 8.5)
         case .nox:
             // The little black hole: deep indigo with an event-horizon ring.
-            fillColor = UIColor(red: 0.16, green: 0.14, blue: 0.30, alpha: 1)
+            fillColor = character.bodyUIColor
             strokeColor = UIColor.white.withAlphaComponent(0.9)
             let ring = SKShapeNode(circleOfRadius: radius * 0.55)
             ring.fillColor = .clear

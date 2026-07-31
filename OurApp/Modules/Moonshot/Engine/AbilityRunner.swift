@@ -20,18 +20,24 @@ enum AbilityRunner {
         flashRing(at: sprite.position, in: scene, color: .white)
     }
 
-    /// Comet Dash: a burst of speed along the current flight line.
+    /// Comet Dash: a burst of speed along the current flight line —
+    /// velocity multiplication, so the boost is mass-independent.
     private static func dash(_ sprite: StarSpriteNode, in scene: GameScene) {
         guard let body = sprite.physicsBody else { return }
         let v = body.velocity
         let speed = (v.dx * v.dx + v.dy * v.dy).squareRoot()
-        guard speed > 1 else { return }
-        body.velocity = CGVector(dx: v.dx / speed * speed * MoonshotTuning.dashSpeedMultiplier,
-                                 dy: v.dy / speed * speed * MoonshotTuning.dashSpeedMultiplier)
+        // A stationary sprite can't dash, but the tap was still spent —
+        // flash anyway so the player sees it registered.
+        guard speed > 1 else {
+            flashRing(at: sprite.position, in: scene, color: CharacterID.zip.bodyUIColor)
+            return
+        }
+        body.velocity = CGVector(dx: v.dx * MoonshotTuning.dashSpeedMultiplier,
+                                 dy: v.dy * MoonshotTuning.dashSpeedMultiplier)
         sprite.abilityActive = true
         // A short teal streak sells the burst.
         let streak = SKShapeNode(rectOf: CGSize(width: 46, height: 4), cornerRadius: 2)
-        streak.fillColor = UIColor(red: 0.35, green: 0.76, blue: 0.80, alpha: 0.8)
+        streak.fillColor = CharacterID.zip.bodyUIColor.withAlphaComponent(0.8)
         streak.strokeColor = .clear
         streak.zRotation = atan2(v.dy, v.dx)
         streak.position = sprite.position
@@ -44,18 +50,26 @@ enum AbilityRunner {
     private static func split(_ sprite: StarSpriteNode, in scene: GameScene) {
         guard let body = sprite.physicsBody else { return }
         let v = body.velocity
+        let originalMass = body.mass
         let position = sprite.position
         scene.removeLaunchedSprite(sprite)
         sprite.removeFromParent()
         for side in [-1.0, 1.0] {
             let twin = SpriteFactory.makeStar(.twinkle)
-            twin.setScale(0.8)
-            twin.position = CGPoint(x: position.x, y: position.y + side * 6)
+            // Scale pins the LOOK and the collision radius; mass is set
+            // explicitly below — never left to scale side-effects (the two
+            // would silently compound: review finding on this PR).
+            twin.setScale(MoonshotTuning.splitTwinScale)
+            twin.position = CGPoint(x: position.x,
+                                    y: position.y + side * MoonshotTuning.splitSpawnOffset)
             twin.zPosition = 10
             scene.addChild(twin)
             twin.activatePhysics()
             if let twinBody = twin.physicsBody {
-                twinBody.mass *= MoonshotTuning.splitMassScale
+                twinBody.mass = originalMass * MoonshotTuning.splitMassScale
+                // Twins spawn overlapping — sprite-sprite collision off, or
+                // the solver's separation kick reshapes the tuned fan.
+                twinBody.collisionBitMask &= ~PhysicsCategory.sprite
                 let angle = Double(side) * Double(MoonshotTuning.splitAngle)
                 let dx = Double(v.dx), dy = Double(v.dy)
                 twinBody.velocity = CGVector(dx: dx * Foundation.cos(angle) - dy * Foundation.sin(angle),

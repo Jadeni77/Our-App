@@ -66,6 +66,10 @@ enum MoonshotTuning {
     static let splitAngle: CGFloat = .pi / 15
     /// Each twin keeps this fraction of the original mass.
     static let splitMassScale: CGFloat = 0.6
+    /// Twins render (and collide) at this scale of a full twinkle…
+    static let splitTwinScale: CGFloat = 0.8
+    /// …and spawn this far either side of the flight line.
+    static let splitSpawnOffset: CGFloat = 6
     /// Gravity Well: how long Nox pulls, how hard, and how far.
     static let wellDuration: TimeInterval = 1.0
     static let wellStrength: Float = 7

@@ -186,14 +186,13 @@ struct MoonshotGameView: View {
 }
 
 extension CharacterID {
-    /// SwiftUI color for HUD chips — mirrors each face's SpriteKit palette
-    /// (Views-layer on purpose: Rules stays UI-free).
+    /// SwiftUI color for HUD chips, derived from the one Engine palette
+    /// (Views-layer on purpose: Rules stays UI-free). Nox's chip lightens
+    /// his near-black body color — a true-color dot vanishes on glass.
     var chipColor: Color {
         switch self {
-        case .mochi: Theme.glow
-        case .zip: Color(red: 0.35, green: 0.76, blue: 0.80)
-        case .twinkle: Theme.rose
         case .nox: Color(red: 0.45, green: 0.42, blue: 0.72)
+        default: Color(bodyUIColor)
         }
     }
 }
