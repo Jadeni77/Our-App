@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "AA000000-0000-4000-8000-000000000001",
+  "kind": "campaign",
+  "createdAt": "2026-07-30T00:00:00Z",
+  "updatedAt": "2026-07-30T00:00:00Z",
+  "par": 2,
+  "queue": ["mochi", "mochi", "mochi"],
+  "buildZone": { "x": 500, "y": 0, "width": 320, "height": 340 },
+  "pieces": [
+    { "shape": "column", "material": "moonwood", "x": 590, "y": 44,  "rotation": 0 },
+    { "shape": "column", "material": "moonwood", "x": 700, "y": 44,  "rotation": 0 },
+    { "shape": "plank",  "material": "moonwood", "x": 645, "y": 99,  "rotation": 0 },
+    { "shape": "square", "material": "crystal",  "x": 590, "y": 132, "rotation": 0 }
+  ],
+  "glooms": [ { "x": 645, "y": 16 }, { "x": 660, "y": 126 } ]
+}
