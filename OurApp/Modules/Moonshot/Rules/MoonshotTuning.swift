@@ -70,9 +70,10 @@ enum MoonshotTuning {
     /// graceful flight, and towers topple cinematically instead of snapping down.
     static let gravityMetersPerSecond: CGFloat = -5.5
     static let pieceFriction: CGFloat = 0.8
-    static let pieceRestitution: CGFloat = 0.05
+    // Piece restitution is per-material (Material.restitution — M20).
     static let gloomDensity: CGFloat = 0.8
     static let gloomFriction: CGFloat = 0.9
+    static let gloomRestitution: CGFloat = 0.05
     // Sprite radius/density are per-character (MoonshotCharacters.swift).
     static let spriteFriction: CGFloat = 0.6
     static let spriteRestitution: CGFloat = 0.2

@@ -30,7 +30,7 @@ final class PieceNode: SKSpriteNode {
         let body = SKPhysicsBody(rectangleOf: size)
         body.density = piece.material.density
         body.friction = MoonshotTuning.pieceFriction
-        body.restitution = MoonshotTuning.pieceRestitution
+        body.restitution = piece.material.restitution   // cloudfoam is the springboard (M20)
         body.isDynamic = piece.material != .frame
         body.categoryBitMask = PhysicsCategory.piece
         body.contactTestBitMask = PhysicsCategory.sprite | PhysicsCategory.piece | PhysicsCategory.ground
@@ -128,7 +128,7 @@ final class GloomNode: SKShapeNode {
         let body = SKPhysicsBody(circleOfRadius: radius)
         body.density = MoonshotTuning.gloomDensity
         body.friction = MoonshotTuning.gloomFriction
-        body.restitution = MoonshotTuning.pieceRestitution
+        body.restitution = MoonshotTuning.gloomRestitution
         // Glooms perch, they don't roll — a ball on a 22pt column top would
         // roll off during the settle and un-author every pillar level.
         body.allowsRotation = false
@@ -303,12 +303,27 @@ enum SpriteFactory {
         let size = shape.size
         let image = UIGraphicsImageRenderer(size: size).image { context in
             let rect = CGRect(origin: .zero, size: size).insetBy(dx: 1, dy: 1)
-            let path = UIBezierPath(roundedRect: rect, cornerRadius: min(6, size.height / 4))
+            let cornerRadius = material == .cloudfoam
+                ? min(12, size.height / 2)              // puffy
+                : min(6, size.height / 4)
+            let path = UIBezierPath(roundedRect: rect, cornerRadius: cornerRadius)
             material.fillColor.setFill()
             path.fill()
             material.strokeColor.setStroke()
             path.lineWidth = 2
             path.stroke()
+            if material == .cloudfoam {
+                // Three scallop bumps along the top edge sell the cloud.
+                for i in 0..<3 {
+                    let bumpRadius = rect.width / 9
+                    let bump = UIBezierPath(
+                        arcCenter: CGPoint(x: rect.minX + rect.width * (0.25 + 0.25 * CGFloat(i)),
+                                           y: rect.minY + 2),
+                        radius: bumpRadius, startAngle: .pi, endAngle: 0, clockwise: true)
+                    material.fillColor.setFill()
+                    bump.fill()
+                }
+            }
             if material == .crystal {
                 // A diagonal glint sells "glass" better than any opacity tweak.
                 let glint = UIBezierPath()
