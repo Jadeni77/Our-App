@@ -12,6 +12,7 @@ struct LevelSelectView: View {
     private let catalog = CampaignCatalog.bundled
     private let partnerID = MoonshotProgressStore.devicePartnerID
     @State private var world = 1
+    @State private var pickedInitialWorld = false
 
     var body: some View {
         ZStack {
@@ -45,6 +46,10 @@ struct LevelSelectView: View {
             }
         }
         .onAppear {
+            // Initial page only — onAppear refires on pop-back from a game,
+            // and re-picking then would yank the pager mid-browse.
+            guard !pickedInitialWorld else { return }
+            pickedInitialWorld = true
             world = firstOpenWorld
             #if DEBUG
             // `-moonshotWorld N` pins the pager for headless screenshots —

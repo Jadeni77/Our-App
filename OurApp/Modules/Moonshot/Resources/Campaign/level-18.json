@@ -12,7 +12,7 @@
       "y": 130
     },
     {
-      "x": 700,
+      "x": 730,
       "y": 16
     }
   ],
@@ -61,20 +61,6 @@
       "shape": "column",
       "x": 660,
       "y": 133
-    },
-    {
-      "material": "frame",
-      "rotation": 0,
-      "shape": "column",
-      "x": 660,
-      "y": 221
-    },
-    {
-      "material": "frame",
-      "rotation": 0,
-      "shape": "plank",
-      "x": 700,
-      "y": 150
     }
   ],
   "queue": [

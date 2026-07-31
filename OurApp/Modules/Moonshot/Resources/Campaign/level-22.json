@@ -43,21 +43,21 @@
       "rotation": 0,
       "shape": "column",
       "x": 560,
-      "y": 133
+      "y": 134
     },
     {
       "material": "moonwood",
       "rotation": 0,
       "shape": "column",
-      "x": 640,
+      "x": 630,
       "y": 45
     },
     {
       "material": "moonwood",
       "rotation": 0,
       "shape": "column",
-      "x": 640,
-      "y": 133
+      "x": 630,
+      "y": 134
     },
     {
       "material": "crystal",
@@ -71,14 +71,14 @@
       "rotation": 0,
       "shape": "column",
       "x": 720,
-      "y": 133
+      "y": 134
     }
   ],
   "queue": [
     "zip",
-    "zip",
+    "twinkle",
     "mochi",
-    "twinkle"
+    "zip"
   ],
   "schemaVersion": 1,
   "updatedAt": "2026-07-31T00:00:00Z",

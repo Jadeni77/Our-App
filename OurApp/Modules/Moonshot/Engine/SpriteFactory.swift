@@ -306,7 +306,15 @@ enum SpriteFactory {
             let cornerRadius = material == .cloudfoam
                 ? min(12, size.height / 2)              // puffy
                 : min(6, size.height / 4)
-            let path = UIBezierPath(roundedRect: rect, cornerRadius: cornerRadius)
+            // The cloud body sits lower so its scallop domes fit the canvas.
+            let bumpRadius = material == .cloudfoam
+                ? min(rect.width / 9, rect.height / 3)
+                : 0
+            var bodyRect = rect
+            bodyRect.origin.y += bumpRadius * 0.7
+            bodyRect.size.height -= bumpRadius * 0.7
+            let path = UIBezierPath(roundedRect: bodyRect,
+                                    cornerRadius: min(cornerRadius, bodyRect.height / 2))
             material.fillColor.setFill()
             path.fill()
             material.strokeColor.setStroke()
@@ -315,13 +323,15 @@ enum SpriteFactory {
             if material == .cloudfoam {
                 // Three scallop bumps along the top edge sell the cloud.
                 for i in 0..<3 {
-                    let bumpRadius = rect.width / 9
                     let bump = UIBezierPath(
                         arcCenter: CGPoint(x: rect.minX + rect.width * (0.25 + 0.25 * CGFloat(i)),
-                                           y: rect.minY + 2),
+                                           y: bodyRect.minY),
                         radius: bumpRadius, startAngle: .pi, endAngle: 0, clockwise: true)
                     material.fillColor.setFill()
                     bump.fill()
+                    material.strokeColor.setStroke()
+                    bump.lineWidth = 2
+                    bump.stroke()
                 }
             }
             if material == .crystal {
