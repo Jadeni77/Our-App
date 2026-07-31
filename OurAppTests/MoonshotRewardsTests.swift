@@ -38,4 +38,14 @@ struct MoonshotRewardsTests {
         #expect(MoonshotRewards.isUnlocked(.nox, pool: 24))
         #expect(MoonshotRewards.isUnlocked(.mochi, pool: 0))
     }
+
+    @Test func extendedTrackAppendsWithoutRepricing() {
+        #expect(MoonshotRewards.track.prefix(4).map(\.threshold) == [8, 16, 24, 32])  // M6: never reprice
+        #expect(MoonshotRewards.grants(pool: 96).contains(.character(.misty)))
+        #expect(MoonshotRewards.grants(pool: 96).contains(.theme(.dawn)))
+        #expect(MoonshotRewards.grants(pool: 96).contains(.skin(.golden)))
+        #expect(!MoonshotRewards.isUnlocked(.misty, pool: 59))
+        #expect(MoonshotRewards.isUnlocked(.misty, pool: 60))
+        #expect(MoonshotRewards.isUnlocked(.nox, pool: 24))          // unchanged by the append
+    }
 }

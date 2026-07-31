@@ -266,7 +266,10 @@ struct MoonshotGameView: View {
         case .trail(.stardust): Text("Stardust")
         case .trail(.petals): Text("Petals")
         case .trail(.aurora): Text("Aurora")
-        case .character: Text("Nox")
+        case .trail(.nebula): Text("Nebula")
+        case .character(let character): Text(LocalizedStringKey(character.displayNameKey))
+        case .theme(.dawn): Text("Dawn veil")
+        case .skin(.golden): Text("Golden slingshot")
         }
     }
 

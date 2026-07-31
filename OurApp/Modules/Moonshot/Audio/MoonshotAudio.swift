@@ -96,6 +96,7 @@ enum SoundBank {
         case .zip: action(named: "dash")
         case .twinkle: action(named: "split")
         case .nox: action(named: "well")
+        case .misty: action(named: "well")   // phase.caf lands with her ability PR
         }
     }
 }

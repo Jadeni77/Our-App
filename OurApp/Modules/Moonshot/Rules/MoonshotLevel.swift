@@ -6,7 +6,7 @@ import Foundation
 /// updatedAt, authorID, tombstone) are here from day one.
 
 enum CharacterID: String, Codable, CaseIterable {
-    case mochi, zip, twinkle, nox
+    case mochi, zip, twinkle, nox, misty
 }
 
 enum Material: String, Codable, CaseIterable {

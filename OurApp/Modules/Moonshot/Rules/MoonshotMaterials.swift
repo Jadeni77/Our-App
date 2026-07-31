@@ -86,7 +86,7 @@ enum AbilityEffects {
         switch character {
         case .mochi: return 2.5
         case .zip: return (material == .crystal || material == .moonwood) ? 2.0 : 1
-        case .twinkle, .nox: return 1
+        case .twinkle, .nox, .misty: return 1
         }
     }
 }
