@@ -3,11 +3,35 @@ import Testing
 @testable import OurApp
 
 struct CampaignCatalogTests {
-    @Test func catalogLoadsBundledLevelsInOrder() {
+    @Test func campaignShipsExactlyTwelveLevels() {
         let catalog = CampaignCatalog.load()
-        #expect(catalog.levels.count >= 1)                    // becomes == 12 with the campaign PR
-        #expect(catalog.levels[0].kind == .campaign)
-        #expect(catalog.levels[0].par == 2)
+        #expect(catalog.levels.count == 12)
+        #expect(Set(catalog.levels.map(\.id)).count == 12)    // unique ids
+        for (index, level) in catalog.levels.enumerated() {
+            #expect(level.kind == .campaign)
+            #expect(!level.glooms.isEmpty, "level \(index + 1) has no glooms")
+            #expect(level.par >= 1 && level.par <= level.queue.count,
+                    "level \(index + 1) par must be honest against its queue")
+            for piece in level.pieces {
+                #expect(piece.x > MoonshotTuning.slingshotX + 100,
+                        "level \(index + 1) builds on top of the slingshot")
+            }
+        }
+    }
+
+    @Test func earlyLevelsTeachBeforeTheyMix() {
+        // The teaching arc (M4): 1–3 mochi-only, 4 introduces zip, 7 twinkle.
+        let levels = CampaignCatalog.load().levels
+        guard levels.count == 12 else { return }
+        for level in levels[0...2] {
+            #expect(Set(level.queue) == [.mochi])
+        }
+        #expect(levels[3].queue.contains(.zip))
+        #expect(levels[6].queue.contains(.twinkle))
+        // Nox never appears in a campaign queue — he's a choice, not a requirement.
+        for level in levels {
+            #expect(!level.queue.contains(.nox))
+        }
     }
 
     @Test func firstLevelIsAlwaysUnlocked() {

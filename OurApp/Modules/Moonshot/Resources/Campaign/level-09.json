@@ -1,0 +1,70 @@
+{
+  "buildZone": {
+    "height": 340,
+    "width": 320,
+    "x": 500,
+    "y": 0
+  },
+  "createdAt": "2026-07-31T00:00:00Z",
+  "glooms": [
+    {
+      "x": 550,
+      "y": 106
+    },
+    {
+      "x": 640,
+      "y": 106
+    },
+    {
+      "x": 760,
+      "y": 16
+    }
+  ],
+  "id": "AA000000-0000-4000-8000-000000000009",
+  "kind": "campaign",
+  "par": 2,
+  "pieces": [
+    {
+      "material": "moonwood",
+      "rotation": 0,
+      "shape": "column",
+      "x": 550,
+      "y": 45
+    },
+    {
+      "material": "moonwood",
+      "rotation": 0,
+      "shape": "column",
+      "x": 640,
+      "y": 45
+    },
+    {
+      "material": "meteorstone",
+      "rotation": 0,
+      "shape": "column",
+      "x": 730,
+      "y": 45
+    },
+    {
+      "material": "meteorstone",
+      "rotation": 0,
+      "shape": "column",
+      "x": 790,
+      "y": 45
+    },
+    {
+      "material": "meteorstone",
+      "rotation": 0,
+      "shape": "plank",
+      "x": 760,
+      "y": 102
+    }
+  ],
+  "queue": [
+    "twinkle",
+    "mochi",
+    "zip"
+  ],
+  "schemaVersion": 1,
+  "updatedAt": "2026-07-31T00:00:00Z"
+}
