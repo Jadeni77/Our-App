@@ -11,9 +11,32 @@ enum AbilityRunner {
         case .zip: dash(sprite, in: scene)
         case .twinkle: split(sprite, in: scene)
         case .nox: gravityWell(sprite, in: scene)
-        case .misty:
-            // Phase lands in the storm PR; until then the tap just shimmers.
-            flashRing(at: sprite.position, in: scene, color: CharacterID.misty.bodyUIColor)
+        case .misty: phase(sprite, in: scene)
+        }
+    }
+
+    /// Phase: Misty turns to mist — through one piece, then flesh and
+    /// starlight again. GameScene.didEnd re-solidifies her as she leaves the
+    /// piece; the timeout covers a phase that never touches anything.
+    private static func phase(_ sprite: StarSpriteNode, in scene: GameScene) {
+        guard let body = sprite.physicsBody else { return }
+        sprite.phasing = true
+        sprite.alpha = 0.45
+        // Two-sided intangibility: she stops answering to pieces AND her
+        // category becomes mist, which pieces' collision masks exclude —
+        // contact tests still fire so the scene can track the pass.
+        body.collisionBitMask &= ~PhysicsCategory.piece
+        body.categoryBitMask = PhysicsCategory.mist
+        flashRing(at: sprite.position, in: scene, color: CharacterID.misty.bodyUIColor)
+        scene.run(.wait(forDuration: MoonshotTuning.phaseTimeout)) { [weak sprite, weak scene] in
+            // Covers only a mist that never reached a wall; once she enters
+            // a piece, the drain check in trackFlight owns her re-forming.
+            guard let sprite, sprite.phasing, !sprite.phaseEnteredPiece,
+                  sprite.parent != nil else { return }
+            sprite.resolidify()
+            if let scene {
+                flashRing(at: sprite.position, in: scene, color: CharacterID.misty.bodyUIColor)
+            }
         }
     }
 
@@ -98,6 +121,7 @@ enum AbilityRunner {
         sprite.holdsFlight = true
 
         let field = SKFieldNode.radialGravityField()
+        field.categoryBitMask = FieldCategory.well
         field.strength = MoonshotTuning.wellStrength
         field.falloff = 1
         field.region = SKRegion(radius: MoonshotTuning.wellRadius)
@@ -125,7 +149,7 @@ enum AbilityRunner {
         }
     }
 
-    private static func flashRing(at point: CGPoint, in scene: SKScene, color: UIColor) {
+    static func flashRing(at point: CGPoint, in scene: SKScene, color: UIColor) {
         let ring = SKShapeNode(circleOfRadius: 10)
         ring.strokeColor = color.withAlphaComponent(0.85)
         ring.fillColor = .clear

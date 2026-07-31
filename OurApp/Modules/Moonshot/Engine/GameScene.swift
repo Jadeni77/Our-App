@@ -105,6 +105,12 @@ final class GameScene: SKScene {
             worldNode.addChild(SpriteFactory.makeGloom(at: levelPoint(gloom.x, gloom.y)))
         }
 
+        var windZones = level.wind ?? []
+        #if DEBUG
+        if let injected = Self.debugWindZone { windZones.append(injected) }
+        #endif
+        for zone in windZones { addWindZone(zone) }
+
         slingshot = SlingshotNode(showsTrajectoryHint: showsTrajectoryHint)
         slingshot.position = CGPoint(x: MoonshotTuning.slingshotX, y: MoonshotTuning.groundY)
         addChild(slingshot)
@@ -124,6 +130,43 @@ final class GameScene: SKScene {
             self?.isUserInteractionEnabled = true
         }
     }
+
+    /// A constant-force field over the zone rect plus its drifting streaks.
+    /// M21: the field's category is `wind`, which only sprite bodies carry in
+    /// their fieldBitMask — forts and glooms never feel it.
+    private func addWindZone(_ zone: WindZone) {
+        let center = levelPoint(zone.x + zone.width / 2, zone.y + zone.height / 2)
+        let field = SKFieldNode.linearGravityField(
+            withVector: vector_float3(Float(zone.forceX), Float(zone.forceY), 0))
+        field.categoryBitMask = FieldCategory.wind
+        field.region = SKRegion(path: CGPath(
+            rect: CGRect(x: -zone.width / 2, y: -zone.height / 2,
+                         width: zone.width, height: zone.height),
+            transform: nil))
+        field.position = center
+        worldNode.addChild(field)
+
+        let streaks = SpriteFactory.makeWindStreaks(
+            size: CGSize(width: zone.width, height: zone.height),
+            forceX: zone.forceX, forceY: zone.forceY)
+        streaks.position = center
+        worldNode.addChild(streaks)
+    }
+
+    #if DEBUG
+    /// `-moonshotWindZone x,y,w,h,fx,fy` injects a zone into whatever level
+    /// loads — wind can be verified headlessly without shipping a scratch
+    /// level (the world contract test insists on 12 levels per world).
+    private static var debugWindZone: WindZone? {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let flag = arguments.firstIndex(of: "-moonshotWindZone"),
+              arguments.indices.contains(flag + 1) else { return nil }
+        let parts = arguments[flag + 1].split(separator: ",").compactMap(Double.init)
+        guard parts.count == 6 else { return nil }
+        return WindZone(x: parts[0], y: parts[1], width: parts[2], height: parts[3],
+                        forceX: parts[4], forceY: parts[5])
+    }
+    #endif
 
     private(set) var seatedSprite: StarSpriteNode?
 
@@ -303,6 +346,15 @@ final class GameScene: SKScene {
 
     private func trackFlight(at now: TimeInterval) {
         for sprite in activeSprites {
+            // A drained phase — she left every piece (didEnd) or the piece
+            // died beneath her (weak entries vanish without a didEnd) —
+            // re-forms her here, so no path leaves a permanent ghost.
+            if sprite.phasing, sprite.phaseEnteredPiece,
+               sprite.phasingThrough.allObjects.isEmpty {
+                sprite.resolidify()
+                AbilityRunner.flashRing(at: sprite.position, in: self,
+                                        color: CharacterID.misty.bodyUIColor)
+            }
             if sprite.holdsFlight { continue }   // Nox's well: motionless but not spent
             if sprite.launchedAt == nil { sprite.launchedAt = now }
             let speed = sprite.physicsBody.map {
@@ -385,6 +437,18 @@ extension GameScene: SKPhysicsContactDelegate {
             return
         }
 
+        // Misty mid-phase (M22): a piece contact deals no damage, must not
+        // land-damp her (she's passing through, not landing), and joins the
+        // overlap set the drain check in trackFlight waits on. Ground and
+        // gloom contacts stay normal.
+        for case let sprite as StarSpriteNode in nodes.compactMap({ $0 }) where sprite.phasing {
+            if let piece = nodes.compactMap({ $0 as? PieceNode }).first {
+                sprite.phasingThrough.add(piece)
+                sprite.phaseEnteredPiece = true
+                return
+            }
+        }
+
         // Contact ends the trajectory-hint promise: restore damping so the
         // sprite settles instead of skating (device-pass fix). Runs on every
         // contact, idempotently — which also re-damps after an ability
@@ -421,6 +485,18 @@ extension GameScene: SKPhysicsContactDelegate {
             guard hits > 0 else { continue }
             guard gloom.applyHits(hits) else { continue }   // bruised, still standing
             pop(gloom)
+        }
+    }
+
+    /// The mist leaves a piece: drop it from her overlap set. Re-forming
+    /// waits for the set to DRAIN (trackFlight) — grazing a second surface
+    /// mid-pass must not re-solidify her inside the first.
+    func didEnd(_ contact: SKPhysicsContact) {
+        let nodes = [contact.bodyA.node, contact.bodyB.node]
+        for case let sprite as StarSpriteNode in nodes.compactMap({ $0 }) where sprite.phasing {
+            for case let piece as PieceNode in nodes.compactMap({ $0 }) {
+                sprite.phasingThrough.remove(piece)
+            }
         }
     }
 

@@ -7,6 +7,20 @@ enum PhysicsCategory {
     static let piece: UInt32 = 1 << 1
     static let gloom: UInt32 = 1 << 2
     static let ground: UInt32 = 1 << 3
+    /// A phasing Misty (M22). SpriteKit collision masks are per-body and
+    /// ONE-WAY — clearing piece from HER mask alone would leave the piece
+    /// side still resolving the collision, turning the mist into a
+    /// zero-damage battering ram (review finding). Pieces exclude this
+    /// category explicitly, making the pass-through two-sided.
+    static let mist: UInt32 = 1 << 4
+}
+
+/// Field categories (M21): wind moves ONLY flying sprites — pieces and
+/// glooms mask it out so forts never creep and settle detection stays
+/// untouched. Nox's well hauls everything.
+enum FieldCategory {
+    static let wind: UInt32 = 1 << 0
+    static let well: UInt32 = 1 << 1
 }
 
 /// A structure piece with material HP. Damage crosses two thresholds:
@@ -32,7 +46,9 @@ final class PieceNode: SKSpriteNode {
         body.friction = MoonshotTuning.pieceFriction
         body.restitution = piece.material.restitution   // cloudfoam is the springboard (M20)
         body.isDynamic = piece.material != .frame
+        body.fieldBitMask = FieldCategory.well
         body.categoryBitMask = PhysicsCategory.piece
+        body.collisionBitMask = ~PhysicsCategory.mist   // the mist passes; flesh collides
         body.contactTestBitMask = PhysicsCategory.sprite | PhysicsCategory.piece | PhysicsCategory.ground
         physicsBody = body
     }
@@ -132,6 +148,7 @@ final class GloomNode: SKShapeNode {
         // Glooms perch, they don't roll — a ball on a 22pt column top would
         // roll off during the settle and un-author every pillar level.
         body.allowsRotation = false
+        body.fieldBitMask = FieldCategory.well
         body.categoryBitMask = PhysicsCategory.gloom
         body.contactTestBitMask = PhysicsCategory.sprite | PhysicsCategory.piece | PhysicsCategory.ground
         physicsBody = body
@@ -163,6 +180,15 @@ final class StarSpriteNode: SKShapeNode {
     /// True while an ability keeps this sprite "flying" though motionless
     /// (Nox's well freezes him mid-air) — spent detection skips it.
     var holdsFlight = false
+    /// Misty mid-phase (M22): intangible to pieces, translucent, and
+    /// remembering every piece she's currently inside. Weak entries: a
+    /// piece destroyed beneath her vanishes from the set on its own, so
+    /// the drain check in trackFlight re-forms her even without a didEnd.
+    var phasing = false
+    let phasingThrough = NSHashTable<PieceNode>.weakObjects()
+    /// Set on her first piece contact — the drain check must not re-form
+    /// a mist that simply hasn't reached the wall yet.
+    var phaseEnteredPiece = false
     /// Flight bookkeeping for spent detection (scene time).
     var launchedAt: TimeInterval?
     var slowSince: TimeInterval?
@@ -191,9 +217,23 @@ final class StarSpriteNode: SKShapeNode {
         // A full-speed dash moves ~30pt/frame — more than zip's own diameter
         // and any column face. Without CCD he phases through thin walls.
         body.usesPreciseCollisionDetection = true
+        body.fieldBitMask = FieldCategory.wind | FieldCategory.well
         body.categoryBitMask = PhysicsCategory.sprite
         body.contactTestBitMask = PhysicsCategory.piece | PhysicsCategory.gloom | PhysicsCategory.ground
         physicsBody = body
+    }
+
+    /// Flesh and starlight again: restore her category, piece collisions,
+    /// and full opacity. Idempotent — the drain check and the phase
+    /// timeout can race.
+    func resolidify() {
+        guard phasing else { return }
+        phasing = false
+        phaseEnteredPiece = false
+        phasingThrough.removeAllObjects()
+        alpha = 1
+        physicsBody?.categoryBitMask = PhysicsCategory.sprite
+        physicsBody?.collisionBitMask |= PhysicsCategory.piece
     }
 
     // MARK: Code-drawn faces (M3 — no image assets, characters renameable)
@@ -359,6 +399,30 @@ enum SpriteFactory {
 
     /// The equipped flight trail (M6 reward cosmetics), programmatic —
     /// `targetNode` should be the scene so particles linger behind the arc.
+    /// Drifting streaks that make an invisible wind zone readable (M21):
+    /// particles ride the force direction at a speed that crosses the zone
+    /// in roughly one lifetime.
+    static func makeWindStreaks(size: CGSize, forceX: Double, forceY: Double) -> SKEmitterNode {
+        let emitter = SKEmitterNode()
+        let magnitude = max((forceX * forceX + forceY * forceY).squareRoot(), 0.1)
+        // Zone extent along the force direction, so an updraft's streaks
+        // live long enough to cross its HEIGHT; capped for near-zero winds.
+        let extent = (abs(forceX) * size.width + abs(forceY) * size.height) / magnitude
+        emitter.particleTexture = particleDot
+        emitter.particleBirthRate = 26
+        emitter.particleLifetime = CGFloat(min(extent / (magnitude * 40), 6))
+        emitter.particleSpeed = CGFloat(magnitude * 40)
+        emitter.emissionAngle = CGFloat(atan2(forceY, forceX))
+        emitter.particleAlpha = 0.28
+        emitter.particleScale = 0.4
+        emitter.particleScaleRange = 0.2
+        emitter.particleColor = .white
+        emitter.particleColorBlendFactor = 1
+        emitter.particlePositionRange = CGVector(dx: size.width, dy: size.height)
+        emitter.zPosition = -5
+        return emitter
+    }
+
     static func makeTrail(_ trail: TrailID) -> SKEmitterNode {
         let emitter = SKEmitterNode()
         emitter.particleTexture = particleDot

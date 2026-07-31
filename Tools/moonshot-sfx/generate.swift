@@ -156,6 +156,12 @@ try writeCAF("well", { () -> [Float] in
     }
 }(), to: out)
 
+// Misty's phase: an airy shimmer — three barely-detuned sines beating.
+try writeCAF("phase", mix(
+    tone(from: 1200, duration: 0.35, amplitude: 0.22, decay: 5),
+    tone(from: 1207, duration: 0.35, amplitude: 0.22, decay: 5),
+    tone(from: 1195, duration: 0.35, amplitude: 0.22, decay: 5)), to: out)
+
 // Cloudfoam's boing: a springy downward sweep with an octave sparkle.
 try writeCAF("boing", mix(
     tone(from: 180, to: 60, duration: 0.25, amplitude: 0.5, decay: 6),
