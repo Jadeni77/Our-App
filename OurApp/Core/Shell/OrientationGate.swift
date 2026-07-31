@@ -20,12 +20,25 @@ enum OrientationGate {
         apply(mask: .portrait, turning: .portrait)
     }
 
-    private static func apply(mask: UIInterfaceOrientationMask, turning: UIInterfaceOrientationMask) {
+    private static func apply(mask: UIInterfaceOrientationMask, turning: UIInterfaceOrientationMask, isRetry: Bool = false) {
         AppDelegate.orientationMask = mask
         guard let scene = UIApplication.shared.connectedScenes
             .compactMap({ $0 as? UIWindowScene }).first else { return }
         scene.requestGeometryUpdate(.iOS(interfaceOrientations: turning))
-        scene.keyWindow?.rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
+        for window in scene.windows {
+            window.rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
+        }
+        // Cold-launch race: when the cover is presented at startup, this runs
+        // mid-presentation-transition and UIKit half-applies the turn (status
+        // bar rotates, window doesn't — observed via headless launches). One
+        // delayed, idempotent re-apply after the transition settles fixes it;
+        // warm launches simply re-request the orientation they already have.
+        if !isRetry {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                guard AppDelegate.orientationMask == mask else { return }   // superseded meanwhile
+                apply(mask: mask, turning: turning, isRetry: true)
+            }
+        }
     }
 }
 

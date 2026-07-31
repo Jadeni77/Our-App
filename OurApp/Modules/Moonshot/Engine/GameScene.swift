@@ -22,6 +22,8 @@ final class GameScene: SKScene {
 
     private var worldNode = SKNode()
     private var slingshot: SlingshotNode!
+    /// False during the post-build settle grace — see buildWorld.
+    private var worldArmed = false
     /// All launched, still-live sprites (Split will add siblings in PR 3).
     private(set) var activeSprites: [StarSpriteNode] = []
 
@@ -97,11 +99,16 @@ final class GameScene: SKScene {
         activeSprites.removeAll()
         seatNextSprite()
 
-        // Freeze the fort for the settle pause so authored stacks can relax
-        // a point or two before anything can disturb them.
-        physicsWorld.speed = 1
+        // The arming grace: SpriteKit's first steps resolve the authored
+        // stack's tiny interpenetrations with enormous contact impulses —
+        // with contacts live, the fort demolishes ITSELF at build time
+        // (found the hard way: worldNode emptied within 0.3 s of building).
+        // Until the world is armed, contacts deal no damage and pop nothing;
+        // input stays locked on the same clock.
+        worldArmed = false
         isUserInteractionEnabled = false
         run(.wait(forDuration: MoonshotTuning.settlePauseAfterBuild)) { [weak self] in
+            self?.worldArmed = true
             self?.isUserInteractionEnabled = true
         }
     }
@@ -271,6 +278,7 @@ final class GameScene: SKScene {
 
 extension GameScene: SKPhysicsContactDelegate {
     func didBegin(_ contact: SKPhysicsContact) {
+        guard worldArmed else { return }
         let impulse = Double(contact.collisionImpulse) * MoonshotTuning.collisionImpulseScale
         guard impulse > 0 else { return }
         let nodes = [contact.bodyA.node, contact.bodyB.node]

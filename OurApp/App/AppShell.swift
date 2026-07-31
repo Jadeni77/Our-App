@@ -34,8 +34,6 @@ struct AppShell: View {
     init() {
         _selection = State(initialValue:
             Self.launchArguments.contains("-selectGames") ? .games : .home)
-        _debugModule = State(initialValue:
-            Self.launchArguments.contains("-moonshot") ? MoonshotModule.descriptor : nil)
     }
 
     var body: some View {
@@ -51,6 +49,16 @@ struct AppShell: View {
         .environment(Self.store)
         .environment(Self.artwork)
         .fullScreenCover(item: $debugModule) { ModuleHostView(module: $0) }
+        .onAppear {
+            // Presenting a cover during app startup races UIKit's rotation
+            // machinery (window stays portrait while the status bar turns) —
+            // the tile-tap path never launches this early. Mimic it: mount
+            // the debug module after the shell settles.
+            guard Self.launchArguments.contains("-moonshot"), debugModule == nil else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                debugModule = MoonshotModule.descriptor
+            }
+        }
     }
 
     private static var launchArguments: [String] {
