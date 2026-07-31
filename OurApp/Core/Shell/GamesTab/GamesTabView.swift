@@ -34,26 +34,59 @@ struct GamesTabView: View {
     @State private var jiggle = JiggleController()
     @State private var tileFrames: [GamesLayout.ItemID: CGRect] = [:]
     @State private var dragLocation: CGPoint?
+    // Paging state (S8): which page is showing, the pager's measured size
+    // (drives page capacity), and the edge-hold detector that flips pages
+    // while a tile drag is live.
+    @State private var currentPage: Int?
+    @State private var pagerSize: CGSize = .zero
+    @State private var edgeFlip = EdgeFlipDetector()
+    @State private var dragOriginPage = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var folderNamespace
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 18), count: 4)
+    /// Capacity uses the editing-mode top inset for both modes, so entering
+    /// jiggle never reshuffles which page a tile lives on.
+    private static let capacityTopInset: CGFloat = 72
+    /// Room kept under the grid for the page dots.
+    private static let dotsReserve: CGFloat = 28
 
     var body: some View {
         ZStack {
             DreamyBackground()
-            ScrollView {
-                LazyVGrid(columns: columns, spacing: 22) {
-                    ForEach(displayedItems) { item in
-                        tile(for: item)
+            // S8: horizontal pages of a fixed-capacity grid, like the real
+            // home screen — the flat ordered layout auto-flows into pages.
+            ScrollView(.horizontal) {
+                HStack(spacing: 0) {
+                    ForEach(Array(pageSlices.enumerated()), id: \.offset) { index, slice in
+                        LazyVGrid(columns: columns, spacing: 22) {
+                            ForEach(slice) { item in
+                                tile(for: item)
+                            }
+                        }
+                        .animation(Theme.springy, value: slice.map(\.id))
+                        .padding(.horizontal, 20)
+                        // Edit mode drops the grid below the + and Done pills
+                        // so the corner tiles (and the first tile's delete
+                        // badge) stay tappable.
+                        .padding(.top, jiggle.isEditing ? Self.capacityTopInset : 24)
+                        .frame(maxHeight: .infinity, alignment: .top)
+                        .containerRelativeFrame(.horizontal)
+                        .id(index)
                     }
                 }
-                .animation(Theme.springy, value: displayedItems.map(\.id))
-                .padding(.horizontal, 20)
-                // Edit mode drops the grid below the + and Done pills so the
-                // corner tiles (and the first tile's delete badge) stay tappable.
-                .padding(.top, jiggle.isEditing ? 72 : 24)
+                .scrollTargetLayout()
             }
+            .scrollTargetBehavior(.paging)
+            .scrollPosition(id: $currentPage)
+            .scrollIndicators(.hidden)
+            // The pager's pan would swallow same-axis tile drags, so
+            // arranging mode owns the horizontal axis: hold a dragged tile
+            // at a screen edge to flip pages, or tap a dot to jump.
+            .scrollDisabled(jiggle.isEditing)
+            .onGeometryChange(for: CGSize.self) { proxy in
+                proxy.size
+            } action: { pagerSize = $0 }
             // The scroll area owns every touch the tiles don't, so the enter
             // gesture lives here: holding anywhere (a tile or empty space)
             // starts arranging. `simultaneousGesture` matters twice: it fires
@@ -70,6 +103,17 @@ struct GamesTabView: View {
                     withAnimation(Theme.springy) { jiggle.isEditing = true }
                 }
             )
+            // Deleting or foldering away the last tile of the last page can
+            // leave the position pointing past the end — settle back.
+            .onChange(of: pageCount) { _, count in
+                if let page = currentPage, page >= count {
+                    withAnimation(reduceMotion ? nil : Theme.springy) {
+                        currentPage = max(count - 1, 0)
+                    }
+                }
+            }
+
+            pageDots
 
             if let openCollectionID,
                case .collection(let collection)? = store.layout.items.first(where: {
@@ -160,9 +204,10 @@ struct GamesTabView: View {
             }
         }
         // A centered alert, not a bottom sheet — the badge that summons it
-        // sits at the top of the screen (owners' UX call, 2026-07-30).
+        // sits at the top of the screen (owners' UX call, 2026-07-30). The
+        // title asks the question; the name inside it stays verbatim (S6).
         .alert(
-            Text(verbatim: deletingExternalApp?.name ?? ""),
+            Text("Do you want to remove “\(deletingExternalApp?.name ?? "")”?"),
             isPresented: Binding(
                 get: { deletingExternalApp != nil },
                 set: { if !$0 { deletingExternalApp = nil } }),
@@ -220,6 +265,17 @@ struct GamesTabView: View {
             if ProcessInfo.processInfo.arguments.contains("-jiggleMode") {
                 jiggle.isEditing = true
             }
+            // Screenshot arg for the far page — and standing proof that a
+            // programmatic scroll-position write lands while the pager's
+            // swipe is disabled, which is all the edit-mode paths (edge-flip,
+            // dot tap) are. Delayed so it exercises a mid-session flip, not
+            // the initial position.
+            if ProcessInfo.processInfo.arguments.contains("-secondPage") {
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(1))
+                    withAnimation(Theme.springy) { currentPage = 1 }
+                }
+            }
             #endif
         }
         .fullScreenCover(item: $openModule) { module in
@@ -227,15 +283,17 @@ struct GamesTabView: View {
         }
     }
 
-    /// Done and background-tap both leave edit mode this way: haptic, spring
-    /// back to rest, and drop any in-flight drag so a cancelled gesture
-    /// (notification shade, app switcher, backgrounding) can't strand a ghost
-    /// or leave `jiggle.draggedItem` set for the next drag to inherit.
+    /// Done — the only way out of edit mode — leaves it this way: haptic,
+    /// spring back to rest, and drop any in-flight drag so a cancelled
+    /// gesture (notification shade, app switcher, backgrounding) can't
+    /// strand a ghost or leave `jiggle.draggedItem` set for the next drag
+    /// to inherit.
     private func exitEditing() {
         Haptics.tap()
         withAnimation(Theme.springy) { jiggle.isEditing = false }
         dragLocation = nil
         _ = jiggle.endDrag()
+        edgeFlip.reset()
     }
 
     @ViewBuilder
@@ -323,9 +381,23 @@ struct GamesTabView: View {
                 if jiggle.draggedItem != id {
                     Haptics.tap()
                     jiggle.beginDrag(id)
+                    // The page the gesture's tile lives on, for the whole
+                    // drag — previews never move the tile off it (S8).
+                    // Derived from the tile itself, not `currentPage`: the
+                    // scroll binding can be nil (never swiped) or stale
+                    // (dot-tapped away after a cancelled drag).
+                    dragOriginPage = pageSlices.firstIndex { page in
+                        page.contains { $0.id == id }
+                    } ?? currentPage ?? 0
+                    edgeFlip.reset()
                 }
                 dragLocation = value.location
-                jiggle.updateDrag(location: value.location, frames: tileFrames,
+                if let direction = edgeFlip.update(x: value.location.x,
+                                                   width: pagerSize.width,
+                                                   now: Date()) {
+                    flip(direction)
+                }
+                jiggle.updateDrag(location: value.location, frames: onScreenFrames,
                                   order: store.layout.items.map(\.id), now: Date())
             }
             .onEnded { value in
@@ -353,16 +425,98 @@ struct GamesTabView: View {
         }
     }
 
-    /// Renders the grid from a preview order while a reorder drag is live, so
-    /// neighbors spring apart to open a gap ahead of `release`.
-    private var displayedItems: [GamesLayout.Item] {
-        guard let dragged = jiggle.draggedItem,
-              case .reorder(let insertAt) = jiggle.intent,
-              let draggedItem = store.layout.items.first(where: { $0.id == dragged })
-        else { return store.layout.items }
-        var others = store.layout.items.filter { $0.id != dragged }
-        others.insert(draggedItem, at: min(insertAt, others.count))
-        return others
+    // MARK: - Pages (S8)
+
+    /// Tile height for page capacity, derived, never measured: the square
+    /// face is the column width, the label is one caption line (Dynamic
+    /// Type aware). Measured frames wobble in edit mode — the rotation
+    /// inflates the bounding box — and page membership must be a function
+    /// of geometry, never of animation state.
+    private var tileHeight: CGFloat {
+        let tileWidth = (pagerSize.width - 40 - 3 * 18) / 4
+        return tileWidth + 8 + UIFont.preferredFont(forTextStyle: .caption1).lineHeight
+    }
+
+    private var pageCapacity: Int {
+        guard pagerSize != .zero else { return max(store.layout.items.count, 1) }
+        let available = pagerSize.height - Self.capacityTopInset - Self.dotsReserve
+        return SpringboardPager.capacity(columns: columns.count,
+                                         availableHeight: available,
+                                         tileHeight: tileHeight, rowSpacing: 22)
+    }
+
+    /// Page count from the *resting* layout — what the dots, the edge-flip
+    /// bounds, and the position clamp all read. The drag preview is built to
+    /// keep the same count, but nothing that outlives a render should depend
+    /// on a preview.
+    private var pageCount: Int {
+        let count = store.layout.items.count
+        guard count > 0 else { return 0 }
+        guard pageCapacity > 0 else { return 1 }
+        return (count - 1) / pageCapacity + 1
+    }
+
+    /// The pages to render: the layout auto-flowed to capacity — from a
+    /// preview order while a reorder drag is live, so neighbors spring apart
+    /// to open a gap ahead of release.
+    private var pageSlices: [[GamesLayout.Item]] {
+        if let dragged = jiggle.draggedItem,
+           case .reorder(let insertAt) = jiggle.intent {
+            return SpringboardPager.previewPages(items: store.layout.items,
+                                                 dragged: dragged,
+                                                 insertAt: insertAt,
+                                                 capacity: pageCapacity,
+                                                 originPage: dragOriginPage)
+        }
+        return SpringboardPager.pages(of: store.layout.items, capacity: pageCapacity)
+    }
+
+    /// Soft floating dots, one per page — light-touch chrome over the dreamy
+    /// background (the 微爱 reference's mood; original art). Tappable, which
+    /// is also how you change pages in jiggle mode without dragging a tile.
+    private var pageDots: some View {
+        VStack {
+            Spacer()
+            if pageCount > 1 {
+                HStack(spacing: 6) {
+                    ForEach(0..<pageCount, id: \.self) { index in
+                        let isCurrent = index == (currentPage ?? 0)
+                        Circle()
+                            .fill(.white.opacity(isCurrent ? 0.9 : 0.35))
+                            .frame(width: 7, height: 7)
+                            .frame(width: 18, height: 28)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                guard !isCurrent else { return }
+                                Haptics.tap()
+                                withAnimation(reduceMotion ? nil : Theme.springy) {
+                                    currentPage = index
+                                }
+                            }
+                            .accessibilityAddTraits(isCurrent ? [.isButton, .isSelected]
+                                                              : .isButton)
+                            .accessibilityLabel(Text("Page \(index + 1) of \(pageCount)"))
+                    }
+                }
+                .animation(Theme.springy, value: currentPage)
+                .padding(.bottom, 4)
+            }
+        }
+    }
+
+    /// Tiles on other pages get measured too (the pager keeps neighbors
+    /// alive), so only what's actually on screen may catch a drag.
+    private var onScreenFrames: [GamesLayout.ItemID: CGRect] {
+        tileFrames.filter { $0.value.midX >= 0 && $0.value.midX <= pagerSize.width }
+    }
+
+    /// One page over, when a drag holds against a screen edge.
+    private func flip(_ direction: EdgeFlipDetector.Direction) {
+        let current = currentPage ?? 0
+        let target = direction == .forward ? current + 1 : current - 1
+        guard (0..<pageCount).contains(target) else { return }
+        Haptics.tap()
+        withAnimation(reduceMotion ? nil : Theme.springy) { currentPage = target }
     }
 
     private func handleRootDrop(of id: GamesLayout.ItemID, at location: CGPoint,

@@ -63,6 +63,15 @@ final class JiggleController {
         }
 
         hover = nil
+        // With pages (S8) only the visible page's frames participate. When
+        // no *other* tile is on screen — a page holding just the dragged
+        // tile — there is nowhere meaningful to reorder to; releasing must
+        // be a no-op, not "insert at 0" (which would silently move the tile
+        // to the front of page one).
+        guard others.contains(where: { frames[$0] != nil }) else {
+            intent = .none
+            return
+        }
         intent = .reorder(insertAt: insertionIndex(location: location,
                                                    frames: frames, others: others))
     }
