@@ -26,6 +26,7 @@ struct LocalizationTests {
     @Test func versionFooterKeyShipsInAllLanguages() {
         // The brand + version line is locale-invariant, but it still goes
         // through the catalog (P5) — pin the key so it can't silently drop.
+        #expect(localizedValue("OurApp %@", language: "en") == "OurApp %@")
         #expect(localizedValue("OurApp %@", language: "zh-Hans") == "OurApp %@")
         #expect(localizedValue("OurApp %@", language: "zh-Hant") == "OurApp %@")
     }
