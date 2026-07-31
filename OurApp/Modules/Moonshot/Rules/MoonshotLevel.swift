@@ -42,6 +42,14 @@ struct MoonshotLevel: Codable, Equatable, Identifiable {
     var buildZone: Zone
     var pieces: [Piece]
     var glooms: [GloomPlacement]
+    /// a2: which world this level belongs to; nil = world 1 (v1 files
+    /// decode unchanged — schemaVersion stays 1, both fields optional).
+    var world: Int?
+    /// a2: authored wind zones — constant force fields that bend flight
+    /// arcs; the engine masks them to affect ONLY flying sprites (M21).
+    var wind: [WindZone]?
+
+    var worldNumber: Int { world ?? 1 }
 
     static let currentSchemaVersion = 1
 
@@ -59,6 +67,16 @@ struct MoonshotLevel: Codable, Equatable, Identifiable {
     struct GloomPlacement: Codable, Equatable {
         var x, y: Double
     }
+}
+
+/// A constant-force region (M21): rect in level coordinates (y up from the
+/// ground top), force in m/s² — the same unit family as the gravity knob.
+struct WindZone: Codable, Equatable {
+    var x, y, width, height: Double
+    var forceX, forceY: Double
+}
+
+extension MoonshotLevel {
 
     var totalCost: Int {
         pieces.reduce(0) { $0 + $1.cost }
