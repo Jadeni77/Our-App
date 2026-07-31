@@ -159,6 +159,12 @@ struct LocalizationTests {
         #expect(localizedValue("The Cloudfoam Skies", language: "zh-Hant") == "雲綿天空")
         #expect(localizedValue("The Storm Heights", language: "zh-Hans") == "风暴之巅")
         #expect(localizedValue("The Storm Heights", language: "zh-Hant") == "風暴之巔")
+        #expect(localizedValue("One fling", language: "zh-Hans") == "一发通关")
+        #expect(localizedValue("One fling", language: "zh-Hant") == "一發通關")
+        #expect(localizedValue("No ability", language: "zh-Hans") == "未用技能")
+        #expect(localizedValue("No ability", language: "zh-Hant") == "未用技能")
+        #expect(localizedValue("Clean sweep", language: "zh-Hans") == "全部拆光")
+        #expect(localizedValue("Clean sweep", language: "zh-Hant") == "全部拆光")
     }
 
     @Test func springboardStringsAreTranslated() {
