@@ -187,6 +187,9 @@ final class StarSpriteNode: SKShapeNode {
         // Zero air drag: the trajectory hint samples an ideal parabola, and
         // the real arc must land where the dots promised.
         body.linearDamping = 0
+        // A full-speed dash moves ~30pt/frame — more than zip's own diameter
+        // and any column face. Without CCD he phases through thin walls.
+        body.usesPreciseCollisionDetection = true
         body.categoryBitMask = PhysicsCategory.sprite
         body.contactTestBitMask = PhysicsCategory.piece | PhysicsCategory.gloom | PhysicsCategory.ground
         physicsBody = body

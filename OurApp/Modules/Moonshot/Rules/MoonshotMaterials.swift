@@ -15,7 +15,7 @@ extension Material {
         switch self {
         case .crystal: 1
         case .moonwood: 3.5
-        case .meteorstone: 6
+        case .meteorstone: 7   // two slams, decisively — 6 straddled one-slam-lethal
         case .frame: .infinity
         }
     }

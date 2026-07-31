@@ -21,12 +21,14 @@ enum MoonshotTuning {
     /// Gloom toughness (device-pass ruling 2026-07-31: they died to a touch).
     /// Grazes below bruise do nothing; bruise-to-instant hits cost 1 HP;
     /// instant and above pops outright — a clean direct hit still one-shots.
-    /// Calibration anchors at g −5.5 / launch 9: a column-top fall lands
-    /// ~1.85 and split twins hit ~2–5 — both must bruise (never shrug) or
-    /// L7's knock-them-off solution deals no damage; a full-pull mochi
-    /// (~8.6) still one-shots.
+    /// Calibration anchors at g −5.5 / launch 9: a soft-pull split twin
+    /// knocks at ~1.6–1.7 and a column-top fall lands ~1.9 — both must
+    /// bruise (never shrug) or L7's knock-them-off solution deals no
+    /// damage, so the floor sits at 1.5 with real margin; a full-pull
+    /// mochi (~8.6) still one-shots. 1.5 was the old one-touch POP
+    /// threshold — as a 2-HP bruise floor it can't bring that bug back.
     static let gloomHP = 2
-    static let gloomBruiseImpulse: Double = 1.7
+    static let gloomBruiseImpulse: Double = 1.5
     static let gloomInstantPopImpulse: Double = 5.0
 
     // MARK: Scene (design canvas — every phone sees this world via aspectFit)
