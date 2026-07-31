@@ -3,6 +3,29 @@ import Testing
 @testable import OurApp
 
 struct MoonshotLevelTests {
+    private static let v1JSON = """
+    {"schemaVersion":1,"id":"AA000000-0000-4000-8000-000000000001","kind":"campaign",
+     "createdAt":"2026-07-30T00:00:00Z","updatedAt":"2026-07-30T00:00:00Z","par":2,
+     "queue":["mochi"],"buildZone":{"x":500,"y":0,"width":320,"height":340},
+     "pieces":[],"glooms":[{"x":600,"y":16}]}
+    """.data(using: .utf8)!
+
+    @Test func v1FilesDecodeWithoutWorldOrWind() throws {
+        let level = try MoonshotLevel.decoder().decode(MoonshotLevel.self, from: Self.v1JSON)
+        #expect(level.worldNumber == 1)
+        #expect(level.wind == nil)
+    }
+
+    @Test func windAndWorldRoundTrip() throws {
+        var level = try MoonshotLevel.decoder().decode(MoonshotLevel.self, from: Self.v1JSON)
+        level.world = 3
+        level.wind = [WindZone(x: 300, y: 100, width: 200, height: 150, forceX: 3.0, forceY: 0)]
+        let data = try MoonshotLevel.encoder().encode(level)
+        let decoded = try MoonshotLevel.decoder().decode(MoonshotLevel.self, from: data)
+        #expect(decoded.worldNumber == 3)
+        #expect(decoded.wind == level.wind)
+    }
+
     private func makeLevel(kind: LevelKind = .campaign,
                            pieces: [MoonshotLevel.Piece] = [],
                            glooms: [MoonshotLevel.GloomPlacement] = [.init(x: 600, y: 16)],
@@ -30,6 +53,7 @@ struct MoonshotLevelTests {
         #expect(MoonshotLevel.Piece(shape: .square, material: .crystal, x: 0, y: 0, rotation: 0).cost == 1)
         #expect(MoonshotLevel.Piece(shape: .plank, material: .moonwood, x: 0, y: 0, rotation: 0).cost == 4)
         #expect(MoonshotLevel.Piece(shape: .block, material: .meteorstone, x: 0, y: 0, rotation: 0).cost == 16)
+        #expect(MoonshotLevel.Piece(shape: .square, material: .cloudfoam, x: 0, y: 0, rotation: 0).cost == 3)
     }
 
     @Test func totalCostSumsPieces() {

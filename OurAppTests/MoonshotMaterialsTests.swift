@@ -20,6 +20,17 @@ struct MoonshotMaterialsTests {
         #expect(DamageModel.damage(impulse: 1000, against: .frame) == 0)
     }
 
+    @Test func cloudfoamBouncesButBreaksToDeterminedHits() {
+        #expect(Material.cloudfoam.restitution >= 0.8)          // the springboard
+        for material in [Material.crystal, .moonwood, .meteorstone, .frame] {
+            #expect(material.restitution <= 0.1)                 // everyone else stays inert
+        }
+        // A full-pull mochi (≈8.6) hurts it but doesn't one-shot; two hits kill.
+        let direct = DamageModel.damage(impulse: 8.6, against: .cloudfoam)
+        #expect(direct > 0 && direct < Material.cloudfoam.hp)
+        #expect(direct * 2 >= Material.cloudfoam.hp)
+    }
+
     @Test func theDestructionHierarchyHoldsAtDirectHitStrength() {
         // A full-pull mochi lands ≈ 8.6 impulse units at floaty gravity:
         // crystal must die, moonwood must be hurt but survive, and

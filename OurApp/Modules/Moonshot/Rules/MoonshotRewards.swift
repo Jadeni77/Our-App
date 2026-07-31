@@ -6,12 +6,22 @@ import Foundation
 /// can't produce pool conflicts.
 
 enum TrailID: String, Codable, CaseIterable {
-    case stardust, petals, aurora
+    case stardust, petals, aurora, nebula
+}
+
+enum ConstellationTheme: String, Codable, CaseIterable {
+    case dawn
+}
+
+enum SlingshotSkin: String, Codable, CaseIterable {
+    case golden
 }
 
 enum RewardGrant: Equatable {
     case trail(TrailID)
     case character(CharacterID)
+    case theme(ConstellationTheme)
+    case skin(SlingshotSkin)
 }
 
 /// A SwiftData-free view of a result row, so Rules stays pure and testable.
@@ -24,12 +34,17 @@ struct LevelResultSnapshot: Equatable {
 }
 
 enum MoonshotRewards {
-    /// Slice (a) segment; later slices append entries, never reprice (M6).
+    /// Rows only ever append, never reprice (M6). Slice (a) opened 8–32;
+    /// slice (a2) extends to 96 — the 36-level solo ceiling is 108★.
     static let track: [(threshold: Int, grant: RewardGrant)] = [
         (8, .trail(.stardust)),
         (16, .trail(.petals)),
         (24, .character(.nox)),
         (32, .trail(.aurora)),
+        (45, .trail(.nebula)),
+        (60, .character(.misty)),
+        (78, .theme(.dawn)),
+        (96, .skin(.golden)),
     ]
 
     /// Best solo stars per (partner, level) + best co-op stars per level.
@@ -57,7 +72,13 @@ enum MoonshotRewards {
     }
 
     static func isUnlocked(_ character: CharacterID, pool: Int) -> Bool {
-        guard character == .nox else { return true }
-        return grants(pool: pool).contains(.character(.nox))
+        switch character {
+        case .nox, .misty:
+            grants(pool: pool).contains(.character(character))
+        case .mochi, .zip, .twinkle:
+            // Exhaustive on purpose: a future earned character must make a
+            // conscious appearance here, not inherit "always unlocked".
+            true
+        }
     }
 }

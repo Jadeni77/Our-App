@@ -36,4 +36,31 @@ struct CampaignCatalog {
                 && $0.cleared && ($0.mode == .solo || $0.mode == .assist)
         }
     }
+
+    // MARK: Worlds (a2, M24)
+
+    /// Highest world number present (worlds are authored contiguously from 1).
+    var worldCount: Int {
+        levels.map(\.worldNumber).max() ?? 0
+    }
+
+    /// A world's levels in catalog order.
+    func levels(inWorld world: Int) -> [MoonshotLevel] {
+        levels.filter { $0.worldNumber == world }
+    }
+
+    /// The world gate IS the linear rule at the world boundary: world N is
+    /// open exactly when its first level is unlocked (world N−1's final
+    /// level cleared). No second gating mechanism to keep consistent.
+    func isWorldUnlocked(_ world: Int, snapshots: [LevelResultSnapshot], partnerID: String) -> Bool {
+        guard world > 1 else { return true }
+        guard let first = levels(inWorld: world).first,
+              let index = globalIndex(of: first) else { return false }
+        return isUnlocked(index: index, snapshots: snapshots, partnerID: partnerID)
+    }
+
+    /// Index into the flat `levels` order (what `MoonshotGameView` navigates by).
+    func globalIndex(of level: MoonshotLevel) -> Int? {
+        levels.firstIndex { $0.id == level.id }
+    }
 }

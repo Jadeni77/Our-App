@@ -11,6 +11,9 @@ enum AbilityRunner {
         case .zip: dash(sprite, in: scene)
         case .twinkle: split(sprite, in: scene)
         case .nox: gravityWell(sprite, in: scene)
+        case .misty:
+            // Phase lands in the storm PR; until then the tap just shimmers.
+            flashRing(at: sprite.position, in: scene, color: CharacterID.misty.bodyUIColor)
         }
     }
 

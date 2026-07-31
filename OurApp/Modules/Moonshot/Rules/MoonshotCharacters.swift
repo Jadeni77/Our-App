@@ -11,6 +11,7 @@ extension CharacterID {
         case .zip: 14
         case .twinkle: 16
         case .nox: 15
+        case .misty: 15
         }
     }
 
@@ -21,6 +22,7 @@ extension CharacterID {
         case .zip: 1.0
         case .twinkle: 1.0
         case .nox: 1.2
+        case .misty: 0.9   // she's made of mist
         }
     }
 
@@ -32,6 +34,7 @@ extension CharacterID {
         case .zip: "Zip"
         case .twinkle: "Twinkle"
         case .nox: "Nox"
+        case .misty: "Misty"
         }
     }
 }

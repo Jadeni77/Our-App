@@ -3,34 +3,49 @@ import Testing
 @testable import OurApp
 
 struct CampaignCatalogTests {
-    @Test func campaignShipsExactlyTwelveLevels() {
+    @Test func everyPresentWorldShipsExactlyTwelveLevels() {
         let catalog = CampaignCatalog.load()
-        #expect(catalog.levels.count == 12)
-        #expect(Set(catalog.levels.map(\.id)).count == 12)    // unique ids
-        for (index, level) in catalog.levels.enumerated() {
-            #expect(level.kind == .campaign)
-            #expect(!level.glooms.isEmpty, "level \(index + 1) has no glooms")
-            #expect(level.par >= 1 && level.par <= level.queue.count,
-                    "level \(index + 1) par must be honest against its queue")
-            for piece in level.pieces {
-                #expect(piece.x > MoonshotTuning.slingshotX + 100,
-                        "level \(index + 1) builds on top of the slingshot")
+        #expect(Set(catalog.levels.map(\.id)).count == catalog.levels.count)   // unique ids
+        guard catalog.worldCount >= 1 else {
+            Issue.record("the bundle shipped no campaign levels at all")
+            return
+        }
+        for world in 1...catalog.worldCount {
+            let levels = catalog.levels(inWorld: world)
+            #expect(levels.count == 12, "world \(world) must ship exactly 12 levels")
+            for (index, level) in levels.enumerated() {
+                #expect(level.kind == .campaign)
+                #expect(!level.glooms.isEmpty, "W\(world) L\(index + 1) has no glooms")
+                #expect(level.par >= 1 && level.par <= level.queue.count,
+                        "W\(world) L\(index + 1) par must be honest against its queue")
+                for piece in level.pieces {
+                    #expect(piece.x > MoonshotTuning.slingshotX + 100,
+                            "W\(world) L\(index + 1) builds on top of the slingshot")
+                }
             }
         }
     }
 
     @Test func earlyLevelsTeachBeforeTheyMix() {
-        // The teaching arc (M4): 1–3 mochi-only, 4 introduces zip, 7 twinkle.
-        let levels = CampaignCatalog.load().levels
-        guard levels.count == 12 else { return }
-        for level in levels[0...2] {
+        // The teaching arc (M4): W1 1–3 mochi-only, 4 introduces zip, 7 twinkle.
+        let catalog = CampaignCatalog.load()
+        let world1 = catalog.levels(inWorld: 1)
+        guard world1.count == 12 else { return }
+        for level in world1[0...2] {
             #expect(Set(level.queue) == [.mochi])
         }
-        #expect(levels[3].queue.contains(.zip))
-        #expect(levels[6].queue.contains(.twinkle))
-        // Nox never appears in a campaign queue — he's a choice, not a requirement.
-        for level in levels {
+        #expect(world1[3].queue.contains(.zip))
+        #expect(world1[6].queue.contains(.twinkle))
+        // Nox appears in no W1/W2 queue — his requirement debuts in W3 (M21),
+        // where entry mathematically guarantees his 24★ unlock.
+        for level in catalog.levels where level.worldNumber < 3 {
             #expect(!level.queue.contains(.nox))
+        }
+        // Misty appears in NO queue at all (M22): she's pure reward, and her
+        // ability ships as a stub until the storm PR — a queued Misty would
+        // ship a character whose tap does nothing.
+        for level in catalog.levels {
+            #expect(!level.queue.contains(.misty))
         }
     }
 
@@ -41,15 +56,39 @@ struct CampaignCatalogTests {
 
     // The unlock rule is tested against synthetic levels so coverage doesn't
     // wait for the full bundled campaign (review finding on this PR).
-    private func makeCatalog() -> CampaignCatalog {
-        func level() -> MoonshotLevel {
+    private func makeCatalog(worlds: [Int] = [1, 1]) -> CampaignCatalog {
+        func level(world: Int) -> MoonshotLevel {
             MoonshotLevel(schemaVersion: 1, id: UUID(), kind: .campaign, authorID: nil,
                           createdAt: .now, updatedAt: .now, deletedAt: nil, title: nil,
                           par: 1, queue: [.mochi],
                           buildZone: .init(x: 500, y: 0, width: 320, height: 340),
-                          pieces: [], glooms: [.init(x: 600, y: 16)])
+                          pieces: [], glooms: [.init(x: 600, y: 16)],
+                          world: world == 1 ? nil : world)
         }
-        return CampaignCatalog(levels: [level(), level()])
+        return CampaignCatalog(levels: worlds.map(level(world:)))
+    }
+
+    @Test func worldQueriesGroupAndCount() {
+        let catalog = makeCatalog(worlds: [1, 1, 2, 2, 3])
+        #expect(catalog.worldCount == 3)
+        #expect(catalog.levels(inWorld: 2).count == 2)
+        #expect(catalog.levels(inWorld: 1).count == 2)
+    }
+
+    @Test func worldUnlockIsTheLinearRuleAtTheWorldBoundary() {
+        let catalog = makeCatalog(worlds: [1, 1, 2])
+        #expect(catalog.isWorldUnlocked(1, snapshots: [], partnerID: "one"))
+        #expect(!catalog.isWorldUnlocked(2, snapshots: [], partnerID: "one"))
+        let lastOfW1 = catalog.levels(inWorld: 1).last!
+        let cleared = LevelResultSnapshot(partnerID: "one", levelID: lastOfW1.id,
+                                          mode: .solo, cleared: true, bestStars: 1)
+        #expect(catalog.isWorldUnlocked(2, snapshots: [cleared], partnerID: "one"))
+    }
+
+    @Test func globalIndexRoundTrips() {
+        let catalog = makeCatalog(worlds: [1, 1, 2])
+        let level = catalog.levels(inWorld: 2)[0]
+        #expect(catalog.globalIndex(of: level) == 2)
     }
 
     @Test func nextLevelNeedsPreviousClearedByThisPartner() {

@@ -16,6 +16,10 @@ final class MoonshotLevelResult {
     /// Slice (d): the helper's partner id on "cleared — assist" rows (M12).
     var assistedBy: String?
     var updatedAt: Date
+    /// Feat badges (M23) — or-merged like `cleared`; never currency.
+    var featOneFling: Bool = false
+    var featNoAbility: Bool = false
+    var featCleanSweep: Bool = false
 
     init(partnerID: String, levelID: UUID, mode: PlayMode, cleared: Bool, bestStars: Int, bestFlings: Int) {
         id = UUID()
@@ -43,6 +47,8 @@ final class MoonshotLevelResult {
 final class MoonshotCosmeticSetting {
     @Attribute(.unique) var partnerID: String
     var trailRaw: String?
+    var themeRaw: String?
+    var skinRaw: String?
     var updatedAt: Date
 
     init(partnerID: String, trail: TrailID?) {
@@ -55,6 +61,22 @@ final class MoonshotCosmeticSetting {
         get { trailRaw.flatMap(TrailID.init(rawValue:)) }
         set {
             trailRaw = newValue?.rawValue
+            updatedAt = .now
+        }
+    }
+
+    var theme: ConstellationTheme? {
+        get { themeRaw.flatMap(ConstellationTheme.init(rawValue:)) }
+        set {
+            themeRaw = newValue?.rawValue
+            updatedAt = .now
+        }
+    }
+
+    var skin: SlingshotSkin? {
+        get { skinRaw.flatMap(SlingshotSkin.init(rawValue:)) }
+        set {
+            skinRaw = newValue?.rawValue
             updatedAt = .now
         }
     }

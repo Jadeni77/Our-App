@@ -149,6 +149,7 @@ extension CharacterID {
         case .zip: UIColor(red: 0.35, green: 0.76, blue: 0.80, alpha: 1)
         case .twinkle: UIColor(Theme.rose)
         case .nox: UIColor(red: 0.16, green: 0.14, blue: 0.30, alpha: 1)
+        case .misty: UIColor(red: 0.72, green: 0.66, blue: 0.88, alpha: 1)
         }
     }
 }
@@ -253,6 +254,21 @@ final class StarSpriteNode: SKShapeNode {
             ring.lineWidth = 1.5
             addChild(ring)
             addDotEyes(color: .white, spread: 4.5)
+        case .misty:
+            // The mist-star: translucent, drowsy, with a wisp curling above.
+            fillColor = character.bodyUIColor.withAlphaComponent(0.7)
+            strokeColor = UIColor.white.withAlphaComponent(0.75)
+            let wisp = SKShapeNode()
+            let curl = CGMutablePath()
+            curl.move(to: CGPoint(x: -3, y: radius - 2))
+            curl.addQuadCurve(to: CGPoint(x: 6, y: radius + 6),
+                              control: CGPoint(x: 8, y: radius - 1))
+            wisp.path = curl
+            wisp.strokeColor = UIColor.white.withAlphaComponent(0.6)
+            wisp.lineWidth = 1.5
+            wisp.lineCap = .round
+            addChild(wisp)
+            addDotEyes(color: UIColor(white: 0.35, alpha: 1))
         }
     }
 
@@ -347,6 +363,16 @@ enum SpriteFactory {
                 times: [0, 1])
             emitter.particleBirthRate = 70
             emitter.particleLifetime = 0.9
+        case .nebula:
+            emitter.particleColor = UIColor(red: 0.55, green: 0.45, blue: 0.95, alpha: 1)
+            emitter.particleColorSequence = SKKeyframeSequence(
+                keyframeValues: [UIColor(red: 0.55, green: 0.45, blue: 0.95, alpha: 1),
+                                 UIColor(Theme.rose)],
+                times: [0, 1])
+            emitter.particleBirthRate = 55
+            emitter.particleLifetime = 1.1
+            emitter.particleScale = 0.75
+            emitter.particleRotationSpeed = 1.5
         }
         return emitter
     }
@@ -403,6 +429,7 @@ private extension Material {
         case .crystal: UIColor(Theme.glow).withAlphaComponent(0.55)
         case .moonwood: UIColor(red: 0.72, green: 0.55, blue: 0.42, alpha: 1)
         case .meteorstone: UIColor(red: 0.36, green: 0.36, blue: 0.52, alpha: 1)
+        case .cloudfoam: UIColor(red: 0.93, green: 0.94, blue: 0.98, alpha: 0.9)
         case .frame: UIColor(white: 0.25, alpha: 1)
         }
     }
@@ -412,6 +439,7 @@ private extension Material {
         case .crystal: UIColor.white.withAlphaComponent(0.9)
         case .moonwood: UIColor(red: 0.5, green: 0.36, blue: 0.26, alpha: 1)
         case .meteorstone: UIColor(red: 0.22, green: 0.22, blue: 0.36, alpha: 1)
+        case .cloudfoam: UIColor(white: 1, alpha: 0.8)
         case .frame: UIColor(white: 0.1, alpha: 1)
         }
     }

@@ -75,6 +75,14 @@ struct LevelSessionTests {
         #expect(s.currentCharacter == .mochi)
     }
 
+    @Test func abilityUseIsRememberedAcrossFlings() {
+        let s = makeSession(queue: [.mochi, .mochi], glooms: 2)
+        #expect(!s.usedAnyAbility)
+        s.beginAim(); s.fling(); _ = s.tapAbility(); s.flightEnded(); s.settled()
+        #expect(s.usedAnyAbility)          // survives the per-flight reset
+        #expect(!s.abilityUsedThisFlight)  // per-flight flag did reset
+    }
+
     @Test func swapIsRejectedMidFlight() {
         let s = makeSession()
         s.beginAim(); s.fling()
