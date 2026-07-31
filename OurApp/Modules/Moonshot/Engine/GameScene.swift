@@ -339,13 +339,21 @@ extension GameScene: SKPhysicsContactDelegate {
             #if DEBUG
             // Authoring aid: a swallowed above-threshold contact during the
             // grace means the fort is unstable as authored — retune it.
-            if impulse > MoonshotTuning.gloomPopImpulse {
+            if impulse > MoonshotTuning.gloomBruiseImpulse {
                 NSLog("Moonshot: settle grace swallowed impulse %.2f — authored fort unstable?", impulse)
             }
             #endif
             return
         }
         guard impulse > 0 else { return }
+
+        // A launched sprite's first contact ends the trajectory-hint promise:
+        // restore damping so it settles instead of skating (device-pass fix).
+        for case let sprite as StarSpriteNode in [contact.bodyA.node, contact.bodyB.node].compactMap({ $0 })
+        where sprite.launched {
+            sprite.physicsBody?.linearDamping = MoonshotTuning.spriteLandedLinearDamping
+            sprite.physicsBody?.angularDamping = MoonshotTuning.spriteLandedAngularDamping
+        }
         let nodes = [contact.bodyA.node, contact.bodyB.node]
 
         for case let piece as PieceNode in nodes.compactMap({ $0 }) where piece.parent != nil {
@@ -368,7 +376,10 @@ extension GameScene: SKPhysicsContactDelegate {
         }
 
         for case let gloom as GloomNode in nodes.compactMap({ $0 }) {
-            guard impulse > MoonshotTuning.gloomPopImpulse, gloom.physicsBody != nil else { continue }
+            guard gloom.physicsBody != nil else { continue }
+            let hits = GloomDamage.hits(forImpulse: impulse)
+            guard hits > 0 else { continue }
+            guard gloom.applyHits(hits) else { continue }   // bruised, still standing
             gloom.physicsBody = nil
             gloom.run(.sequence([
                 .group([.scale(to: 1.5, duration: 0.15), .fadeOut(withDuration: 0.15)]),

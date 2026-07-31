@@ -15,8 +15,12 @@ enum MoonshotTuning {
     // MARK: Destruction
     /// Divides (impulse − threshold) into HP damage; smaller = more brutal world.
     static let damageScale: Double = 3
-    /// Contact impulse above which a Gloom pops.
-    static let gloomPopImpulse: Double = 1.5
+    /// Gloom toughness (device-pass ruling 2026-07-31: they died to a touch).
+    /// Grazes below bruise do nothing; bruise-to-instant hits cost 1 HP;
+    /// instant and above pops outright — a clean direct hit still one-shots.
+    static let gloomHP = 2
+    static let gloomBruiseImpulse: Double = 3.0
+    static let gloomInstantPopImpulse: Double = 7.0
 
     // MARK: Scene (design canvas — every phone sees this world via aspectFit)
     static let sceneSize = CGSize(width: 840, height: 390)
@@ -84,8 +88,14 @@ enum MoonshotTuning {
     // MARK: Flight & settle detection
     /// A launched sprite is spent after moving slower than spentSpeed for
     /// spentDuration, leaving the world, or flying longer than flightTimeout.
-    static let spriteSpentSpeed: CGFloat = 20
-    static let spriteSpentDuration: TimeInterval = 0.6
+    static let spriteSpentSpeed: CGFloat = 30
+    static let spriteSpentDuration: TimeInterval = 0.5
+    /// Restored on a sprite's FIRST contact: flight runs at zero damping so
+    /// the arc matches the trajectory hint, but after impact the hint has
+    /// kept its promise — without this, sprites skated for seconds
+    /// (device-pass ruling 2026-07-31).
+    static let spriteLandedLinearDamping: CGFloat = 1.2
+    static let spriteLandedAngularDamping: CGFloat = 1.0
     static let flightTimeout: TimeInterval = 6
     /// The world has settled when every dynamic body is slower than
     /// settleSpeed for settleDuration (or the cap expires).

@@ -28,4 +28,18 @@ struct MoonshotMaterialsTests {
         let d = DamageModel.damage(impulse: 6, against: .crystal)
         #expect(d >= Material.crystal.hp)
     }
+
+    @Test func gloomsShrugGrazesBruiseOnSolidHitsPopOnDirectOnes() {
+        // Owners' device-pass ruling: Angry-Birds pigs don't die to a touch.
+        #expect(GloomDamage.hits(forImpulse: MoonshotTuning.gloomBruiseImpulse - 0.1) == 0)
+        #expect(GloomDamage.hits(forImpulse: MoonshotTuning.gloomBruiseImpulse) == 1)
+        #expect(GloomDamage.hits(forImpulse: MoonshotTuning.gloomInstantPopImpulse - 0.1) == 1)
+        #expect(GloomDamage.hits(forImpulse: MoonshotTuning.gloomInstantPopImpulse) == 2)
+    }
+
+    @Test func twoBruisesEqualOneGloom() {
+        #expect(MoonshotTuning.gloomHP == 2)   // the bruise state exists because of this
+        #expect(GloomDamage.hits(forImpulse: MoonshotTuning.gloomBruiseImpulse) * 2
+                >= MoonshotTuning.gloomHP)
+    }
 }

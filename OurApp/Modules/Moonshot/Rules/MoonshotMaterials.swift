@@ -47,6 +47,17 @@ enum DamageModel {
     }
 }
 
+/// Gloom toughness (device-pass ruling: they must not die to a touch).
+/// Returns hit points of damage for a contact impulse: 0 = shrug,
+/// 1 = bruise, 2 = pop outright.
+enum GloomDamage {
+    static func hits(forImpulse impulse: Double) -> Int {
+        if impulse >= MoonshotTuning.gloomInstantPopImpulse { return 2 }
+        if impulse >= MoonshotTuning.gloomBruiseImpulse { return 1 }
+        return 0
+    }
+}
+
 /// What a tapped ability does to damage, kept in Rules so it's testable
 /// without SpriteKit: Zip's dash punches through the brittle tiers, Mochi's
 /// slam hits everything harder.

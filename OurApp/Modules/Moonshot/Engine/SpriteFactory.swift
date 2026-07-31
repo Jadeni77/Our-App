@@ -71,8 +71,42 @@ final class PieceNode: SKSpriteNode {
     }
 }
 
-/// A shadow critter — pop it and its stolen starlight is free.
+/// A shadow critter — tough enough to shrug a graze (device-pass ruling):
+/// bruising hits cost HP and narrow the eyes; a clean hit still one-shots.
 final class GloomNode: SKShapeNode {
+    private(set) var hp = MoonshotTuning.gloomHP
+    private var bruised = false
+
+    /// Applies hit points; true = popped.
+    func applyHits(_ hits: Int) -> Bool {
+        hp -= hits
+        if hp <= 0 { return true }
+        if !bruised {
+            bruised = true
+            showBruise()
+        }
+        return false
+    }
+
+    /// Round eyes become angry slants, plus a crack across the shadow.
+    private func showBruise() {
+        children.filter { $0.name == "gloom-eye" }.forEach { $0.removeFromParent() }
+        for side in [-1.0, 1.0] {
+            let eye = SKShapeNode(rectOf: CGSize(width: 6, height: 2), cornerRadius: 1)
+            eye.fillColor = .white
+            eye.strokeColor = .clear
+            eye.zRotation = side * -0.45
+            eye.position = CGPoint(x: side * 5.5, y: 3)
+            addChild(eye)
+        }
+        let crack = SKShapeNode(rectOf: CGSize(width: 1.4, height: 9), cornerRadius: 0.7)
+        crack.fillColor = UIColor(white: 0.45, alpha: 1)
+        crack.strokeColor = .clear
+        crack.zRotation = 0.5
+        crack.position = CGPoint(x: -6, y: -7)
+        addChild(crack)
+    }
+
     override init() {
         super.init()
         let radius = MoonshotTuning.gloomRadius
@@ -86,6 +120,7 @@ final class GloomNode: SKShapeNode {
             let eye = SKShapeNode(circleOfRadius: 2.6)
             eye.fillColor = .white
             eye.strokeColor = .clear
+            eye.name = "gloom-eye"
             eye.position = CGPoint(x: side * 5.5, y: 3)
             addChild(eye)
         }
