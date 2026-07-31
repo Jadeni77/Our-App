@@ -70,7 +70,7 @@ struct MoonshotGameView: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                     buildLevel(currentIndex)
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                        scene?.debugFling(pull: CGVector(dx: -63, dy: -63))
+                        scene?.debugFling(pull: CGVector(dx: -53, dy: -53))
                     }
                 }
             }
@@ -117,7 +117,7 @@ struct MoonshotGameView: View {
         #if DEBUG
         if arguments.contains("-moonshotAutoFling") {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak newScene] in
-                newScene?.debugFling(pull: CGVector(dx: -63, dy: -63))
+                newScene?.debugFling(pull: CGVector(dx: -53, dy: -53))
             }
             // `-moonshotAbilityDelay 0.5` taps the ability that long after release.
             if let flag = arguments.firstIndex(of: "-moonshotAbilityDelay"),

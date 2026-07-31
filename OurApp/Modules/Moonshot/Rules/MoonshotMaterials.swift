@@ -5,23 +5,28 @@ import Foundation
 /// shrugs off everything but slams and the gravity well, frames never break.
 
 extension Material {
-    /// Hit points in damage units (see `DamageModel`).
+    /// Hit points in damage units (see `DamageModel`). Calibrated at floaty
+    /// gravity (full-pull mochi ≈ 8.6 impulse units, twinkle ≈ 4.8, zip
+    /// ≈ 3.7 with his ×2 dash as the wall-breaker): crystal dies to one
+    /// clean hit from anyone but plain zip, moonwood cracks then breaks on
+    /// the second mochi, meteorstone shrugs off birds entirely — slams
+    /// (≈ 17) and the well are its counters (M7).
     var hp: Double {
         switch self {
         case .crystal: 1
-        case .moonwood: 3
-        case .meteorstone: 8
+        case .moonwood: 3.5
+        case .meteorstone: 7   // two slams, decisively — 6 straddled one-slam-lethal
         case .frame: .infinity
         }
     }
 
-    /// Contact impulses below this do nothing at all — resting weight and
-    /// gentle bumps never chip a wall.
+    /// Contact impulses below this do nothing at all — resting weight,
+    /// gentle bumps, and most cascading debris never chip a wall.
     var impactThreshold: Double {
         switch self {
-        case .crystal: 2
-        case .moonwood: 4
-        case .meteorstone: 9
+        case .crystal: 1.5
+        case .moonwood: 3
+        case .meteorstone: 10
         case .frame: .infinity
         }
     }
@@ -44,6 +49,19 @@ enum DamageModel {
     static func damage(impulse: Double, against material: Material, multiplier: Double = 1) -> Double {
         guard material.impactThreshold.isFinite else { return 0 }
         return max(0, impulse - material.impactThreshold) / MoonshotTuning.damageScale * multiplier
+    }
+}
+
+/// Gloom toughness (device-pass ruling: they must not die to a touch).
+/// Returns hit points of damage for a contact impulse: 0 = shrug,
+/// 1 = bruise, 2 = pop outright.
+enum GloomDamage {
+    static func hits(forImpulse impulse: Double) -> Int {
+        // Full HP at the instant tier: "a clean hit one-shots" must survive
+        // any future gloomHP retune.
+        if impulse >= MoonshotTuning.gloomInstantPopImpulse { return MoonshotTuning.gloomHP }
+        if impulse >= MoonshotTuning.gloomBruiseImpulse { return 1 }
+        return 0
     }
 }
 

@@ -3,17 +3,32 @@ import Testing
 
 struct MoonshotMaterialsTests {
     @Test func impulseBelowThresholdDoesNothing() {
-        #expect(DamageModel.damage(impulse: 1.9, against: .crystal) == 0)
-        #expect(DamageModel.damage(impulse: 8.9, against: .meteorstone) == 0)
+        for material in [Material.crystal, .moonwood, .meteorstone] {
+            #expect(DamageModel.damage(impulse: material.impactThreshold - 0.1, against: material) == 0)
+        }
     }
 
     @Test func damageScalesAboveThreshold() {
-        #expect(DamageModel.damage(impulse: 5, against: .crystal) == 1.0)      // (5-2)/3
-        #expect(DamageModel.damage(impulse: 10, against: .moonwood) == 2.0)    // (10-4)/3
+        // One damageScale worth of impulse over the threshold = exactly 1 HP.
+        for material in [Material.crystal, .moonwood, .meteorstone] {
+            let impulse = material.impactThreshold + MoonshotTuning.damageScale
+            #expect(DamageModel.damage(impulse: impulse, against: material) == 1.0)
+        }
     }
 
     @Test func framesAreInvulnerable() {
         #expect(DamageModel.damage(impulse: 1000, against: .frame) == 0)
+    }
+
+    @Test func theDestructionHierarchyHoldsAtDirectHitStrength() {
+        // A full-pull mochi lands ≈ 8.6 impulse units at floaty gravity:
+        // crystal must die, moonwood must be hurt but survive, and
+        // meteorstone must not care. The teaching arc depends on this.
+        let directHit = 8.6
+        #expect(DamageModel.damage(impulse: directHit, against: .crystal) >= Material.crystal.hp)
+        let woodDamage = DamageModel.damage(impulse: directHit, against: .moonwood)
+        #expect(woodDamage > 0 && woodDamage < Material.moonwood.hp)
+        #expect(DamageModel.damage(impulse: directHit, against: .meteorstone) == 0)
     }
 
     @Test func abilityMultipliers() {
@@ -24,8 +39,19 @@ struct MoonshotMaterialsTests {
         #expect(AbilityEffects.damageMultiplier(for: .twinkle, abilityActive: true, against: .crystal) == 1.0)
     }
 
-    @Test func crystalDiesToOneCleanHit() {
-        let d = DamageModel.damage(impulse: 6, against: .crystal)
-        #expect(d >= Material.crystal.hp)
+    @Test func gloomsShrugGrazesBruiseOnSolidHitsPopOnDirectOnes() {
+        // Owners' device-pass ruling: Angry-Birds pigs don't die to a touch.
+        #expect(GloomDamage.hits(forImpulse: MoonshotTuning.gloomBruiseImpulse - 0.1) == 0)
+        #expect(GloomDamage.hits(forImpulse: MoonshotTuning.gloomBruiseImpulse) == 1)
+        #expect(GloomDamage.hits(forImpulse: MoonshotTuning.gloomInstantPopImpulse - 0.1) == 1)
+        // The one-shot invariant: an instant-tier hit deals full HP,
+        // whatever gloomHP is tuned to.
+        #expect(GloomDamage.hits(forImpulse: MoonshotTuning.gloomInstantPopImpulse)
+                >= MoonshotTuning.gloomHP)
+    }
+
+    @Test func twoBruisesEqualOneGloom() {
+        #expect(GloomDamage.hits(forImpulse: MoonshotTuning.gloomBruiseImpulse) * 2
+                >= MoonshotTuning.gloomHP)
     }
 }
