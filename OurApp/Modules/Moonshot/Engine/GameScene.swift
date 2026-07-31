@@ -17,6 +17,8 @@ enum GameEvent: Equatable {
 final class GameScene: SKScene {
     private let level: MoonshotLevel
     private let showsTrajectoryHint: Bool
+    /// The equipped flight-trail cosmetic, if any (M6 reward).
+    private let trail: TrailID?
     let session: LevelSession
     var onEvent: ((GameEvent) -> Void)?
 
@@ -27,10 +29,12 @@ final class GameScene: SKScene {
     /// All launched, still-live sprites (Split will add siblings in PR 3).
     private(set) var activeSprites: [StarSpriteNode] = []
 
-    init(level: MoonshotLevel, session: LevelSession, showsTrajectoryHint: Bool = false) {
+    init(level: MoonshotLevel, session: LevelSession,
+         showsTrajectoryHint: Bool = false, trail: TrailID? = nil) {
         self.level = level
         self.session = session
         self.showsTrajectoryHint = showsTrajectoryHint
+        self.trail = trail
         super.init(size: MoonshotTuning.sceneSize)
         scaleMode = .aspectFit
     }
@@ -153,8 +157,22 @@ final class GameScene: SKScene {
         AbilityRunner.run(character, sprite: sprite, in: self)
     }
 
+    /// Every flying sprite registers here — split twins included, which is
+    /// how they inherit the equipped trail too.
     func addLaunchedSprite(_ sprite: StarSpriteNode) {
         activeSprites.append(sprite)
+        if let trail {
+            let emitter = SpriteFactory.makeTrail(trail)
+            emitter.targetNode = self
+            sprite.addChild(emitter)
+        }
+    }
+
+    /// The HUD's character-swap path (M6: Nox is a choice): the session
+    /// already vetoes bad phases; reseat so the fork shows the new face.
+    func swapSeatedCharacter(to character: CharacterID) {
+        session.swapCurrentCharacter(to: character)
+        seatNextSprite()
     }
 
     func removeLaunchedSprite(_ sprite: StarSpriteNode) {
@@ -181,7 +199,7 @@ final class GameScene: SKScene {
         sprite.activatePhysics()
         sprite.physicsBody?.velocity = velocity
         sprite.launched = true
-        activeSprites.append(sprite)
+        addLaunchedSprite(sprite)
         seatedSprite = nil
         session.fling()
         onEvent?(.flung)

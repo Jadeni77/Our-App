@@ -132,6 +132,13 @@ struct LocalizationTests {
         #expect(localizedValue("Zip", language: "zh-Hans") == "嗖嗖")
         #expect(localizedValue("Twinkle", language: "zh-Hant") == "雙雙")
         #expect(localizedValue("Nox", language: "zh-Hans") == "洞洞")
+        #expect(localizedValue("Reward track", language: "zh-Hans") == "奖励之路")
+        #expect(localizedValue("Reward track", language: "zh-Hant") == "獎勵之路")
+        #expect(localizedValue("New unlock!", language: "zh-Hans") == "新解锁！")
+        #expect(localizedValue("Stardust", language: "zh-Hant") == "星塵")
+        #expect(localizedValue("Aurora", language: "zh-Hans") == "极光")
+        #expect(localizedValue("Play as %@", language: "zh-Hant") == "讓 %@ 上場")
+        #expect(localizedValue("Level %lld, locked", language: "zh-Hans") == "第 %lld 关，未解锁")
     }
 
     @Test func springboardStringsAreTranslated() {
