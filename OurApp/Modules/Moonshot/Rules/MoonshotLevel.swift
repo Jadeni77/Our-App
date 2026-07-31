@@ -10,7 +10,7 @@ enum CharacterID: String, Codable, CaseIterable {
 }
 
 enum Material: String, Codable, CaseIterable {
-    case crystal, moonwood, meteorstone, frame
+    case crystal, moonwood, meteorstone, cloudfoam, frame
 }
 
 enum PieceShape: String, Codable, CaseIterable {
@@ -138,6 +138,7 @@ extension Material {
         case .crystal: 1
         case .moonwood: 2
         case .meteorstone: 4
+        case .cloudfoam: 3   // bounce is strong 1v1 defense — priced accordingly
         case .frame: 0
         }
     }

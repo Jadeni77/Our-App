@@ -78,7 +78,7 @@ enum SoundBank {
         case .impact(let material), .pieceDestroyed(let material):
             switch material {
             case .crystal: action(named: "impact-crystal")
-            case .moonwood: action(named: "impact-moonwood")
+            case .moonwood, .cloudfoam: action(named: "impact-moonwood")   // boing.caf lands with W2
             case .meteorstone, .frame: action(named: "impact-stone")
             }
         case .gloomPopped:

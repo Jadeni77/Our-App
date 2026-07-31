@@ -30,6 +30,7 @@ struct MoonshotLevelTests {
         #expect(MoonshotLevel.Piece(shape: .square, material: .crystal, x: 0, y: 0, rotation: 0).cost == 1)
         #expect(MoonshotLevel.Piece(shape: .plank, material: .moonwood, x: 0, y: 0, rotation: 0).cost == 4)
         #expect(MoonshotLevel.Piece(shape: .block, material: .meteorstone, x: 0, y: 0, rotation: 0).cost == 16)
+        #expect(MoonshotLevel.Piece(shape: .square, material: .cloudfoam, x: 0, y: 0, rotation: 0).cost == 3)
     }
 
     @Test func totalCostSumsPieces() {

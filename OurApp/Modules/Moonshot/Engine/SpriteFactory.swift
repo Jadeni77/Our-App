@@ -403,6 +403,7 @@ private extension Material {
         case .crystal: UIColor(Theme.glow).withAlphaComponent(0.55)
         case .moonwood: UIColor(red: 0.72, green: 0.55, blue: 0.42, alpha: 1)
         case .meteorstone: UIColor(red: 0.36, green: 0.36, blue: 0.52, alpha: 1)
+        case .cloudfoam: UIColor(red: 0.93, green: 0.94, blue: 0.98, alpha: 0.9)
         case .frame: UIColor(white: 0.25, alpha: 1)
         }
     }
@@ -412,6 +413,7 @@ private extension Material {
         case .crystal: UIColor.white.withAlphaComponent(0.9)
         case .moonwood: UIColor(red: 0.5, green: 0.36, blue: 0.26, alpha: 1)
         case .meteorstone: UIColor(red: 0.22, green: 0.22, blue: 0.36, alpha: 1)
+        case .cloudfoam: UIColor(white: 1, alpha: 0.8)
         case .frame: UIColor(white: 0.1, alpha: 1)
         }
     }

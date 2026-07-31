@@ -16,6 +16,7 @@ extension Material {
         case .crystal: 1
         case .moonwood: 3.5
         case .meteorstone: 7   // two slams, decisively — 6 straddled one-slam-lethal
+        case .cloudfoam: 2     // springy, not invincible: two determined mochis burst it
         case .frame: .infinity
         }
     }
@@ -27,6 +28,7 @@ extension Material {
         case .crystal: 1.5
         case .moonwood: 3
         case .meteorstone: 10
+        case .cloudfoam: 4     // bounces shrug; only solid direct hits wound it
         case .frame: .infinity
         }
     }
@@ -37,7 +39,17 @@ extension Material {
         case .crystal: 0.6
         case .moonwood: 1.0
         case .meteorstone: 1.6
+        case .cloudfoam: 0.4   // it's a cloud
         case .frame: 2.0
+        }
+    }
+
+    /// Body restitution (M20): Cloudfoam is the springboard; everything
+    /// else stays inert so forts don't jitter.
+    var restitution: CGFloat {
+        switch self {
+        case .cloudfoam: 0.85
+        case .crystal, .moonwood, .meteorstone, .frame: 0.05
         }
     }
 }
