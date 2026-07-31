@@ -1,0 +1,41 @@
+import Foundation
+import Testing
+@testable import OurApp
+
+struct MoonshotRewardsTests {
+    private let levelA = UUID(), levelB = UUID()
+
+    private func solo(_ p: String, _ l: UUID, _ stars: Int) -> LevelResultSnapshot {
+        .init(partnerID: p, levelID: l, mode: .solo, cleared: stars > 0, bestStars: stars)
+    }
+
+    @Test func poolSumsBestSoloPerPartnerPerLevel() {
+        let pool = MoonshotRewards.starPool([
+            solo("one", levelA, 2), solo("one", levelA, 3),   // best 3 counts once
+            solo("two", levelA, 1),                            // her card adds too
+            solo("one", levelB, 2),
+        ])
+        #expect(pool == 3 + 1 + 2)
+    }
+
+    @Test func coopBestPoolsPerLevelAndAssistNever() {
+        let pool = MoonshotRewards.starPool([
+            .init(partnerID: "one", levelID: levelA, mode: .coop, cleared: true, bestStars: 2),
+            .init(partnerID: "two", levelID: levelA, mode: .coop, cleared: true, bestStars: 3),
+            .init(partnerID: "two", levelID: levelB, mode: .assist, cleared: true, bestStars: 3),
+        ])
+        #expect(pool == 3)   // coop max for levelA; assist banks nothing even if stars sneak in
+    }
+
+    @Test func grantsAccumulateAtThresholds() {
+        #expect(MoonshotRewards.grants(pool: 7).isEmpty)
+        #expect(MoonshotRewards.grants(pool: 8) == [.trail(.stardust)])
+        #expect(MoonshotRewards.grants(pool: 24) == [.trail(.stardust), .trail(.petals), .character(.nox)])
+    }
+
+    @Test func noxGatesOnPoolOthersNever() {
+        #expect(!MoonshotRewards.isUnlocked(.nox, pool: 23))
+        #expect(MoonshotRewards.isUnlocked(.nox, pool: 24))
+        #expect(MoonshotRewards.isUnlocked(.mochi, pool: 0))
+    }
+}
