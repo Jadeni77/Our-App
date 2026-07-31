@@ -19,6 +19,7 @@ final class GameScene: SKScene {
     private let showsTrajectoryHint: Bool
     /// The equipped flight-trail cosmetic, if any (M6 reward).
     private let trail: TrailID?
+    private let slingshotSkin: SlingshotSkin?
     let session: LevelSession
     var onEvent: ((GameEvent) -> Void)?
 
@@ -37,11 +38,13 @@ final class GameScene: SKScene {
     private(set) var activeSprites: [StarSpriteNode] = []
 
     init(level: MoonshotLevel, session: LevelSession,
-         showsTrajectoryHint: Bool = false, trail: TrailID? = nil) {
+         showsTrajectoryHint: Bool = false, trail: TrailID? = nil,
+         slingshotSkin: SlingshotSkin? = nil) {
         self.level = level
         self.session = session
         self.showsTrajectoryHint = showsTrajectoryHint
         self.trail = trail
+        self.slingshotSkin = slingshotSkin
         super.init(size: MoonshotTuning.sceneSize)
         scaleMode = .aspectFit
     }
@@ -111,7 +114,7 @@ final class GameScene: SKScene {
         #endif
         for zone in windZones { addWindZone(zone) }
 
-        slingshot = SlingshotNode(showsTrajectoryHint: showsTrajectoryHint)
+        slingshot = SlingshotNode(showsTrajectoryHint: showsTrajectoryHint, skin: slingshotSkin)
         slingshot.position = CGPoint(x: MoonshotTuning.slingshotX, y: MoonshotTuning.groundY)
         addChild(slingshot)
         activeSprites.removeAll()

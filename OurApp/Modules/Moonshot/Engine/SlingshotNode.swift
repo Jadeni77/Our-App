@@ -19,13 +19,15 @@ final class SlingshotNode: SKNode {
          CGPoint(x: position.x + 11, y: position.y + MoonshotTuning.slingshotHeight - 8))
     }
 
-    init(showsTrajectoryHint: Bool) {
+    init(showsTrajectoryHint: Bool, skin: SlingshotSkin? = nil) {
         self.showsTrajectoryHint = showsTrajectoryHint
         super.init()
         name = "slingshot"
         zPosition = 5
 
-        let wood = UIColor(red: 0.45, green: 0.32, blue: 0.24, alpha: 1)
+        let wood = skin == .golden
+            ? UIColor(red: 0.85, green: 0.68, blue: 0.28, alpha: 1)
+            : UIColor(red: 0.45, green: 0.32, blue: 0.24, alpha: 1)
         let trunk = SKShapeNode(rectOf: CGSize(width: 8, height: MoonshotTuning.slingshotHeight - 18), cornerRadius: 3)
         trunk.fillColor = wood
         trunk.strokeColor = .clear

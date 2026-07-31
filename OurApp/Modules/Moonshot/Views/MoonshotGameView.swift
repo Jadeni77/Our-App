@@ -23,7 +23,11 @@ struct MoonshotGameView: View {
     @State private var sceneGeneration = 0
     /// Pinned at level build — the pool can't change mid-level, and the HUD
     /// re-evaluates far too often to refetch every result row each time.
-    @State private var noxUnlocked = false
+    @State private var extraCharacters: [CharacterID] = []
+    /// Feats bookkeeping (M23): destroyed-piece count feeds CLEAN SWEEP;
+    /// the earned set lights the win overlay's badges.
+    @State private var destroyedPieces = 0
+    @State private var earnedFeats: Set<Feat> = []
 
     private let catalog = CampaignCatalog.bundled
     #if DEBUG
@@ -58,10 +62,16 @@ struct MoonshotGameView: View {
             recordedOutcome = true
             let store = MoonshotProgressStore(context: modelContext)
             let grantsBefore = MoonshotRewards.grants(pool: store.starPool)
+            earnedFeats = FeatDetector.feats(
+                flingsUsed: session.flingsUsed,
+                usedAnyAbility: session.usedAnyAbility,
+                destructiblePieces: session.level.pieces.filter { $0.material != .frame }.count,
+                destroyedPieces: destroyedPieces)
             store.recordSolo(levelID: session.level.id,
                              cleared: true,
                              stars: stars,
-                             flings: session.flingsUsed)
+                             flings: session.flingsUsed,
+                             feats: earnedFeats)
             let grantsAfter = MoonshotRewards.grants(pool: store.starPool)
             newGrants = grantsAfter.filter { !grantsBefore.contains($0) }
             Haptics.success()
@@ -86,9 +96,14 @@ struct MoonshotGameView: View {
         currentIndex = index
         recordedOutcome = false
         newGrants = []
+        destroyedPieces = 0
+        earnedFeats = []
         sceneGeneration += 1
-        noxUnlocked = MoonshotRewards.isUnlocked(
-            .nox, pool: MoonshotProgressStore(context: modelContext).starPool)
+        let store = MoonshotProgressStore(context: modelContext)
+        let pool = store.starPool
+        extraCharacters = [CharacterID.nox, .misty].filter {
+            MoonshotRewards.isUnlocked($0, pool: pool)
+        }
         var level = catalog.levels[index]
         #if DEBUG
         // `-moonshotQueue zip,twinkle,nox` swaps the loaded level's lineup —
@@ -105,13 +120,16 @@ struct MoonshotGameView: View {
         let newScene = GameScene(level: level,
                                  session: newSession,
                                  showsTrajectoryHint: index < MoonshotTuning.trajectoryHintLevels,
-                                 trail: MoonshotProgressStore(context: modelContext).equippedTrail)
+                                 trail: store.equippedTrail,
+                                 slingshotSkin: store.equippedSkin)
         // Haptics live here, not in the Engine — the scene stays a physics
         // world; the view decides what the hand feels.
         newScene.onEvent = { event in
             switch event {
             case .flung, .gloomPopped: Haptics.tap()
-            case .pieceDestroyed: Haptics.thud()
+            case .pieceDestroyed:
+                destroyedPieces += 1   // CLEAN SWEEP's ledger (M23)
+                Haptics.thud()
             case .impact, .levelWon, .levelFailed: break   // won/failed haptics ride onChange
             }
         }
@@ -175,27 +193,29 @@ struct MoonshotGameView: View {
                     .glassCard(cornerRadius: 18)
                     .accessibilityLabel(Text("Replay"))
 
-                    // Nox is a choice, never a requirement: once the couple
-                    // pool unlocks him, any ready fling can be swapped once.
-                    if noxUnlocked,
-                       session.phase == .ready,
-                       session.currentCharacter != .nox,
-                       !session.usedCharacterSwap {
-                        Button {
-                            Haptics.tap()
-                            scene?.swapSeatedCharacter(to: .nox)
-                        } label: {
-                            HStack(spacing: 5) {
-                                Circle().fill(CharacterID.nox.chipColor)
-                                    .frame(width: 10, height: 10)
-                                Text("Play as \(String(localized: "Nox"))")
+                    // Earned characters are a choice, never a requirement:
+                    // once the couple pool unlocks one, any ready fling can
+                    // be swapped — once per level, whoever it goes to.
+                    if session.phase == .ready, !session.usedCharacterSwap {
+                        ForEach(extraCharacters, id: \.self) { character in
+                            if session.currentCharacter != character {
+                                Button {
+                                    Haptics.tap()
+                                    scene?.swapSeatedCharacter(to: character)
+                                } label: {
+                                    HStack(spacing: 5) {
+                                        Circle().fill(character.chipColor)
+                                            .frame(width: 10, height: 10)
+                                        Text("Play as \(String(localized: String.LocalizationValue(character.displayNameKey)))")
+                                    }
+                                    .font(Theme.display(13))
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                }
+                                .glassCard(cornerRadius: 18)
                             }
-                            .font(Theme.display(13))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
                         }
-                        .glassCard(cornerRadius: 18)
                     }
                 }
                 Spacer()
@@ -227,6 +247,7 @@ struct MoonshotGameView: View {
         case .won(let stars):
             outcomeCard {
                 starRow(stars)
+                featBadges
                 if !newGrants.isEmpty {
                     VStack(spacing: 4) {
                         Text("New unlock!")
@@ -279,6 +300,28 @@ struct MoonshotGameView: View {
         case .theme(.dawn): Text("Dawn veil")
         case .skin(.golden): Text("Golden slingshot")
         }
+    }
+
+    /// The three feat badges (M23) — earned ones glow, the rest wait dim.
+    /// Pure bragging, never currency.
+    private var featBadges: some View {
+        HStack(spacing: 16) {
+            featBadge("hare.fill", Text("One fling"), earned: earnedFeats.contains(.oneFling))
+            featBadge("hand.raised.fill", Text("No ability"), earned: earnedFeats.contains(.noAbility))
+            featBadge("sparkles", Text("Clean sweep"), earned: earnedFeats.contains(.cleanSweep))
+        }
+    }
+
+    private func featBadge(_ icon: String, _ label: Text, earned: Bool) -> some View {
+        VStack(spacing: 3) {
+            Image(systemName: icon)
+                .font(.system(size: 16))
+            label
+                .font(Theme.display(11))
+        }
+        .foregroundStyle(earned ? Theme.glow : Color.white.opacity(0.3))
+        .accessibilityElement(children: .combine)
+        .accessibilityHidden(!earned)
     }
 
     private func starRow(_ stars: Int) -> some View {
