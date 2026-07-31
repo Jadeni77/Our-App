@@ -15,6 +15,12 @@ struct MoonshotGameView: View {
     @State private var session: LevelSession?
     @State private var recordedOutcome = false
     @State private var newGrants: [RewardGrant] = []
+    /// Bumped per rebuild: SpriteView keeps presenting its ORIGINAL scene
+    /// when the scene parameter changes, so Replay/Next level showed the old
+    /// rubble driving a dead session (found on the owners' device pass —
+    /// headless verification could never press Replay). New identity forces
+    /// a fresh SKView that presents the new scene.
+    @State private var sceneGeneration = 0
     /// Pinned at level build — the pool can't change mid-level, and the HUD
     /// re-evaluates far too often to refetch every result row each time.
     @State private var noxUnlocked = false
@@ -29,6 +35,7 @@ struct MoonshotGameView: View {
         ZStack {
             if let scene {
                 SpriteView(scene: scene)
+                    .id(sceneGeneration)
                     .ignoresSafeArea()
             } else {
                 DreamyBackground()
@@ -55,6 +62,19 @@ struct MoonshotGameView: View {
             let grantsAfter = MoonshotRewards.grants(pool: store.starPool)
             newGrants = grantsAfter.filter { !grantsBefore.contains($0) }
             Haptics.success()
+            #if DEBUG
+            // `-moonshotAutoReplay`: after a win, drive the exact rebuild
+            // path the Replay button uses, then fling again — the headless
+            // stand-in for pressing Replay (which simctl can't tap).
+            if ProcessInfo.processInfo.arguments.contains("-moonshotAutoReplay") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    buildLevel(currentIndex)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                        scene?.debugFling(pull: CGVector(dx: -63, dy: -63))
+                    }
+                }
+            }
+            #endif
         }
     }
 
@@ -63,6 +83,7 @@ struct MoonshotGameView: View {
         currentIndex = index
         recordedOutcome = false
         newGrants = []
+        sceneGeneration += 1
         noxUnlocked = MoonshotRewards.isUnlocked(
             .nox, pool: MoonshotProgressStore(context: modelContext).starPool)
         var level = catalog.levels[index]
