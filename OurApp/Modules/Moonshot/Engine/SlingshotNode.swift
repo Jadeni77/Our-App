@@ -126,6 +126,8 @@ final class SlingshotNode: SKNode {
     /// easy to get wrong and the dots land nowhere near the real arc. The
     /// gravity knob is shared with the scene via MoonshotTuning, and launched
     /// sprites fly with zero linearDamping, so the ideal parabola IS the arc.
+    /// Wind zones (M21) are DELIBERATELY ignored: reading the wind and
+    /// correcting against the promise is World 3's skill.
     private func updateTrajectory(from origin: CGPoint, velocity: CGVector) {
         clearTrajectory()
         guard showsTrajectoryHint, let parent else { return }

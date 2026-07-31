@@ -105,6 +105,12 @@ final class GameScene: SKScene {
             worldNode.addChild(SpriteFactory.makeGloom(at: levelPoint(gloom.x, gloom.y)))
         }
 
+        var windZones = level.wind ?? []
+        #if DEBUG
+        if let injected = Self.debugWindZone { windZones.append(injected) }
+        #endif
+        for zone in windZones { addWindZone(zone) }
+
         slingshot = SlingshotNode(showsTrajectoryHint: showsTrajectoryHint)
         slingshot.position = CGPoint(x: MoonshotTuning.slingshotX, y: MoonshotTuning.groundY)
         addChild(slingshot)
@@ -124,6 +130,43 @@ final class GameScene: SKScene {
             self?.isUserInteractionEnabled = true
         }
     }
+
+    /// A constant-force field over the zone rect plus its drifting streaks.
+    /// M21: the field's category is `wind`, which only sprite bodies carry in
+    /// their fieldBitMask — forts and glooms never feel it.
+    private func addWindZone(_ zone: WindZone) {
+        let center = levelPoint(zone.x + zone.width / 2, zone.y + zone.height / 2)
+        let field = SKFieldNode.linearGravityField(
+            withVector: vector_float3(Float(zone.forceX), Float(zone.forceY), 0))
+        field.categoryBitMask = FieldCategory.wind
+        field.region = SKRegion(path: CGPath(
+            rect: CGRect(x: -zone.width / 2, y: -zone.height / 2,
+                         width: zone.width, height: zone.height),
+            transform: nil))
+        field.position = center
+        worldNode.addChild(field)
+
+        let streaks = SpriteFactory.makeWindStreaks(
+            size: CGSize(width: zone.width, height: zone.height),
+            forceX: zone.forceX, forceY: zone.forceY)
+        streaks.position = center
+        worldNode.addChild(streaks)
+    }
+
+    #if DEBUG
+    /// `-moonshotWindZone x,y,w,h,fx,fy` injects a zone into whatever level
+    /// loads — wind can be verified headlessly without shipping a scratch
+    /// level (the world contract test insists on 12 levels per world).
+    private static var debugWindZone: WindZone? {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let flag = arguments.firstIndex(of: "-moonshotWindZone"),
+              arguments.indices.contains(flag + 1) else { return nil }
+        let parts = arguments[flag + 1].split(separator: ",").compactMap(Double.init)
+        guard parts.count == 6 else { return nil }
+        return WindZone(x: parts[0], y: parts[1], width: parts[2], height: parts[3],
+                        forceX: parts[4], forceY: parts[5])
+    }
+    #endif
 
     private(set) var seatedSprite: StarSpriteNode?
 

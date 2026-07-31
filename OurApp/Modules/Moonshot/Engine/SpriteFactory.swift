@@ -9,6 +9,14 @@ enum PhysicsCategory {
     static let ground: UInt32 = 1 << 3
 }
 
+/// Field categories (M21): wind moves ONLY flying sprites — pieces and
+/// glooms mask it out so forts never creep and settle detection stays
+/// untouched. Nox's well hauls everything.
+enum FieldCategory {
+    static let wind: UInt32 = 1 << 0
+    static let well: UInt32 = 1 << 1
+}
+
 /// A structure piece with material HP. Damage crosses two thresholds:
 /// half HP shows the crack overlay once, zero removes the piece.
 final class PieceNode: SKSpriteNode {
@@ -32,6 +40,7 @@ final class PieceNode: SKSpriteNode {
         body.friction = MoonshotTuning.pieceFriction
         body.restitution = piece.material.restitution   // cloudfoam is the springboard (M20)
         body.isDynamic = piece.material != .frame
+        body.fieldBitMask = FieldCategory.well
         body.categoryBitMask = PhysicsCategory.piece
         body.contactTestBitMask = PhysicsCategory.sprite | PhysicsCategory.piece | PhysicsCategory.ground
         physicsBody = body
@@ -132,6 +141,7 @@ final class GloomNode: SKShapeNode {
         // Glooms perch, they don't roll — a ball on a 22pt column top would
         // roll off during the settle and un-author every pillar level.
         body.allowsRotation = false
+        body.fieldBitMask = FieldCategory.well
         body.categoryBitMask = PhysicsCategory.gloom
         body.contactTestBitMask = PhysicsCategory.sprite | PhysicsCategory.piece | PhysicsCategory.ground
         physicsBody = body
@@ -191,6 +201,7 @@ final class StarSpriteNode: SKShapeNode {
         // A full-speed dash moves ~30pt/frame — more than zip's own diameter
         // and any column face. Without CCD he phases through thin walls.
         body.usesPreciseCollisionDetection = true
+        body.fieldBitMask = FieldCategory.wind | FieldCategory.well
         body.categoryBitMask = PhysicsCategory.sprite
         body.contactTestBitMask = PhysicsCategory.piece | PhysicsCategory.gloom | PhysicsCategory.ground
         physicsBody = body
@@ -359,6 +370,27 @@ enum SpriteFactory {
 
     /// The equipped flight trail (M6 reward cosmetics), programmatic —
     /// `targetNode` should be the scene so particles linger behind the arc.
+    /// Drifting streaks that make an invisible wind zone readable (M21):
+    /// particles ride the force direction at a speed that crosses the zone
+    /// in roughly one lifetime.
+    static func makeWindStreaks(size: CGSize, forceX: Double, forceY: Double) -> SKEmitterNode {
+        let emitter = SKEmitterNode()
+        let magnitude = max((forceX * forceX + forceY * forceY).squareRoot(), 0.1)
+        emitter.particleTexture = particleDot
+        emitter.particleBirthRate = 26
+        emitter.particleLifetime = CGFloat(Double(size.width) / (magnitude * 40))
+        emitter.particleSpeed = CGFloat(magnitude * 40)
+        emitter.emissionAngle = CGFloat(atan2(forceY, forceX))
+        emitter.particleAlpha = 0.28
+        emitter.particleScale = 0.4
+        emitter.particleScaleRange = 0.2
+        emitter.particleColor = .white
+        emitter.particleColorBlendFactor = 1
+        emitter.particlePositionRange = CGVector(dx: size.width, dy: size.height)
+        emitter.zPosition = -5
+        return emitter
+    }
+
     static func makeTrail(_ trail: TrailID) -> SKEmitterNode {
         let emitter = SKEmitterNode()
         emitter.particleTexture = particleDot

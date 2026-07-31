@@ -98,6 +98,7 @@ enum AbilityRunner {
         sprite.holdsFlight = true
 
         let field = SKFieldNode.radialGravityField()
+        field.categoryBitMask = FieldCategory.well
         field.strength = MoonshotTuning.wellStrength
         field.falloff = 1
         field.region = SKRegion(radius: MoonshotTuning.wellRadius)
