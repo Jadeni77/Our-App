@@ -43,12 +43,27 @@ func tone(from startHz: Double, to endHz: Double? = nil, duration: Double,
     }
 }
 
+/// Deterministic RNG (SplitMix64): rerunning the script reproduces the
+/// committed bytes exactly, so assets ⇄ generator stay verifiable and a
+/// no-change rerun never churns binary diffs.
+struct SeededRNG: RandomNumberGenerator {
+    private var state: UInt64
+    init(seed: UInt64) { state = seed }
+    mutating func next() -> UInt64 {
+        state &+= 0x9E3779B97F4A7C15
+        var z = state
+        z = (z ^ (z >> 30)) &* 0xBF58476D1CE4E5B9
+        z = (z ^ (z >> 27)) &* 0x94D049BB133111EB
+        return z ^ (z >> 31)
+    }
+}
+
 /// White noise burst with exponential decay and a crude brightness filter
 /// (1 = raw noise; higher = darker, via a simple running average).
 func noise(duration: Double, amplitude: Double = 0.5, decay: Double = 10,
-           smooth: Int = 1) -> [Float] {
+           smooth: Int = 1, seed: UInt64 = 0x5EED) -> [Float] {
     let count = seconds(duration)
-    var rng = SystemRandomNumberGenerator()
+    var rng = SeededRNG(seed: seed)
     var raw = (0..<count).map { _ in Double.random(in: -1...1, using: &rng) }
     if smooth > 1 {
         var window = [Double](repeating: 0, count: smooth)
@@ -119,10 +134,14 @@ try writeCAF("chime", mix(
 
 // Abilities.
 try writeCAF("slam", tone(from: 55, duration: 0.4, amplitude: 0.7, decay: 7), to: out)
-try writeCAF("dash", (0..<seconds(0.3)).map { i in
-    let t = Double(i) / Double(seconds(0.3))
-    return Float(Double.random(in: -1...1) * 0.4 * t * exp(-2 * t))
-}, to: out)
+try writeCAF("dash", { () -> [Float] in
+    var rng = SeededRNG(seed: 0xDA54_2026)
+    let count = seconds(0.3)
+    return (0..<count).map { i in
+        let t = Double(i) / Double(count)
+        return Float(Double.random(in: -1...1, using: &rng) * 0.4 * t * exp(-2 * t))
+    }
+}(), to: out)
 try writeCAF("split", mix(
     tone(from: 600, duration: 0.15, amplitude: 0.4, decay: 12),
     delayed(tone(from: 900, duration: 0.15, amplitude: 0.4, decay: 12), by: 0.06)), to: out)

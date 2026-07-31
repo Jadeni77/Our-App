@@ -9,12 +9,16 @@ final class MoonshotAudio {
     static let shared = MoonshotAudio()
 
     private var ambiencePlayer: AVAudioPlayer?
+    private let ambienceVolume: Float = 0.55   // the device pass's knob
 
     var musicEnabled: Bool {
         get { UserDefaults.standard.object(forKey: "moonshot.music") as? Bool ?? true }
         set {
             UserDefaults.standard.set(newValue, forKey: "moonshot.music")
-            if newValue { startAmbience() } else { stopAmbience() }
+            // Stop-only: the game view is the sole starter — toggling ON at
+            // the home screen must not leak the pad past the module
+            // (review finding: it played app-wide forever).
+            if !newValue { stopAmbience() }
         }
     }
 
@@ -28,7 +32,7 @@ final class MoonshotAudio {
         guard let url = Bundle.main.url(forResource: "ambience", withExtension: "caf") else { return }
         let player = try? AVAudioPlayer(contentsOf: url)
         player?.numberOfLoops = -1   // the 16 s pad is loop-matched by construction
-        player?.volume = 0.55
+        player?.volume = ambienceVolume
         player?.play()
         ambiencePlayer = player
     }
@@ -54,6 +58,18 @@ enum SoundBank {
     }
 
     static let stretch = SKAction.playSoundFileNamed("stretch.caf", waitForCompletion: false)
+
+    /// Build every action up front (scene load), because
+    /// `playSoundFileNamed` reads its file at construction — the first
+    /// mid-flight impact must never pay that cost.
+    static func prewarm() {
+        _ = stretch
+        for material in Material.allCases { _ = action(for: .impact(material)) }
+        _ = action(for: .flung)
+        _ = action(for: .gloomPopped)
+        _ = action(for: .levelWon(stars: 3))
+        for character in CharacterID.allCases { _ = abilityAction(for: character) }
+    }
 
     static func action(for event: GameEvent) -> SKAction? {
         switch event {

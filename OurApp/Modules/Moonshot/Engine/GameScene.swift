@@ -54,6 +54,7 @@ final class GameScene: SKScene {
         // Explicit, from tuning: the trajectory hint samples the same knob.
         physicsWorld.gravity = CGVector(dx: 0, dy: MoonshotTuning.gravityMetersPerSecond)
         buildWorld()
+        SoundBank.prewarm()   // playSoundFileNamed loads at construction — never mid-flight
     }
 
     // MARK: World construction
