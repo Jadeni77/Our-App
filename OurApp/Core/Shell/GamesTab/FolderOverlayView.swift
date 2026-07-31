@@ -29,7 +29,7 @@ struct FolderOverlayView: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.35)
+            Theme.scrim
                 .ignoresSafeArea()
                 .onTapGesture { commitNameAndClose() }
 
@@ -69,9 +69,12 @@ struct FolderOverlayView: View {
                 }
                 .padding(20)
                 .glassCard(cornerRadius: 28)
-                .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("folder")) }
-                    action: { panelFrame = $0 }
             }
+            // "Inside the folder" means the whole folder — name row included:
+            // measured on the VStack (pre-padding), so dropping a member on
+            // the title doesn't read as "drag it out" (post-#14 follow-up).
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("folder")) }
+                action: { panelFrame = $0 }
             .padding(.horizontal, 36)
 
             if let draggedID = jiggle.draggedItem, let location = dragLocation {

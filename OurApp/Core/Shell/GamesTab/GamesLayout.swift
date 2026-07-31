@@ -53,6 +53,13 @@ struct GamesLayout: Codable, Equatable {
         case app(String)        // module id
         case collection(UUID)
         case external(UUID)
+
+        /// Tiles (module or external) can land on things and join
+        /// collections; collections never nest (games-springboard.md).
+        var canJoinCollections: Bool {
+            if case .collection = self { return false }
+            return true
+        }
     }
 
     enum Item: Codable, Equatable, Identifiable {

@@ -65,6 +65,33 @@ struct ITunesSearchTests {
             .contains(URLQueryItem(name: "limit", value: "5")))
     }
 
+    @Test func searchURLCarriesTheStorefrontCountry() throws {
+        let url = try #require(ITunesSearch.searchURL(for: "第五人格", country: "CN"))
+        let components = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false))
+        #expect(try #require(components.queryItems)
+            .contains(URLQueryItem(name: "country", value: "CN")))
+
+        // No region → no parameter; the API then applies its own default.
+        let bare = try #require(ITunesSearch.searchURL(for: "Clash", country: nil))
+        let bareComponents = try #require(URLComponents(url: bare,
+                                                        resolvingAgainstBaseURL: false))
+        let bareItems = try #require(bareComponents.queryItems)
+        #expect(!bareItems.contains { $0.name == "country" })
+    }
+
+    @Test func blankTrackNamesNeverSurviveParsing() {
+        // A titleless result can't be shown in the picker and must never
+        // become a tile's name — sanity-checked at the parse boundary.
+        let json = """
+        {"resultCount":3,"results":[\
+        {"trackName":"  "},\
+        {"trackName":""},\
+        {"trackName":"Real Game"}]}
+        """
+        let results = ITunesSearch.results(from: Data(json.utf8))
+        #expect(results.map(\.trackName) == ["Real Game"])
+    }
+
     @Test func plausibleMatchAcceptsContainmentEitherWay() {
         // The store title often wraps the typed name ("Wild Rift" →
         // "League of Legends: Wild Rift") — and vice versa.

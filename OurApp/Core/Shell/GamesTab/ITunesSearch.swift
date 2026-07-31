@@ -16,7 +16,8 @@ enum ITunesSearch {
         let results: [Result]
     }
 
-    static func searchURL(for name: String, limit: Int = 1) -> URL? {
+    static func searchURL(for name: String, limit: Int = 1,
+                          country: String? = Locale.current.region?.identifier) -> URL? {
         var components = URLComponents()
         components.scheme = "https"
         components.host = "itunes.apple.com"
@@ -26,11 +27,21 @@ enum ITunesSearch {
             URLQueryItem(name: "entity", value: "software"),
             URLQueryItem(name: "limit", value: String(limit)),
         ]
+        // Without a storefront the API defaults to the US: games the owners
+        // know by their local titles can miss entirely (post-#14 follow-up).
+        if let country {
+            components.queryItems?.append(URLQueryItem(name: "country", value: country))
+        }
         return components.url
     }
 
     static func results(from data: Data) -> [Result] {
-        (try? JSONDecoder().decode(Response.self, from: data))?.results ?? []
+        let decoded = (try? JSONDecoder().decode(Response.self, from: data))?.results ?? []
+        // A result with a blank title can't be shown in the picker or become
+        // a tile name — drop it before anything downstream dresses with it.
+        return decoded.filter {
+            !$0.trackName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
     }
 
     static func firstResult(from data: Data) -> Result? {

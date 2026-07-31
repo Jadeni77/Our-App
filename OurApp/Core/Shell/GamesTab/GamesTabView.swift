@@ -313,8 +313,8 @@ struct GamesTabView: View {
                         proxy.frame(in: .named("springboard"))
                     } action: { tileFrames[item.id] = $0 }
                     .opacity(jiggle.draggedItem == item.id ? 0.001 : 1)
-                    .scaleEffect(jiggle.intent == .armedTarget(item.id) ? 1.12 : 1)
-                    .animation(Theme.springy, value: jiggle.intent == .armedTarget(item.id))
+                    .modifier(ArmedTargetHighlight(
+                        armed: jiggle.intent == .armedTarget(item.id)))
                     .accessibilityAddTraits(.isButton)
                     .accessibilityLabel(Text(module.name))
             }
@@ -344,8 +344,8 @@ struct GamesTabView: View {
                         proxy.frame(in: .named("springboard"))
                     } action: { tileFrames[item.id] = $0 }
                     .opacity(jiggle.draggedItem == item.id ? 0.001 : 1)
-                    .scaleEffect(jiggle.intent == .armedTarget(item.id) ? 1.12 : 1)
-                    .animation(Theme.springy, value: jiggle.intent == .armedTarget(item.id))
+                    .modifier(ArmedTargetHighlight(
+                        armed: jiggle.intent == .armedTarget(item.id)))
                     .accessibilityAddTraits(.isButton)
                     .accessibilityLabel(Text(verbatim: external.name))
             }
@@ -363,8 +363,8 @@ struct GamesTabView: View {
                     proxy.frame(in: .named("springboard"))
                 } action: { tileFrames[item.id] = $0 }
                 .opacity(jiggle.draggedItem == item.id ? 0.001 : 1)
-                .scaleEffect(jiggle.intent == .armedTarget(item.id) ? 1.12 : 1)
-                .animation(Theme.springy, value: jiggle.intent == .armedTarget(item.id))
+                .modifier(ArmedTargetHighlight(
+                    armed: jiggle.intent == .armedTarget(item.id)))
                 .accessibilityAddTraits(.isButton)
                 .accessibilityLabel(Text(verbatim: collection.name))
         }
@@ -530,7 +530,11 @@ struct GamesTabView: View {
             switch targetID {
             case .app, .external:
                 guard let targetMember = memberKey(for: targetID) else { return }
-                let name = String(localized: "New collection")
+                // Through the override bundle: a plain String(localized:)
+                // would name the collection in the pre-switch language until
+                // the next launch (post-#14 follow-up).
+                let name = String(localized: "New collection",
+                                  bundle: AppLanguage.currentBundle())
                 if let newID = store.formCollection(target: targetMember,
                                                     dragged: draggedMember,
                                                     named: name) {

@@ -18,6 +18,10 @@ enum Theme {
         endPoint: .bottom
     )
 
+    /// The dimming layer behind overlays (folder zoom, future sheets) — one
+    /// token so every scrim darkens the dream by the same amount.
+    static let scrim = Color.black.opacity(0.35)
+
     // MARK: Motion
     static let springy = Animation.spring(duration: 0.45, bounce: 0.35)
 

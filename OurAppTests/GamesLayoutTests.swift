@@ -22,6 +22,12 @@ struct GamesLayoutTests {
         #expect(decoded == layout)
     }
 
+    @Test func onlyNonCollectionsCanJoinCollections() {
+        #expect(GamesLayout.ItemID.app("a").canJoinCollections)
+        #expect(GamesLayout.ItemID.external(UUID()).canJoinCollections)
+        #expect(!GamesLayout.ItemID.collection(UUID()).canJoinCollections)
+    }
+
     @Test func itemIdentityDistinguishesAppsFromCollections() {
         let collectionID = UUID()
         let item = GamesLayout.Item.collection(

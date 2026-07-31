@@ -16,7 +16,11 @@ final class GamesLayoutStore {
 
     init(modules: [ModuleDescriptor], fileURL: URL = GamesLayoutStore.defaultFileURL()) {
         self.modules = modules
-        self.modulesByID = Dictionary(uniqueKeysWithValues: modules.map { ($0.id, $0) })
+        // First registration wins on a duplicate id — reconcile (S5) already
+        // dedupes tiles by id, and a trap here would mask that guarantee
+        // behind a launch crash (post-#14 follow-up).
+        self.modulesByID = Dictionary(modules.map { ($0.id, $0) },
+                                      uniquingKeysWith: { first, _ in first })
         self.fileURL = fileURL
         let ids = modules.map(\.id)
         var loaded = Self.load(from: fileURL, moduleIDs: ids).reconciled(with: ids)

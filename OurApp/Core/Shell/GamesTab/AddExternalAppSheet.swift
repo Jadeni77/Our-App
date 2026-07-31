@@ -118,8 +118,11 @@ struct AddExternalAppSheet: View {
                     // launch opening the Shortcuts app must not hide it);
                     // it retires only when a real scheme gets verified.
                     if showsShortcutHelp, probeOpened != true || fieldIsShortcutLink {
+                        // Through the override bundle so a mid-session
+                        // language switch reads correctly (see AppLanguage).
                         Text(String(format: String(localized:
-                            "1. Tap Open Shortcuts below — a new shortcut opens.\n2. Add the “Open App” action and choose %1$@.\n3. Tap the title at the top, choose Rename, and paste (“%1$@” is copied — Copy name refreshes it).\n4. Come back and tap Test launch.\n\nSays the shortcut can’t be found? The names don’t match — rename it in Shortcuts, or tap Use a Shortcut instead to start over."),
+                            "1. Tap Open Shortcuts below — a new shortcut opens.\n2. Add the “Open App” action and choose %1$@.\n3. Tap the title at the top, choose Rename, and paste (“%1$@” is copied — Copy name refreshes it).\n4. Come back and tap Test launch.\n\nSays the shortcut can’t be found? The names don’t match — rename it in Shortcuts, or tap Use a Shortcut instead to start over.",
+                            bundle: AppLanguage.currentBundle()),
                             trimmedName))
                             .font(.footnote)
                             .foregroundStyle(.secondary)
