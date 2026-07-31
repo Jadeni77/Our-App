@@ -72,13 +72,34 @@ final class MoonshotProgressStore {
     }
 
     func equipTrail(_ trail: TrailID?) {
-        let row = cosmeticRow() ?? {
+        ensureCosmeticRow().trail = trail
+        try? context.save()
+    }
+
+    var equippedTheme: ConstellationTheme? {
+        cosmeticRow()?.theme
+    }
+
+    func equipTheme(_ theme: ConstellationTheme?) {
+        ensureCosmeticRow().theme = theme
+        try? context.save()
+    }
+
+    var equippedSkin: SlingshotSkin? {
+        cosmeticRow()?.skin
+    }
+
+    func equipSkin(_ skin: SlingshotSkin?) {
+        ensureCosmeticRow().skin = skin
+        try? context.save()
+    }
+
+    private func ensureCosmeticRow() -> MoonshotCosmeticSetting {
+        cosmeticRow() ?? {
             let fresh = MoonshotCosmeticSetting(partnerID: partnerID, trail: nil)
             context.insert(fresh)
             return fresh
         }()
-        row.trail = trail
-        try? context.save()
     }
 
     private func cosmeticRow() -> MoonshotCosmeticSetting? {

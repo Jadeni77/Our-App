@@ -75,4 +75,18 @@ import Testing
         store.equipTrail(.stardust)
         #expect(store.equippedTrail == .stardust)
     }
+
+    @Test func themeAndSkinEquipIndependentlyOfTrail() throws {
+        let fixture = try makeStore()
+        let store = fixture.store
+        store.equipTrail(.aurora)
+        store.equipTheme(.dawn)
+        store.equipSkin(.golden)
+        #expect(store.equippedTrail == .aurora)
+        #expect(store.equippedTheme == .dawn)
+        #expect(store.equippedSkin == .golden)
+        store.equipTheme(nil)
+        #expect(store.equippedTheme == nil)
+        #expect(store.equippedSkin == .golden)
+    }
 }

@@ -47,6 +47,8 @@ final class MoonshotLevelResult {
 final class MoonshotCosmeticSetting {
     @Attribute(.unique) var partnerID: String
     var trailRaw: String?
+    var themeRaw: String?
+    var skinRaw: String?
     var updatedAt: Date
 
     init(partnerID: String, trail: TrailID?) {
@@ -59,6 +61,22 @@ final class MoonshotCosmeticSetting {
         get { trailRaw.flatMap(TrailID.init(rawValue:)) }
         set {
             trailRaw = newValue?.rawValue
+            updatedAt = .now
+        }
+    }
+
+    var theme: ConstellationTheme? {
+        get { themeRaw.flatMap(ConstellationTheme.init(rawValue:)) }
+        set {
+            themeRaw = newValue?.rawValue
+            updatedAt = .now
+        }
+    }
+
+    var skin: SlingshotSkin? {
+        get { skinRaw.flatMap(SlingshotSkin.init(rawValue:)) }
+        set {
+            skinRaw = newValue?.rawValue
             updatedAt = .now
         }
     }
