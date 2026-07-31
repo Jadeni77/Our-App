@@ -294,6 +294,9 @@ struct GamesTabView: View {
         dragLocation = nil
         _ = jiggle.endDrag()
         edgeFlip.reset()
+        // Deliberately does NOT close an open folder: the overlay commits an
+        // in-flight rename from its onChange(of: isEditing) — if Done ever
+        // also closes the folder, that commit must move here first.
     }
 
     @ViewBuilder

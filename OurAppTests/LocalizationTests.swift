@@ -94,9 +94,11 @@ struct LocalizationTests {
 
         defaults.set(AppLanguage.simplifiedChinese.rawValue,
                      forKey: AppLanguage.storageKey)
-        #expect(AppLanguage.currentBundle(defaults)
-            .localizedString(forKey: "New collection", value: nil, table: nil)
-            == "新合集")
+        // The production call form, deliberately: String(localized:bundle:)
+        // resolves via the bundle's preferred localization (it ignores any
+        // locale hint), so the single-lproj bundle IS the mechanism — pin it.
+        #expect(String(localized: "New collection",
+                       bundle: AppLanguage.currentBundle(defaults)) == "新合集")
 
         defaults.set(AppLanguage.system.rawValue, forKey: AppLanguage.storageKey)
         #expect(AppLanguage.currentBundle(defaults) == .main)

@@ -29,7 +29,11 @@ enum ITunesSearch {
         ]
         // Without a storefront the API defaults to the US: games the owners
         // know by their local titles can miss entirely (post-#14 follow-up).
-        if let country {
+        // Only a plausible ISO code goes on the wire — Locale can yield
+        // regions like "419" (Latin America), which the API rejects with an
+        // error payload that would silently zero the whole search.
+        if let country, country.count == 2,
+           country.allSatisfy({ $0.isASCII && $0.isLetter }) {
             components.queryItems?.append(URLQueryItem(name: "country", value: country))
         }
         return components.url
@@ -49,16 +53,24 @@ enum ITunesSearch {
     }
 
     /// Live-picker search: a handful of matches by name. Fails soft to [].
-    static func search(name: String, limit: Int = 5) async -> [Result] {
-        guard let url = searchURL(for: name, limit: limit) else { return [] }
+    static func search(name: String, limit: Int = 5,
+                       country: String? = Locale.current.region?.identifier)
+        async -> [Result] {
+        guard let url = searchURL(for: name, limit: limit, country: country)
+        else { return [] }
         let request = URLRequest(url: url, timeoutInterval: 4)
         guard let (data, _) = try? await URLSession.shared.data(for: request)
         else { return [] }
         return results(from: data)
     }
 
+    /// Enrichment lookup: deliberately storefront-agnostic. A regional
+    /// storefront localizes `trackName` ("Identity V" → "第五人格"), which
+    /// fails `plausibleMatch` against the typed name and strips tiles of
+    /// artwork/store links — the picker shows local titles; matching wants
+    /// the default ones (review ruling, this branch).
     static func lookup(name: String) async -> Result? {
-        await search(name: name, limit: 1).first
+        await search(name: name, limit: 1, country: nil).first
     }
 
     /// Search is fuzzy; dressing a tile with a stranger's artwork isn't ok.

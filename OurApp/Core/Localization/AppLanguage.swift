@@ -6,6 +6,8 @@ import SwiftUI
 /// - Bundle-based lookups (`String(localized:)`, `preferredLocalizations`) and
 ///   system formatters follow the app's `AppleLanguages` default, which
 ///   `applyToBundleDomain()` keeps in sync — fully effective on next launch.
+///   Lookups that must agree with the on-screen language *before* that
+///   relaunch go through `currentBundle()` instead.
 /// When set to `.system`, the app follows the device language AND iOS's
 /// per-app language setting (Settings → OurApp → Language), which writes the
 /// same underlying default.

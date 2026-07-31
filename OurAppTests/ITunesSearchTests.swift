@@ -77,6 +77,14 @@ struct ITunesSearchTests {
                                                         resolvingAgainstBaseURL: false))
         let bareItems = try #require(bareComponents.queryItems)
         #expect(!bareItems.contains { $0.name == "country" })
+
+        // Locale can yield non-ISO regions ("419" = Latin America) that the
+        // API rejects with an error payload — those must stay off the wire.
+        let invalid = try #require(ITunesSearch.searchURL(for: "Clash", country: "419"))
+        let invalidComponents = try #require(URLComponents(url: invalid,
+                                                           resolvingAgainstBaseURL: false))
+        let invalidItems = try #require(invalidComponents.queryItems)
+        #expect(!invalidItems.contains { $0.name == "country" })
     }
 
     @Test func blankTrackNamesNeverSurviveParsing() {

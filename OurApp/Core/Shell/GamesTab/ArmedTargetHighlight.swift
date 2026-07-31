@@ -6,12 +6,15 @@ import SwiftUI
 /// three root tile kinds can't drift apart.
 struct ArmedTargetHighlight: ViewModifier {
     let armed: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
         content
             .scaleEffect(armed ? 1.12 : 1)
             .shadow(color: Theme.glow.opacity(armed ? 0.85 : 0),
                     radius: armed ? 14 : 0)
-            .animation(Theme.springy, value: armed)
+            // The state signal stays under Reduce Motion; only the spring
+            // does not (same contract as Wobble).
+            .animation(reduceMotion ? nil : Theme.springy, value: armed)
     }
 }
