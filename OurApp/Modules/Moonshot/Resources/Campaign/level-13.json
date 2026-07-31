@@ -1,0 +1,42 @@
+{
+  "buildZone": {
+    "height": 340,
+    "width": 370,
+    "x": 470,
+    "y": 0
+  },
+  "createdAt": "2026-07-31T00:00:00Z",
+  "glooms": [
+    {
+      "x": 626,
+      "y": 16
+    }
+  ],
+  "id": "AA000000-0000-4000-8000-000000000013",
+  "kind": "campaign",
+  "par": 1,
+  "pieces": [
+    {
+      "material": "cloudfoam",
+      "rotation": 0,
+      "shape": "plank",
+      "x": 430,
+      "y": 12
+    },
+    {
+      "material": "frame",
+      "rotation": 0,
+      "shape": "plank",
+      "x": 626,
+      "y": 150
+    }
+  ],
+  "queue": [
+    "mochi",
+    "mochi",
+    "mochi"
+  ],
+  "schemaVersion": 1,
+  "updatedAt": "2026-07-31T00:00:00Z",
+  "world": 2
+}
