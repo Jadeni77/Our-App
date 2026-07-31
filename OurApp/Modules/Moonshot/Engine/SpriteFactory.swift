@@ -102,12 +102,28 @@ final class GloomNode: SKShapeNode {
     required init?(coder: NSCoder) { fatalError("unused") }
 }
 
+extension CharacterID {
+    /// The one place a character's body color lives — faces, ability
+    /// effects, and HUD chips all derive from it.
+    var bodyUIColor: UIColor {
+        switch self {
+        case .mochi: UIColor(Theme.glow)
+        case .zip: UIColor(red: 0.35, green: 0.76, blue: 0.80, alpha: 1)
+        case .twinkle: UIColor(Theme.rose)
+        case .nox: UIColor(red: 0.16, green: 0.14, blue: 0.30, alpha: 1)
+        }
+    }
+}
+
 /// A flingable star-sprite. Faces arrive with the characters PR; abilities
 /// set `abilityActive` so contacts read the right damage multiplier.
 final class StarSpriteNode: SKShapeNode {
     let character: CharacterID
     var launched = false
     var abilityActive = false
+    /// True while an ability keeps this sprite "flying" though motionless
+    /// (Nox's well freezes him mid-air) — spent detection skips it.
+    var holdsFlight = false
     /// Flight bookkeeping for spent detection (scene time).
     var launchedAt: TimeInterval?
     var slowSince: TimeInterval?
@@ -115,20 +131,19 @@ final class StarSpriteNode: SKShapeNode {
     init(character: CharacterID) {
         self.character = character
         super.init()
-        let radius = MoonshotTuning.spriteRadius
+        let radius = character.radius
         path = CGPath(ellipseIn: CGRect(x: -radius, y: -radius, width: radius * 2, height: radius * 2), transform: nil)
-        fillColor = UIColor(Theme.glow)
-        strokeColor = UIColor.white.withAlphaComponent(0.9)
         lineWidth = 1.5
         name = "sprite"
+        drawFace()
         // No physics body until launch — the seated sprite is decorative.
     }
 
     required init?(coder: NSCoder) { fatalError("unused") }
 
     func activatePhysics() {
-        let body = SKPhysicsBody(circleOfRadius: MoonshotTuning.spriteRadius)
-        body.density = MoonshotTuning.spriteDensity
+        let body = SKPhysicsBody(circleOfRadius: character.radius)
+        body.density = character.density
         body.friction = MoonshotTuning.spriteFriction
         body.restitution = MoonshotTuning.spriteRestitution
         // Zero air drag: the trajectory hint samples an ideal parabola, and
@@ -137,6 +152,77 @@ final class StarSpriteNode: SKShapeNode {
         body.categoryBitMask = PhysicsCategory.sprite
         body.contactTestBitMask = PhysicsCategory.piece | PhysicsCategory.gloom | PhysicsCategory.ground
         physicsBody = body
+    }
+
+    // MARK: Code-drawn faces (M3 — no image assets, characters renameable)
+
+    private func drawFace() {
+        let radius = character.radius
+        switch character {
+        case .mochi:
+            // The starter: a round pale-gold moon — sleepy eyes and blush.
+            fillColor = character.bodyUIColor
+            strokeColor = UIColor.white.withAlphaComponent(0.9)
+            for side in [-1.0, 1.0] {
+                let eye = SKShapeNode(rectOf: CGSize(width: 6, height: 1.8), cornerRadius: 0.9)
+                eye.fillColor = UIColor(white: 0.25, alpha: 1)
+                eye.strokeColor = .clear
+                eye.position = CGPoint(x: side * 6.5, y: 3)
+                addChild(eye)
+                let blush = SKShapeNode(circleOfRadius: 2.6)
+                blush.fillColor = UIColor(Theme.rose).withAlphaComponent(0.6)
+                blush.strokeColor = .clear
+                blush.position = CGPoint(x: side * 8.5, y: -3.5)
+                addChild(blush)
+            }
+        case .zip:
+            // The comet: teal dart with swept-back tail fins.
+            fillColor = character.bodyUIColor
+            strokeColor = UIColor.white.withAlphaComponent(0.85)
+            for side in [-1.0, 1.0] {
+                let fin = CGMutablePath()
+                fin.move(to: .zero)
+                fin.addLine(to: CGPoint(x: -radius * 0.9, y: side * radius * 0.55))
+                fin.addLine(to: CGPoint(x: -radius * 0.35, y: side * radius * 0.15))
+                fin.closeSubpath()
+                let node = SKShapeNode(path: fin)
+                node.fillColor = fillColor.withAlphaComponent(0.8)
+                node.strokeColor = .clear
+                node.position = CGPoint(x: -radius * 0.55, y: 0)
+                node.zPosition = -1
+                addChild(node)
+            }
+            addDotEyes(color: .white)
+        case .twinkle:
+            // The twins: one warm-pink star with a seam — it splits!
+            fillColor = character.bodyUIColor
+            strokeColor = UIColor.white.withAlphaComponent(0.85)
+            let seam = SKShapeNode(rectOf: CGSize(width: 1.2, height: radius * 1.7))
+            seam.fillColor = UIColor.white.withAlphaComponent(0.65)
+            seam.strokeColor = .clear
+            addChild(seam)
+            addDotEyes(color: UIColor(white: 0.2, alpha: 1), spread: 8.5)
+        case .nox:
+            // The little black hole: deep indigo with an event-horizon ring.
+            fillColor = character.bodyUIColor
+            strokeColor = UIColor.white.withAlphaComponent(0.9)
+            let ring = SKShapeNode(circleOfRadius: radius * 0.55)
+            ring.fillColor = .clear
+            ring.strokeColor = UIColor.white.withAlphaComponent(0.7)
+            ring.lineWidth = 1.5
+            addChild(ring)
+            addDotEyes(color: .white, spread: 4.5)
+        }
+    }
+
+    private func addDotEyes(color: UIColor, spread: CGFloat = 5.5) {
+        for side in [-1.0, 1.0] {
+            let eye = SKShapeNode(circleOfRadius: 2.2)
+            eye.fillColor = color
+            eye.strokeColor = .clear
+            eye.position = CGPoint(x: side * spread, y: 3.5)
+            addChild(eye)
+        }
     }
 }
 

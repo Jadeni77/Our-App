@@ -50,13 +50,30 @@ enum MoonshotTuning {
     static let pieceRestitution: CGFloat = 0.05
     static let gloomDensity: CGFloat = 0.8
     static let gloomFriction: CGFloat = 0.9
-    static let spriteRadius: CGFloat = 16
-    static let spriteDensity: CGFloat = 1.2
+    // Sprite radius/density are per-character (MoonshotCharacters.swift).
     static let spriteFriction: CGFloat = 0.6
     static let spriteRestitution: CGFloat = 0.2
     static let groundFriction: CGFloat = 0.9
     /// Seconds between trajectory-hint dots.
     static let trajectorySampleStep: TimeInterval = 0.11
+
+    // MARK: Abilities (tap-triggered, one per flight)
+    /// Moon Slam: horizontal motion dies, the drop hits this hard.
+    static let slamVerticalVelocity: CGFloat = -1300
+    /// Comet Dash: current speed multiplies by this along the flight line.
+    static let dashSpeedMultiplier: CGFloat = 2.2
+    /// Split: the twins fan out this far either side of the flight line.
+    static let splitAngle: CGFloat = .pi / 15
+    /// Each twin keeps this fraction of the original mass.
+    static let splitMassScale: CGFloat = 0.6
+    /// Twins render (and collide) at this scale of a full twinkle…
+    static let splitTwinScale: CGFloat = 0.8
+    /// …and spawn this far either side of the flight line.
+    static let splitSpawnOffset: CGFloat = 6
+    /// Gravity Well: how long Nox pulls, how hard, and how far.
+    static let wellDuration: TimeInterval = 1.0
+    static let wellStrength: Float = 7
+    static let wellRadius: Float = 220
 
     // MARK: Impulse calibration
     /// SpriteKit's collisionImpulse is kg·m/s (150 pt = 1 m), so real hits

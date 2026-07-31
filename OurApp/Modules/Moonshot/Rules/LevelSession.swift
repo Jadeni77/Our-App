@@ -23,6 +23,8 @@ final class LevelSession {
     /// Head of the queue; nil once exhausted. The head stays current through
     /// the whole flight and is consumed on `settled()`.
     var currentCharacter: CharacterID? { remainingQueue.first }
+    /// What's left to fling, current character first — the HUD renders this.
+    var upcomingCharacters: [CharacterID] { remainingQueue }
     private var remainingQueue: [CharacterID]
 
     init(level: MoonshotLevel) {

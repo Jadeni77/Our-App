@@ -22,6 +22,8 @@ final class GameScene: SKScene {
 
     private var worldNode = SKNode()
     private var slingshot: SlingshotNode!
+    /// False during the post-build settle grace — see buildWorld.
+    private var worldArmed = false
     /// All launched, still-live sprites (Split will add siblings in PR 3).
     private(set) var activeSprites: [StarSpriteNode] = []
 
@@ -97,11 +99,16 @@ final class GameScene: SKScene {
         activeSprites.removeAll()
         seatNextSprite()
 
-        // Freeze the fort for the settle pause so authored stacks can relax
-        // a point or two before anything can disturb them.
-        physicsWorld.speed = 1
+        // The arming grace: SpriteKit's first steps resolve the authored
+        // stack's tiny interpenetrations with enormous contact impulses —
+        // with contacts live, the fort demolishes ITSELF at build time
+        // (found the hard way: worldNode emptied within 0.3 s of building).
+        // Until the world is armed, contacts deal no damage and pop nothing;
+        // input stays locked on the same clock.
+        worldArmed = false
         isUserInteractionEnabled = false
         run(.wait(forDuration: MoonshotTuning.settlePauseAfterBuild)) { [weak self] in
+            self?.worldArmed = true
             self?.isUserInteractionEnabled = true
         }
     }
@@ -132,10 +139,26 @@ final class GameScene: SKScene {
             session.beginAim()
             slingshot.beginPull(at: point)
         case .inFlight:
-            break   // ability tap — arrives with the characters PR
+            tapAbilityNow()
         default:
             break
         }
+    }
+
+    /// One tap per flight (session enforces): route to the flying sprite.
+    private func tapAbilityNow() {
+        guard let character = session.tapAbility(),
+              let sprite = activeSprites.first(where: { $0.character == character }) ?? activeSprites.first
+        else { return }
+        AbilityRunner.run(character, sprite: sprite, in: self)
+    }
+
+    func addLaunchedSprite(_ sprite: StarSpriteNode) {
+        activeSprites.append(sprite)
+    }
+
+    func removeLaunchedSprite(_ sprite: StarSpriteNode) {
+        activeSprites.removeAll { $0 === sprite }
     }
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -168,7 +191,7 @@ final class GameScene: SKScene {
     /// Headless verification: drives the exact aim → pull → hold → release
     /// path the touch handlers use, so screenshots can watch a real fling.
     func debugFling(pull: CGVector, holdFor: TimeInterval = 0.6) {
-        guard session.phase == .ready else { return }
+        guard slingshot != nil, worldArmed, session.phase == .ready else { return }
         session.beginAim()
         let target = CGPoint(x: slingshot.seatPosition.x + pull.dx,
                              y: slingshot.seatPosition.y + pull.dy)
@@ -177,6 +200,11 @@ final class GameScene: SKScene {
         run(.wait(forDuration: holdFor)) { [weak self] in
             self?.finishFling()
         }
+    }
+
+    /// Headless ability tap — the same routing the in-flight touch uses.
+    func debugTapAbility() {
+        tapAbilityNow()
     }
     #endif
 
@@ -205,6 +233,7 @@ final class GameScene: SKScene {
 
     private func trackFlight(at now: TimeInterval) {
         for sprite in activeSprites {
+            if sprite.holdsFlight { continue }   // Nox's well: motionless but not spent
             if sprite.launchedAt == nil { sprite.launchedAt = now }
             let speed = sprite.physicsBody.map {
                 ($0.velocity.dx * $0.velocity.dx + $0.velocity.dy * $0.velocity.dy).squareRoot()
@@ -229,7 +258,8 @@ final class GameScene: SKScene {
         }
     }
 
-    private func spend(_ sprite: StarSpriteNode) {
+    /// Internal so AbilityRunner can retire Nox when the well collapses.
+    func spend(_ sprite: StarSpriteNode) {
         activeSprites.removeAll { $0 === sprite }
         sprite.physicsBody = nil
         sprite.run(.sequence([.fadeOut(withDuration: 0.25), .removeFromParent()]))
@@ -272,6 +302,16 @@ final class GameScene: SKScene {
 extension GameScene: SKPhysicsContactDelegate {
     func didBegin(_ contact: SKPhysicsContact) {
         let impulse = Double(contact.collisionImpulse) * MoonshotTuning.collisionImpulseScale
+        guard worldArmed else {
+            #if DEBUG
+            // Authoring aid: a swallowed above-threshold contact during the
+            // grace means the fort is unstable as authored — retune it.
+            if impulse > MoonshotTuning.gloomPopImpulse {
+                NSLog("Moonshot: settle grace swallowed impulse %.2f — authored fort unstable?", impulse)
+            }
+            #endif
+            return
+        }
         guard impulse > 0 else { return }
         let nodes = [contact.bodyA.node, contact.bodyB.node]
 

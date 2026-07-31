@@ -50,7 +50,18 @@ struct MoonshotGameView: View {
         guard catalog.levels.indices.contains(index) else { return }
         currentIndex = index
         recordedOutcome = false
-        let level = catalog.levels[index]
+        var level = catalog.levels[index]
+        #if DEBUG
+        // `-moonshotQueue zip,twinkle,nox` swaps the loaded level's lineup —
+        // keeps level data honest while letting screenshots exercise any cast.
+        let arguments = ProcessInfo.processInfo.arguments
+        if let flag = arguments.firstIndex(of: "-moonshotQueue"),
+           arguments.indices.contains(flag + 1) {
+            let queue = arguments[flag + 1].split(separator: ",")
+                .compactMap { CharacterID(rawValue: String($0)) }
+            if !queue.isEmpty { level.queue = queue }
+        }
+        #endif
         let newSession = LevelSession(level: level)
         let newScene = GameScene(level: level,
                                  session: newSession,
@@ -58,9 +69,17 @@ struct MoonshotGameView: View {
         session = newSession
         scene = newScene
         #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("-moonshotAutoFling") {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-                newScene.debugFling(pull: CGVector(dx: -63, dy: -63))
+        if arguments.contains("-moonshotAutoFling") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak newScene] in
+                newScene?.debugFling(pull: CGVector(dx: -63, dy: -63))
+            }
+            // `-moonshotAbilityDelay 0.5` taps the ability that long after release.
+            if let flag = arguments.firstIndex(of: "-moonshotAbilityDelay"),
+               arguments.indices.contains(flag + 1),
+               let delay = Double(arguments[flag + 1]) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2 + 0.6 + delay) { [weak newScene] in
+                    newScene?.debugTapAbility()
+                }
             }
         }
         #endif
@@ -104,14 +123,14 @@ struct MoonshotGameView: View {
         }
     }
 
-    /// One dot per sprite still in the queue (the current one glows).
+    /// One dot per sprite still in the queue, wearing its character's color
+    /// (the current one is full-size and bright; the rest wait in line).
     private func queueDots(_ session: LevelSession) -> some View {
-        let remaining = max(session.level.queue.count - session.flingsUsed, 0)
-        return HStack(spacing: 4) {
-            ForEach(0..<remaining, id: \.self) { index in
+        HStack(spacing: 4) {
+            ForEach(Array(session.upcomingCharacters.enumerated()), id: \.offset) { index, character in
                 Circle()
-                    .fill(index == 0 ? Theme.glow : .white.opacity(0.45))
-                    .frame(width: 8, height: 8)
+                    .fill(character.chipColor.opacity(index == 0 ? 1 : 0.5))
+                    .frame(width: index == 0 ? 10 : 8, height: index == 0 ? 10 : 8)
             }
         }
         .accessibilityHidden(true)
@@ -163,6 +182,18 @@ struct MoonshotGameView: View {
             }
         }
         .accessibilityLabel(Text("\(stars) stars"))
+    }
+}
+
+extension CharacterID {
+    /// SwiftUI color for HUD chips, derived from the one Engine palette
+    /// (Views-layer on purpose: Rules stays UI-free). Nox's chip lightens
+    /// his near-black body color — a true-color dot vanishes on glass.
+    var chipColor: Color {
+        switch self {
+        case .nox: Color(red: 0.45, green: 0.42, blue: 0.72)
+        default: Color(bodyUIColor)
+        }
     }
 }
 

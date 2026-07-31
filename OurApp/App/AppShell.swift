@@ -30,12 +30,11 @@ struct AppShell: View {
     /// Headless screenshot path (like -selectGames): mounts a module's host
     /// directly, since simctl can't tap tiles. DEBUG-only via launchArguments.
     @State private var debugModule: ModuleDescriptor?
+    @State private var debugModuleMounted = false
 
     init() {
         _selection = State(initialValue:
             Self.launchArguments.contains("-selectGames") ? .games : .home)
-        _debugModule = State(initialValue:
-            Self.launchArguments.contains("-moonshot") ? MoonshotModule.descriptor : nil)
     }
 
     var body: some View {
@@ -51,6 +50,18 @@ struct AppShell: View {
         .environment(Self.store)
         .environment(Self.artwork)
         .fullScreenCover(item: $debugModule) { ModuleHostView(module: $0) }
+        .onAppear {
+            // Presenting a cover during app startup races UIKit's rotation
+            // machinery (window stays portrait while the status bar turns) —
+            // the tile-tap path never launches this early. Mimic it: mount
+            // the debug module after the shell settles. One-shot: dismissing
+            // the cover re-fires onAppear, and Close must not revolve.
+            guard Self.launchArguments.contains("-moonshot"), !debugModuleMounted else { return }
+            debugModuleMounted = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                debugModule = MoonshotModule.descriptor
+            }
+        }
     }
 
     private static var launchArguments: [String] {
