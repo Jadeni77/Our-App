@@ -68,7 +68,7 @@
       "y": 45
     },
     {
-      "material": "meteorstone",
+      "material": "frame",
       "rotation": 0,
       "shape": "plank",
       "x": 690,
