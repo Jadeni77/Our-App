@@ -24,6 +24,12 @@ struct ModuleHostView: View {
                 .padding(.trailing, 16)
                 .accessibilityLabel(Text("Close"))
             }
+            .onAppear {
+                if module.orientation == .landscape { OrientationGate.enter(.landscape) }
+            }
+            .onDisappear {
+                if module.orientation == .landscape { OrientationGate.exitToPortrait() }
+            }
     }
 }
 
