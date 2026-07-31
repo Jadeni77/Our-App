@@ -147,12 +147,21 @@ final class GameScene: SKScene {
         ((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y)).squareRoot()
     }
 
+    /// The one touch that owns the current aim — a resting palm or second
+    /// finger lifting elsewhere must never release the shot.
+    private weak var aimingTouch: UITouch?
+
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard let point = touches.first?.location(in: self) else { return }
         switch session.phase {
-        case .ready where distance(point, slingshot.seatPosition) <= MoonshotTuning.grabRadius:
+        case .ready:
+            // Set is unordered: with a palm and the thumb landing together,
+            // pick the touch that's actually grabbing, or the grab won't take.
+            guard let touch = touches.first(where: {
+                distance($0.location(in: self), slingshot.seatPosition) <= MoonshotTuning.grabRadius
+            }) else { return }
+            aimingTouch = touch
             session.beginAim()
-            slingshot.beginPull(at: point)
+            slingshot.beginPull()
             run(SoundBank.stretch)
         case .inFlight:
             tapAbilityNow()
@@ -195,12 +204,15 @@ final class GameScene: SKScene {
     }
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard session.phase == .aiming, let point = touches.first?.location(in: self) else { return }
-        slingshot.movePull(to: point)
+        guard session.phase == .aiming,
+              let touch = aimingTouch, touches.contains(touch) else { return }
+        slingshot.movePull(to: touch.location(in: self))
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard session.phase == .aiming else { return }
+        guard session.phase == .aiming,
+              let touch = aimingTouch, touches.contains(touch) else { return }
+        aimingTouch = nil
         finishFling()
     }
 
@@ -225,10 +237,11 @@ final class GameScene: SKScene {
     /// path the touch handlers use, so screenshots can watch a real fling.
     func debugFling(pull: CGVector, holdFor: TimeInterval = 0.6) {
         guard slingshot != nil, worldArmed, session.phase == .ready else { return }
+        aimingTouch = nil   // this aim has no owning touch; handlers must match nothing
         session.beginAim()
         let target = CGPoint(x: slingshot.seatPosition.x + pull.dx,
                              y: slingshot.seatPosition.y + pull.dy)
-        slingshot.beginPull(at: target)
+        slingshot.beginPull()
         slingshot.movePull(to: target)
         run(.wait(forDuration: holdFor)) { [weak self] in
             self?.finishFling()
@@ -242,7 +255,9 @@ final class GameScene: SKScene {
     #endif
 
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard session.phase == .aiming else { return }
+        guard session.phase == .aiming,
+              let touch = aimingTouch, touches.contains(touch) else { return }
+        aimingTouch = nil
         _ = slingshot.endPull()
         seatedSprite.map { slingshot.loadSprite($0) }
         session.cancelAim()

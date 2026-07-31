@@ -26,6 +26,9 @@ struct MoonshotGameView: View {
     @State private var noxUnlocked = false
 
     private let catalog = CampaignCatalog.bundled
+    #if DEBUG
+    @MainActor private static var autoFlingFired = false
+    #endif
 
     init(levelIndex: Int) {
         _currentIndex = State(initialValue: levelIndex)
@@ -115,7 +118,12 @@ struct MoonshotGameView: View {
         session = newSession
         scene = newScene
         #if DEBUG
-        if arguments.contains("-moonshotAutoFling") {
+        // One-shot per app run: the auto-fling exists to drive the FIRST
+        // build of a verification run. Without the latch it re-fired on
+        // every Replay/Next level — ambushing anyone hand-testing the
+        // simulator after a debug launch with ghost flings.
+        if arguments.contains("-moonshotAutoFling"), !Self.autoFlingFired {
+            Self.autoFlingFired = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak newScene] in
                 newScene?.debugFling(pull: CGVector(dx: -53, dy: -53))
             }
