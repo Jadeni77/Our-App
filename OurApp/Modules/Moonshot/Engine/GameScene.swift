@@ -169,9 +169,12 @@ final class GameScene: SKScene {
     }
 
     /// The HUD's character-swap path (M6: Nox is a choice): the session
-    /// already vetoes bad phases; reseat so the fork shows the new face.
+    /// vetoes bad phases — only reseat when the swap actually took, or a
+    /// racing tap could yank a mid-aim sprite out of the player's fingers.
     func swapSeatedCharacter(to character: CharacterID) {
+        let before = session.currentCharacter
         session.swapCurrentCharacter(to: character)
+        guard session.currentCharacter != before else { return }
         seatNextSprite()
     }
 

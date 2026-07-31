@@ -68,13 +68,13 @@ struct MoonshotHomeView: View {
     private func seedStarsIfAsked() {
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
-        guard let flag = arguments.firstIndex(of: "-moonshotSeedStars"),
-              arguments.indices.contains(flag + 1),
-              let target = Int(arguments[flag + 1]) else { return }
         let store = MoonshotProgressStore(context: modelContext)
-        let levels = CampaignCatalog.bundled.levels
-        for level in levels.prefix((target + 2) / 3) {
-            store.recordSolo(levelID: level.id, cleared: true, stars: 3, flings: 1)
+        if let flag = arguments.firstIndex(of: "-moonshotSeedStars"),
+           arguments.indices.contains(flag + 1),
+           let target = Int(arguments[flag + 1]) {
+            for level in CampaignCatalog.bundled.levels.prefix((target + 2) / 3) {
+                store.recordSolo(levelID: level.id, cleared: true, stars: 3, flings: 1)
+            }
         }
         if let flag = arguments.firstIndex(of: "-moonshotEquipTrail"),
            arguments.indices.contains(flag + 1),

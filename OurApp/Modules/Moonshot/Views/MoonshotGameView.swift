@@ -14,6 +14,9 @@ struct MoonshotGameView: View {
     @State private var session: LevelSession?
     @State private var recordedOutcome = false
     @State private var newGrants: [RewardGrant] = []
+    /// Pinned at level build — the pool can't change mid-level, and the HUD
+    /// re-evaluates far too often to refetch every result row each time.
+    @State private var noxUnlocked = false
 
     private let catalog = CampaignCatalog.bundled
 
@@ -55,6 +58,8 @@ struct MoonshotGameView: View {
         currentIndex = index
         recordedOutcome = false
         newGrants = []
+        noxUnlocked = MoonshotRewards.isUnlocked(
+            .nox, pool: MoonshotProgressStore(context: modelContext).starPool)
         var level = catalog.levels[index]
         #if DEBUG
         // `-moonshotQueue zip,twinkle,nox` swaps the loaded level's lineup —
@@ -123,10 +128,10 @@ struct MoonshotGameView: View {
 
                     // Nox is a choice, never a requirement: once the couple
                     // pool unlocks him, any ready fling can be swapped once.
-                    if session.phase == .ready,
+                    if noxUnlocked,
+                       session.phase == .ready,
                        session.currentCharacter != .nox,
-                       !session.usedCharacterSwap,
-                       MoonshotRewards.isUnlocked(.nox, pool: MoonshotProgressStore(context: modelContext).starPool) {
+                       !session.usedCharacterSwap {
                         Button {
                             Haptics.tap()
                             scene?.swapSeatedCharacter(to: .nox)

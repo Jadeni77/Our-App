@@ -511,6 +511,29 @@
         }
       }
     },
+    "Not equipped" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not equipped"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未装备"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未裝備"
+          }
+        }
+      }
+    },
     "Play as %@" : {
       "extractionState" : "manual",
       "localizations" : {

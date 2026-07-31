@@ -31,7 +31,9 @@ struct LevelSelectView: View {
 
                 connectingLines(points)
 
-                ForEach(catalog.levels.indices, id: \.self) { index in
+                // zip: a hypothetical 13th level falls off the map instead
+                // of crashing the index into the 12-point star path.
+                ForEach(Array(zip(catalog.levels.indices, points)), id: \.0) { index, point in
                     let level = catalog.levels[index]
                     let unlocked = catalog.isUnlocked(index: index,
                                                       snapshots: snapshots,
@@ -45,7 +47,7 @@ struct LevelSelectView: View {
                              stars: result?.bestStars ?? 0,
                              unlocked: unlocked,
                              isNext: unlocked && !cleared)
-                        .position(points[index])
+                        .position(point)
                 }
             }
             .padding(24)

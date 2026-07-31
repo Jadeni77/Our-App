@@ -77,7 +77,7 @@ struct RewardTrackView: View {
                         .foregroundStyle(equippedTrail == trail ? Theme.glow : .white.opacity(0.6))
                 }
                 .accessibilityLabel(grantTitle(grant))
-                .accessibilityValue(equippedTrail == trail ? Text("Equipped") : Text("Locked"))
+                .accessibilityValue(equippedTrail == trail ? Text("Equipped") : Text("Not equipped"))
             }
             if case .character = grant, reached {
                 Text("🕳️").font(.system(size: 24))
