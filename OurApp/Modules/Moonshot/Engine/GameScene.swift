@@ -26,6 +26,13 @@ final class GameScene: SKScene {
     private var slingshot: SlingshotNode!
     /// False during the post-build settle grace — see buildWorld.
     private var worldArmed = false
+
+    /// SFX play here (scene-local for latency); the closure is the outside
+    /// world's channel (haptics now, spectating later).
+    private func emit(_ event: GameEvent) {
+        if let action = SoundBank.action(for: event) { run(action) }
+        onEvent?(event)
+    }
     /// All launched, still-live sprites (Split will add siblings in PR 3).
     private(set) var activeSprites: [StarSpriteNode] = []
 
@@ -120,6 +127,9 @@ final class GameScene: SKScene {
     private(set) var seatedSprite: StarSpriteNode?
 
     private func seatNextSprite() {
+        // A HUD tap can land before didMove builds the world (scene created,
+        // SpriteView not yet presented) — nothing to seat into yet.
+        guard slingshot != nil else { return }
         seatedSprite?.removeFromParent()
         seatedSprite = nil
         guard let character = session.currentCharacter else { return }
@@ -142,6 +152,7 @@ final class GameScene: SKScene {
         case .ready where distance(point, slingshot.seatPosition) <= MoonshotTuning.grabRadius:
             session.beginAim()
             slingshot.beginPull(at: point)
+            run(SoundBank.stretch)
         case .inFlight:
             tapAbilityNow()
         default:
@@ -205,7 +216,7 @@ final class GameScene: SKScene {
         addLaunchedSprite(sprite)
         seatedSprite = nil
         session.fling()
-        onEvent?(.flung)
+        emit(.flung)
     }
 
     #if DEBUG
@@ -307,9 +318,9 @@ final class GameScene: SKScene {
         session.settled()
         switch session.phase {
         case .won(let stars):
-            onEvent?(.levelWon(stars: stars))
+            emit(.levelWon(stars: stars))
         case .failed:
-            onEvent?(.levelFailed)
+            emit(.levelFailed)
         case .ready:
             seatNextSprite()
         default:
@@ -344,14 +355,14 @@ extension GameScene: SKPhysicsContactDelegate {
             // a kill is .pieceDestroyed — never both for one contact.
             switch piece.applyDamage(damage) {
             case .intact:
-                onEvent?(.impact(piece.material))
+                emit(.impact(piece.material))
             case .cracked:
                 piece.showCrackOverlay()
-                onEvent?(.impact(piece.material))
+                emit(.impact(piece.material))
             case .destroyed:
                 SpriteFactory.burst(at: piece.position, material: piece.material, in: worldNode)
                 piece.removeFromParent()
-                onEvent?(.pieceDestroyed(piece.material))
+                emit(.pieceDestroyed(piece.material))
             }
         }
 
@@ -363,7 +374,7 @@ extension GameScene: SKPhysicsContactDelegate {
                 .removeFromParent(),
             ]))
             session.gloomPopped()
-            onEvent?(.gloomPopped)
+            emit(.gloomPopped)
         }
     }
 
