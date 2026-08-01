@@ -45,6 +45,13 @@ struct CoachLedgerTests {
         #expect(moments == [.goal, .dragToFling, .worldMechanic(3), .meetCharacter(.nox)])
     }
 
+    @Test func swapAvailableCharactersGetCardsAfterQueueOnes() {
+        let moments = CoachLedger.momentsAtLevelOpen(
+            level: level(queue: [.zip]), swapCharacters: [.nox, .misty],
+            seen: ["goal", "drag", "meet-nox"])
+        #expect(moments == [.meetCharacter(.zip), .meetCharacter(.misty)])
+    }
+
     @Test func abilityCueFiresOnceEver() {
         #expect(CoachLedger.momentInFlight(seen: []) == .abilityTap)
         #expect(CoachLedger.momentInFlight(seen: ["ability"]) == nil)

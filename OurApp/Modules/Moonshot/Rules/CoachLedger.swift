@@ -25,9 +25,13 @@ enum CoachMoment: Equatable {
 enum CoachLedger {
     /// Ordered moments for a level open: goal → drag (first ever), the
     /// world's mechanic banner (worlds 2+, first entry), then one intro
-    /// card per unmet queue member in queue order. Mochi never gets a
-    /// card — goal + drag introduce him.
-    static func momentsAtLevelOpen(level: MoonshotLevel, seen: Set<String>) -> [CoachMoment] {
+    /// card per unmet character — queue members in queue order, then
+    /// swap-available ones (owner amendment 2026-07-31: a player who
+    /// unlocks Nox at 24★ mid-W2 meets him at the chip, not in W3).
+    /// Mochi never gets a card — goal + drag introduce him.
+    static func momentsAtLevelOpen(level: MoonshotLevel,
+                                   swapCharacters: [CharacterID] = [],
+                                   seen: Set<String>) -> [CoachMoment] {
         var moments: [CoachMoment] = []
         if !seen.contains(CoachMoment.goal.storageKey) { moments.append(.goal) }
         if !seen.contains(CoachMoment.dragToFling.storageKey) { moments.append(.dragToFling) }
@@ -36,7 +40,8 @@ enum CoachLedger {
             moments.append(.worldMechanic(level.worldNumber))
         }
         var introduced = Set<CharacterID>()
-        for character in level.queue where character != .mochi && !introduced.contains(character) {
+        for character in level.queue + swapCharacters
+        where character != .mochi && !introduced.contains(character) {
             if !seen.contains(CoachMoment.meetCharacter(character).storageKey) {
                 moments.append(.meetCharacter(character))
                 introduced.insert(character)
