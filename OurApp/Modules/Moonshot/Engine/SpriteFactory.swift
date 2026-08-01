@@ -642,8 +642,9 @@ enum SpriteFactory {
     /// The dreamy sky, rendered once per scene size and world (M28) from
     /// the core gradient — W1 keeps the moonlit violet, W2 drifts pinker
     /// with soft cloud blobs, W3 darkens to storm indigo with faint
-    /// diagonal streaks. Cached — retry and next-level rebuild the scene,
-    /// not the texture. Code-drawn only (principle 9).
+    /// diagonal streaks, W4 goes near-black with watching eyes. Cached —
+    /// retry and next-level rebuild the scene, not the texture.
+    /// Code-drawn only (principle 9).
     static func skyTexture(size: CGSize, world: Int = 1) -> SKTexture {
         let key = "\(size.width)x\(size.height)-w\(world)"
         if let cached = skyTextureCache[key] { return cached }
@@ -651,6 +652,8 @@ enum SpriteFactory {
             let palette: [Color] = switch world {
             case 2: [Theme.violet, Theme.rose, Theme.rose, Theme.peach]
             case 3: [Color(red: 0.13, green: 0.11, blue: 0.28), Theme.indigo, Theme.violet, Theme.rose]
+            case 4: [Color(red: 0.07, green: 0.06, blue: 0.16), Color(red: 0.13, green: 0.11, blue: 0.28),
+                     Theme.indigo, Theme.violet]
             default: [Theme.indigo, Theme.violet, Theme.rose, Theme.peach]
             }
             let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
@@ -689,6 +692,22 @@ enum SpriteFactory {
                     x += size.width / 12
                 }
                 context.cgContext.strokePath()
+            }
+            if world == 4 {
+                // Watching eyes: five barely-there dot pairs in the dark —
+                // the deep is looking back. Alpha 0.06 keeps them subliminal.
+                let eyes: [(x: CGFloat, y: CGFloat)] = [
+                    (0.14, 0.16), (0.38, 0.08), (0.63, 0.20), (0.82, 0.10), (0.50, 0.34),
+                ]
+                UIColor.white.withAlphaComponent(0.06).setFill()
+                for eye in eyes {
+                    for side: CGFloat in [-1, 1] {
+                        let rect = CGRect(x: size.width * eye.x + side * 7 - 3,
+                                          y: size.height * eye.y - 3,
+                                          width: 6, height: 6)
+                        context.cgContext.fillEllipse(in: rect)
+                    }
+                }
             }
         }
         let texture = SKTexture(image: image)

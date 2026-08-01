@@ -237,6 +237,7 @@ struct MoonshotHomeView: View {
         switch world {
         case 2: Text("The Cloudfoam Skies")
         case 3: Text("The Storm Heights")
+        case 4: Text("The Deep Gloom")
         default: Text("The Moonlit Fields")
         }
     }

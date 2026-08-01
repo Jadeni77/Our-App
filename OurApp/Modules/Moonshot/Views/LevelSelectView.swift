@@ -124,6 +124,13 @@ private struct WorldStyle {
             .init(x: 0.56, y: 0.50), .init(x: 0.52, y: 0.72), .init(x: 0.68, y: 0.58),
             .init(x: 0.66, y: 0.80), .init(x: 0.82, y: 0.62), .init(x: 0.90, y: 0.82),
         ]),
+        // A tightening spiral: the path itself descends into the deep.
+        WorldStyle(name: "The Deep Gloom", tint: Color.black.opacity(0.35), points: [
+            .init(x: 0.50, y: 0.30), .init(x: 0.62, y: 0.36), .init(x: 0.66, y: 0.50),
+            .init(x: 0.58, y: 0.62), .init(x: 0.44, y: 0.66), .init(x: 0.32, y: 0.58),
+            .init(x: 0.30, y: 0.44), .init(x: 0.38, y: 0.34), .init(x: 0.50, y: 0.42),
+            .init(x: 0.56, y: 0.50), .init(x: 0.48, y: 0.56), .init(x: 0.42, y: 0.50),
+        ]),
     ]
 }
 

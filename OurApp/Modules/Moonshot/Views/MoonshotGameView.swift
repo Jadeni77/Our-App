@@ -233,6 +233,8 @@ struct MoonshotGameView: View {
         switch moment {
         case .worldMechanic(2):
             Text("Cloudfoam bounces you — aim off the pads")
+        case .worldMechanic(4):
+            Text("The deep glooms fight back — watch their tricks")
         case .worldMechanic:
             Text("Wind bends every arc — trust your read, not the dots")
         case .meetGloom(.shield):

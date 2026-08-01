@@ -2987,6 +2987,52 @@
         }
       }
     },
+    "The Deep Gloom" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Deep Gloom"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "幽影深处"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "幽影深處"
+          }
+        }
+      }
+    },
+    "The deep glooms fight back — watch their tricks" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The deep glooms fight back — watch their tricks"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "深处的阴影会反击——看清它们的招"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "深處的陰影會反擊——看清它們的招"
+          }
+        }
+      }
+    },
     "The glooms giggle. Try again?" : {
       "extractionState" : "manual",
       "localizations" : {
