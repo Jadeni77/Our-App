@@ -35,16 +35,22 @@ final class LevelSession {
         gloomsRemaining = level.glooms.count
     }
 
-    /// One free-choice swap per level (M-design: Nox is a choice, never a
-    /// requirement). The session enforces phase + once-only; whether the
-    /// character is unlocked is the caller's job — Rules doesn't know pools.
-    private(set) var usedCharacterSwap = false
+    /// Swaps repeat while `.ready` (M31: the first pick each level is
+    /// free, moondust prices the rest — pricing is the picker's job,
+    /// Rules doesn't know wallets or pools). Same-character picks are
+    /// no-ops so a mistap never costs dust.
+    private(set) var swapsUsed = 0
 
-    func swapCurrentCharacter(to character: CharacterID) {
-        guard phase == .ready, !usedCharacterSwap,
-              !remainingQueue.isEmpty, remainingQueue[0] != character else { return }
-        usedCharacterSwap = true
+    /// The feats detector's question — did any swap happen at all.
+    var usedCharacterSwap: Bool { swapsUsed > 0 }
+
+    @discardableResult
+    func swapCurrentCharacter(to character: CharacterID) -> Bool {
+        guard phase == .ready,
+              !remainingQueue.isEmpty, remainingQueue[0] != character else { return false }
+        swapsUsed += 1
         remainingQueue[0] = character
+        return true
     }
 
     func beginAim() {

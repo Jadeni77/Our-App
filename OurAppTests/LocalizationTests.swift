@@ -187,6 +187,10 @@ struct LocalizationTests {
         #expect(localizedValue("Unlocks at %lld★", language: "zh-Hant") == "集滿 %lld★ 解鎖")
         #expect(localizedValue("+%lld moondust", language: "zh-Hans") == "月尘 +%lld")
         #expect(localizedValue("+%lld moondust", language: "zh-Hant") == "月塵 +%lld")
+        #expect(localizedValue("Choose your star", language: "zh-Hans") == "选一颗星上场")
+        #expect(localizedValue("Choose your star", language: "zh-Hant") == "選一顆星上場")
+        #expect(localizedValue("Free", language: "zh-Hans") == "免费")
+        #expect(localizedValue("Free", language: "zh-Hant") == "免費")
         #expect(localizedValue("Cloudfoam bounces you — aim off the pads",
                                language: "zh-Hans") == "云绵会把你弹起来——借垫子瞄准")
         #expect(localizedValue("Wind bends every arc — trust your read, not the dots",

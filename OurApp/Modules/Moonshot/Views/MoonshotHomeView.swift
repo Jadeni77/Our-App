@@ -7,6 +7,7 @@ import SwiftData
 struct MoonshotHomeView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var results: [MoonshotLevelResult]
+    @Query private var moondust: [MoonshotMoondustEntry]
     private let catalog = CampaignCatalog.bundled
     private let partnerID = MoonshotProgressStore.devicePartnerID
     /// Headless screenshot paths: `-moonshotLevel N` jumps into level N
@@ -34,6 +35,8 @@ struct MoonshotHomeView: View {
     @State private var musicEnabled = MoonshotAudio.shared.musicEnabled
 
     private var pool: Int { MoonshotRewards.starPool(results.map(\.snapshot)) }
+    /// The couple wallet (M31): both partners' rows, one sum.
+    private var moondustBalance: Int { moondust.reduce(0) { $0 + $1.amount } }
 
     var body: some View {
         NavigationStack {
@@ -72,6 +75,16 @@ struct MoonshotHomeView: View {
                             .font(.caption)
                             .foregroundStyle(.white.opacity(0.75))
                             .multilineTextAlignment(.center)
+                        HStack(spacing: 5) {
+                            MoondustGem()
+                                .fill(Theme.glow)
+                                .frame(width: 12, height: 12)
+                            Text("\(moondustBalance)")
+                                .font(Theme.display(16))
+                                .foregroundStyle(Theme.glow)
+                        }
+                        .accessibilityLabel(Text("Moondust"))
+                        .accessibilityValue(Text("\(moondustBalance)"))
                         NextUnlockStrip(pool: pool)
                         Spacer()
                         Text("Co-op & 1v1 — on the roadmap")

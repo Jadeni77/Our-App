@@ -45,6 +45,11 @@ struct MoonshotGameView: View {
     /// Moondust minted by this run (wreckage + first-clear bonus), for
     /// the win overlay's dust tick (M31).
     @State private var dustEarned = 0
+    /// The fling picker (M31): choose who flies next. The wallet balance
+    /// is snapshotted on open and after each spend — no live query needed
+    /// for a modal moment.
+    @State private var showFlingPicker = false
+    @State private var pickerBalance = 0
 
     private let catalog = CampaignCatalog.bundled
     #if DEBUG
@@ -66,6 +71,7 @@ struct MoonshotGameView: View {
             }
             hud
             coachOverlay
+            flingPickerOverlay
             outcomeOverlay
             if let character = pendingIntroCards.first {
                 CoachCardView(character: character, unlocked: true) {
@@ -190,6 +196,18 @@ struct MoonshotGameView: View {
         scene = newScene
         startCoaching(for: level, scene: newScene, store: store)
         #if DEBUG
+        // `-moonshotSwap zip` swaps the ready fling at open (session-level,
+        // free first pick) and `-moonshotFlingPicker` opens the picker —
+        // together they screenshot the priced state headlessly.
+        if let flag = arguments.firstIndex(of: "-moonshotSwap"),
+           arguments.indices.contains(flag + 1),
+           let character = CharacterID(rawValue: arguments[flag + 1]) {
+            newSession.swapCurrentCharacter(to: character)
+        }
+        if arguments.contains("-moonshotFlingPicker") {
+            pickerBalance = store.moondustBalance()
+            showFlingPicker = true
+        }
         // One-shot per app run: the auto-fling exists to drive the FIRST
         // build of a verification run. Without the latch it re-fired on
         // every Replay/Next level — ambushing anyone hand-testing the
@@ -346,7 +364,18 @@ struct MoonshotGameView: View {
                     HStack(spacing: 10) {
                         Text("W\(session.level.worldNumber) · L\(currentIndex + 1)")
                             .foregroundStyle(.white.opacity(0.7))
-                        queueDots(session)
+                        // The dots are the door to the picker (M31): tap
+                        // to choose who flies — only while ready, the same
+                        // gate the old swap chips had.
+                        Button {
+                            guard session.phase == .ready else { return }
+                            Haptics.tap()
+                            pickerBalance = MoonshotProgressStore(context: modelContext).moondustBalance()
+                            showFlingPicker = true
+                        } label: {
+                            queueDots(session)
+                        }
+                        .accessibilityLabel(Text("Choose your star"))
                         // "Current fling" = the airborne one mid-flight, the
                         // next one when ready (review note from the engine PR).
                         let current = switch session.phase {
@@ -412,30 +441,6 @@ struct MoonshotGameView: View {
                         }
                     }
 
-                    // Earned characters are a choice, never a requirement:
-                    // once the couple pool unlocks one, any ready fling can
-                    // be swapped — once per level, whoever it goes to.
-                    if session.phase == .ready, !session.usedCharacterSwap {
-                        ForEach(extraCharacters, id: \.self) { character in
-                            if session.currentCharacter != character {
-                                Button {
-                                    Haptics.tap()
-                                    scene?.swapSeatedCharacter(to: character)
-                                } label: {
-                                    HStack(spacing: 5) {
-                                        Circle().fill(character.chipColor)
-                                            .frame(width: 10, height: 10)
-                                        Text("Play as \(String(localized: String.LocalizationValue(character.displayNameKey)))")
-                                    }
-                                    .font(Theme.display(13))
-                                    .foregroundStyle(.white)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 8)
-                                }
-                                .glassCard(cornerRadius: 18)
-                            }
-                        }
-                    }
                 }
                 Spacer()
             }
@@ -456,6 +461,115 @@ struct MoonshotGameView: View {
             }
         }
         .accessibilityHidden(true)
+    }
+
+    // MARK: Fling picker (M31)
+
+    /// Choose who flies next: every character, locked ones dimmed with
+    /// their threshold. The first pick each level is free; repeats cost
+    /// moondust. The spend fires only when the session actually swapped —
+    /// a veto (phase changed under the overlay) never charges.
+    @ViewBuilder
+    private var flingPickerOverlay: some View {
+        if showFlingPicker, let session {
+            ZStack {
+                Color.black.opacity(0.35)
+                    .ignoresSafeArea()
+                    .onTapGesture { showFlingPicker = false }
+                VStack(spacing: 16) {
+                    HStack {
+                        Button {
+                            Haptics.tap()
+                            showFlingPicker = false
+                        } label: {
+                            Image(systemName: "chevron.backward")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundStyle(.white)
+                        }
+                        .accessibilityLabel(Text("Back"))
+                        Spacer()
+                        HStack(spacing: 5) {
+                            MoondustGem()
+                                .fill(Theme.glow)
+                                .frame(width: 11, height: 11)
+                            Text("\(pickerBalance)")
+                                .font(Theme.display(14))
+                                .foregroundStyle(Theme.glow)
+                        }
+                    }
+                    Text("Choose your star")
+                        .font(Theme.display(17))
+                        .foregroundStyle(.white)
+                    HStack(alignment: .top, spacing: 14) {
+                        ForEach(CharacterID.allCases, id: \.self) { character in
+                            pickerChoice(character, session: session)
+                        }
+                    }
+                }
+                .padding(22)
+                .glassCard(cornerRadius: 24)
+                .frame(maxWidth: 460)
+            }
+            .transition(reduceMotion ? .opacity : .scale.combined(with: .opacity))
+        }
+    }
+
+    private func pickerChoice(_ character: CharacterID, session: LevelSession) -> some View {
+        let pool = MoonshotProgressStore(context: modelContext).starPool
+        let unlocked = MoonshotRewards.isUnlocked(character, pool: pool)
+        let current = session.currentCharacter == character
+        let priced = session.swapsUsed > 0
+        let affordable = !priced || pickerBalance >= MoonshotTuning.moondustSwapPrice
+        return Button {
+            Haptics.tap()
+            let before = session.swapsUsed
+            scene?.swapSeatedCharacter(to: character)
+            if session.swapsUsed > before, priced {
+                let store = MoonshotProgressStore(context: modelContext)
+                store.spendMoondust(MoonshotTuning.moondustSwapPrice, reason: "swap")
+                pickerBalance = store.moondustBalance()
+            }
+            showFlingPicker = false
+        } label: {
+            VStack(spacing: 6) {
+                Circle()
+                    .fill(character.chipColor.opacity(unlocked ? 1 : 0.35))
+                    .frame(width: 34, height: 34)
+                    .overlay {
+                        if current {
+                            Circle().strokeBorder(.white, lineWidth: 2)
+                        }
+                    }
+                Text(LocalizedStringKey(character.displayNameKey))
+                    .font(Theme.display(12))
+                    .foregroundStyle(.white.opacity(unlocked ? 0.9 : 0.5))
+                if !unlocked, let threshold = MoonshotRewards.track.first(where: {
+                    $0.grant == .character(character)
+                })?.threshold {
+                    Text("\(threshold)★")
+                        .font(.caption2)
+                        .foregroundStyle(Theme.glow.opacity(0.8))
+                } else if current {
+                    Text("—")
+                        .font(.caption2)
+                        .foregroundStyle(.white.opacity(0.5))
+                } else if priced {
+                    HStack(spacing: 3) {
+                        MoondustGem()
+                            .fill(Theme.glow)
+                            .frame(width: 8, height: 8)
+                        Text("\(MoonshotTuning.moondustSwapPrice)")
+                            .font(.caption2)
+                            .foregroundStyle(Theme.glow.opacity(affordable ? 1 : 0.5))
+                    }
+                } else {
+                    Text("Free")
+                        .font(.caption2)
+                        .foregroundStyle(Theme.glow)
+                }
+            }
+        }
+        .disabled(!unlocked || current || !affordable)
     }
 
     // MARK: Win / fail overlays
