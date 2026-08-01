@@ -12,7 +12,7 @@ struct MoonshotHomeView: View {
     /// Headless screenshot paths: `-moonshotLevel N` jumps into level N
     /// (1-based); `-moonshotConstellation` / `-moonshotRewards` open those
     /// screens. DEBUG-only, like the shell's launch args.
-    @State private var debugLevelIndex: Int?
+    @State private var pushedLevelIndex: Int?
     @State private var debugShowConstellation = false
     @State private var debugShowRewards = false
     @State private var debugShowAbilities = false
@@ -23,7 +23,7 @@ struct MoonshotHomeView: View {
         if let flag = arguments.firstIndex(of: "-moonshotLevel"),
            arguments.indices.contains(flag + 1),
            let number = Int(arguments[flag + 1]) {
-            _debugLevelIndex = State(initialValue: number - 1)
+            _pushedLevelIndex = State(initialValue: number - 1)
         }
         _debugShowConstellation = State(initialValue: arguments.contains("-moonshotConstellation"))
         _debugShowRewards = State(initialValue: arguments.contains("-moonshotRewards"))
@@ -92,7 +92,7 @@ struct MoonshotHomeView: View {
                 .padding(.top, 18)
                 .padding(.bottom, 12)
             }
-            .navigationDestination(item: $debugLevelIndex) { index in
+            .navigationDestination(item: $pushedLevelIndex) { index in
                 MoonshotGameView(levelIndex: index)
             }
             .navigationDestination(isPresented: $debugShowConstellation) { LevelSelectView() }
@@ -143,8 +143,14 @@ struct MoonshotHomeView: View {
     private var continueHero: some View {
         let snapshots = results.map(\.snapshot)
         if let index = catalog.nextPlayableIndex(snapshots: snapshots, partnerID: partnerID) {
-            NavigationLink {
-                MoonshotGameView(levelIndex: index)
+            // A Button into the item-driven destination, NOT a NavigationLink:
+            // winning the FINAL level flips this branch while the game is
+            // pushed, and unmounting an active view-destination link pops
+            // the finale's celebration off screen (review finding). The
+            // item is captured at tap and immune to result changes.
+            Button {
+                Haptics.tap()
+                pushedLevelIndex = index
             } label: {
                 HStack(spacing: 14) {
                     Text("🌌").font(.system(size: 32))
@@ -273,4 +279,5 @@ struct MoonshotHomeView: View {
 
 #Preview {
     MoonshotHomeView()
+        .modelContainer(try! Persistence.makeContainer(inMemory: true))
 }
