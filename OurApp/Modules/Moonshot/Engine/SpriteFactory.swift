@@ -230,7 +230,12 @@ final class GloomNode: SKShapeNode {
             setScale(MoonshotTuning.greatGloomScale)
         }
 
-        let body = SKPhysicsBody(circleOfRadius: radius)
+        // The body radius must be spelled out: a body created after
+        // setScale does NOT inherit the node's scale, so the great's
+        // radius-16 body left its 48pt art half-sunk into the floor
+        // (found in the W4 stability sweep — it rested at y≈17, not 48).
+        let bodyRadius = kind == .great ? radius * MoonshotTuning.greatGloomScale : radius
+        let body = SKPhysicsBody(circleOfRadius: bodyRadius)
         body.density = kind == .great ? MoonshotTuning.greatGloomDensity : MoonshotTuning.gloomDensity
         body.friction = MoonshotTuning.gloomFriction
         body.restitution = MoonshotTuning.gloomRestitution
@@ -609,17 +614,18 @@ enum SpriteFactory {
     }
 
     /// Six physicsless shards scattering and fading — destruction feedback
-    /// without particle-emitter machinery.
-    static func burst(at point: CGPoint, material: Material, in parent: SKNode) {
-        for _ in 0..<6 {
-            let shard = SKShapeNode(rectOf: CGSize(width: 5, height: 5), cornerRadius: 1)
+    /// without particle-emitter machinery. `scale` doubles the show for the
+    /// Great Gloom's fall (M29): more shards, bigger, thrown further.
+    static func burst(at point: CGPoint, material: Material, in parent: SKNode, scale: CGFloat = 1) {
+        for _ in 0..<Int(6 * scale) {
+            let shard = SKShapeNode(rectOf: CGSize(width: 5 * scale, height: 5 * scale), cornerRadius: scale)
             shard.fillColor = material.fillColor
             shard.strokeColor = .clear
             shard.position = point
             shard.zPosition = 20
             parent.addChild(shard)
-            let dx = CGFloat.random(in: -70...70)
-            let dy = CGFloat.random(in: 20...110)
+            let dx = CGFloat.random(in: (-70 * scale)...(70 * scale))
+            let dy = CGFloat.random(in: 20...(110 * scale))
             shard.run(.sequence([
                 .group([
                     .moveBy(x: dx, y: dy, duration: 0.4),

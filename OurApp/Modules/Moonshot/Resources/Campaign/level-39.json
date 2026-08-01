@@ -1,0 +1,55 @@
+{
+  "buildZone": {
+    "height": 340,
+    "width": 370,
+    "x": 470,
+    "y": 0
+  },
+  "createdAt": "2026-08-01T00:00:00Z",
+  "glooms": [
+    {
+      "kind": "shield",
+      "x": 630,
+      "y": 16
+    },
+    {
+      "kind": "shield",
+      "x": 690,
+      "y": 16
+    }
+  ],
+  "id": "AA000000-0000-4000-8000-000000000039",
+  "kind": "campaign",
+  "par": 2,
+  "pieces": [
+    {
+      "material": "crystal",
+      "rotation": 0,
+      "shape": "column",
+      "x": 600,
+      "y": 45
+    },
+    {
+      "material": "crystal",
+      "rotation": 0,
+      "shape": "column",
+      "x": 720,
+      "y": 45
+    },
+    {
+      "material": "crystal",
+      "rotation": 0,
+      "shape": "plank",
+      "x": 660,
+      "y": 102
+    }
+  ],
+  "queue": [
+    "zip",
+    "zip",
+    "zip"
+  ],
+  "schemaVersion": 1,
+  "updatedAt": "2026-08-01T00:00:00Z",
+  "world": 4
+}

@@ -386,6 +386,12 @@ final class GameScene: SKScene {
 
     private func pop(_ gloom: GloomNode) {
         gloom.physicsBody = nil
+        // A mountain falls harder: the great alone gets a shard burst,
+        // doubled — its death is the world's climax, not just another pop.
+        if gloom.kind == .great {
+            SpriteFactory.burst(at: gloom.position, material: .meteorstone,
+                                in: worldNode, scale: 2)
+        }
         gloom.run(.sequence([
             // Relative, not absolute: the Great Gloom lives at scale 3 and
             // must SWELL on death, not implode (review finding).
