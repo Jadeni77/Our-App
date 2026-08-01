@@ -187,6 +187,8 @@ struct LocalizationTests {
                                language: "zh-Hans") == "云绵会把你弹起来——借垫子瞄准")
         #expect(localizedValue("Wind bends every arc — trust your read, not the dots",
                                language: "zh-Hant") == "風會吹彎每道弧線——別全信虛線")
+        #expect(localizedValue("Back", language: "zh-Hans") == "返回")
+        #expect(localizedValue("Back", language: "zh-Hant") == "返回")
         #expect(localizedValue("Abilities", language: "zh-Hans") == "技能图鉴")
         #expect(localizedValue("Abilities", language: "zh-Hant") == "技能圖鑑")
         #expect(localizedValue("%lld★ to go", language: "zh-Hans") == "还差 %lld★")
@@ -201,6 +203,15 @@ struct LocalizationTests {
                                language: "zh-Hans") == "我们俩各自的最好成绩会汇在一起——单人和合作都算。")
         #expect(localizedValue("Milestones unlock characters, trails, and looks.",
                                language: "zh-Hant") == "攢到里程碑就解鎖新角色、拖尾和外觀。")
+        #expect(localizedValue("Continue", language: "zh-Hans") == "继续")
+        #expect(localizedValue("Continue", language: "zh-Hant") == "繼續")
+        #expect(localizedValue("All clear — replay your sky", language: "zh-Hans")
+                == "全部通关——回去重温星空吧")
+        #expect(localizedValue("Co-op & 1v1 — on the roadmap", language: "zh-Hant")
+                == "雙人合作與對決——都在路上")
+        #expect(localizedValue("The glooms giggle. Try again?", language: "zh-Hans")
+                == "阴影们在偷笑。再来一次？")
+        #expect(localizedValue("W%lld · L%lld", language: "zh-Hant") == "W%lld · L%lld")
     }
 
     @Test func springboardStringsAreTranslated() {

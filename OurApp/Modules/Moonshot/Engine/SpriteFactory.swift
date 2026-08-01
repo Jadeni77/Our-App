@@ -399,6 +399,42 @@ enum SpriteFactory {
 
     /// The equipped flight trail (M6 reward cosmetics), programmatic —
     /// `targetNode` should be the scene so particles linger behind the arc.
+    /// The last gloom's send-off (M28): a burst of little four-point stars.
+    static func finalSparkle(at point: CGPoint, in parent: SKNode) {
+        for _ in 0..<16 {
+            let star = SKShapeNode(path: starPath(radius: CGFloat.random(in: 4...8)))
+            star.fillColor = UIColor(Theme.glow)
+            star.strokeColor = .clear
+            star.position = point
+            star.zPosition = 12
+            parent.addChild(star)
+            let angle = Double.random(in: 0..<(2 * .pi))
+            let distance = Double.random(in: 40...110)
+            star.run(.sequence([
+                .group([
+                    .move(by: CGVector(dx: Foundation.cos(angle) * distance,
+                                       dy: Foundation.sin(angle) * distance), duration: 0.6),
+                    .rotate(byAngle: .pi, duration: 0.6),
+                    .fadeOut(withDuration: 0.6),
+                ]),
+                .removeFromParent(),
+            ]))
+        }
+    }
+
+    private static func starPath(radius: CGFloat) -> CGPath {
+        let path = CGMutablePath()
+        let inner = radius * 0.4
+        for i in 0..<8 {
+            let r = i.isMultiple(of: 2) ? radius : inner
+            let angle = CGFloat(i) * .pi / 4 - .pi / 2
+            let point = CGPoint(x: Foundation.cos(angle) * r, y: Foundation.sin(angle) * r)
+            if i == 0 { path.move(to: point) } else { path.addLine(to: point) }
+        }
+        path.closeSubpath()
+        return path
+    }
+
     /// Drifting streaks that make an invisible wind zone readable (M21):
     /// particles ride the force direction at a speed that crosses the zone
     /// in roughly one lifetime.

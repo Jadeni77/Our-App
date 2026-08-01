@@ -91,6 +91,21 @@ struct CampaignCatalogTests {
         #expect(catalog.globalIndex(of: level) == 2)
     }
 
+    @Test func nextPlayableIsFirstUnclearedUnlocked() {
+        let catalog = makeCatalog(worlds: [1, 1, 2])
+        #expect(catalog.nextPlayableIndex(snapshots: [], partnerID: "one") == 0)
+        let first = LevelResultSnapshot(partnerID: "one", levelID: catalog.levels[0].id,
+                                        mode: .solo, cleared: true, bestStars: 2)
+        #expect(catalog.nextPlayableIndex(snapshots: [first], partnerID: "one") == 1)
+    }
+
+    @Test func nextPlayableIsNilWhenTheCampaignIsDone() {
+        let catalog = makeCatalog(worlds: [1])
+        let done = LevelResultSnapshot(partnerID: "one", levelID: catalog.levels[0].id,
+                                       mode: .solo, cleared: true, bestStars: 1)
+        #expect(catalog.nextPlayableIndex(snapshots: [done], partnerID: "one") == nil)
+    }
+
     @Test func nextLevelNeedsPreviousClearedByThisPartner() {
         let catalog = makeCatalog()
         let prev = catalog.levels[0].id

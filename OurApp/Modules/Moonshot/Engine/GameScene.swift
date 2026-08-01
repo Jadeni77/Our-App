@@ -378,6 +378,10 @@ final class GameScene: SKScene {
             .removeFromParent(),
         ]))
         session.gloomPopped()
+        if session.gloomsRemaining == 0 {
+            // The last gloom gets a send-off (M28).
+            SpriteFactory.finalSparkle(at: gloom.position, in: worldNode)
+        }
         emit(.gloomPopped)
     }
 

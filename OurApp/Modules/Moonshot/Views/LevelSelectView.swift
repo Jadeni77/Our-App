@@ -14,6 +14,13 @@ struct LevelSelectView: View {
     private let partnerID = MoonshotProgressStore.devicePartnerID
     @State private var world = 1
     @State private var pickedInitialWorld = false
+    /// The home's worlds row lands on a specific page; nil keeps the
+    /// next-playable pick.
+    private let forcedWorld: Int?
+
+    init(initialWorld: Int? = nil) {
+        forcedWorld = initialWorld
+    }
 
     private var dawnVeil: Bool {
         cosmetics.first { $0.partnerID == partnerID }?.theme == .dawn
@@ -60,7 +67,7 @@ struct LevelSelectView: View {
             // and re-picking then would yank the pager mid-browse.
             guard !pickedInitialWorld else { return }
             pickedInitialWorld = true
-            world = firstOpenWorld
+            world = forcedWorld ?? firstOpenWorld
             #if DEBUG
             // `-moonshotWorld N` pins the pager for headless screenshots —
             // swipes can't be scripted through simctl.
@@ -76,21 +83,12 @@ struct LevelSelectView: View {
 
     /// The page a returning player wants: the world holding the next
     /// uncleared level they can actually play (everything cleared → the
-    /// last world, where the campaign currently ends).
+    /// last world, where the campaign currently ends). One rule with the
+    /// home's Continue hero: `nextPlayableIndex`.
     private var firstOpenWorld: Int {
-        let snapshots = results.map(\.snapshot)
-        for index in catalog.levels.indices {
-            let level = catalog.levels[index]
-            let cleared = results.contains {
-                $0.partnerID == partnerID && $0.levelID == level.id
-                    && $0.mode == .solo && $0.cleared
-            }
-            if !cleared,
-               catalog.isUnlocked(index: index, snapshots: snapshots, partnerID: partnerID) {
-                return level.worldNumber
-            }
-        }
-        return max(catalog.worldCount, 1)
+        catalog.nextPlayableIndex(snapshots: results.map(\.snapshot), partnerID: partnerID)
+            .map { catalog.levels[$0].worldNumber }
+            ?? max(catalog.worldCount, 1)
     }
 }
 

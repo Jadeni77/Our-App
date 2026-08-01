@@ -39,6 +39,7 @@ struct MoonshotGameView: View {
     @State private var pendingIntroCards: [CharacterID] = []
     @State private var pendingWorldBanner: Int?
     @State private var showAbilities = false
+    @State private var starsRevealed = false
 
     private let catalog = CampaignCatalog.bundled
     #if DEBUG
@@ -127,6 +128,7 @@ struct MoonshotGameView: View {
         newGrants = []
         destroyedPieces = 0
         earnedFeats = []
+        starsRevealed = false
         sceneGeneration += 1
         let store = MoonshotProgressStore(context: modelContext)
         let pool = store.starPool
@@ -299,6 +301,8 @@ struct MoonshotGameView: View {
             HStack(spacing: 10) {
                 if let session {
                     HStack(spacing: 10) {
+                        Text("W\(session.level.worldNumber) · L\(currentIndex + 1)")
+                            .foregroundStyle(.white.opacity(0.7))
                         queueDots(session)
                         // "Current fling" = the airborne one mid-flight, the
                         // next one when ready (review note from the engine PR).
@@ -347,6 +351,21 @@ struct MoonshotGameView: View {
                     .sheet(isPresented: $showAbilities) {
                         NavigationStack {
                             AbilityDashboardView(initial: session.currentCharacter ?? .mochi)
+                                // Sheets get no system back — supply the
+                                // same "‹" at the same top-left spot.
+                                .toolbar {
+                                    ToolbarItem(placement: .topBarLeading) {
+                                        Button {
+                                            Haptics.tap()
+                                            showAbilities = false
+                                        } label: {
+                                            Image(systemName: "chevron.backward")
+                                                .font(.system(size: 17, weight: .semibold))
+                                                .foregroundStyle(.white)
+                                        }
+                                        .accessibilityLabel(Text("Back"))
+                                    }
+                                }
                         }
                     }
 
@@ -442,6 +461,9 @@ struct MoonshotGameView: View {
             outcomeCard {
                 Text("😵‍💫").font(.system(size: 40))
                     .accessibilityLabel(Text("Level failed"))
+                Text("The glooms giggle. Try again?")
+                    .font(Theme.display(15))
+                    .foregroundStyle(.white.opacity(0.85))
                 Button { buildLevel(currentIndex) } label: { Text("Try again") }
                     .buttonStyle(MoonshotOverlayButton(prominent: true))
             }
@@ -546,12 +568,28 @@ struct MoonshotGameView: View {
         .accessibilityHidden(!earned)
     }
 
+    /// Stars pop in one after another, a haptic tick each (M28); Reduce
+    /// Motion shows them settled.
     private func starRow(_ stars: Int) -> some View {
         HStack(spacing: 8) {
             ForEach(0..<3) { i in
                 Image(systemName: i < stars ? "star.fill" : "star")
                     .font(.system(size: 30))
                     .foregroundStyle(i < stars ? Color.yellow : .white.opacity(0.4))
+                    .scaleEffect(starsRevealed || reduceMotion ? 1 : 0.2)
+                    .opacity(starsRevealed || reduceMotion ? 1 : 0)
+                    .animation(reduceMotion ? nil
+                               : .spring(duration: 0.3).delay(Double(i) * 0.15),
+                               value: starsRevealed)
+            }
+        }
+        .onAppear {
+            starsRevealed = true
+            guard !reduceMotion else { return }
+            for i in 0..<stars {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15 + Double(i) * 0.15) {
+                    Haptics.tap()
+                }
             }
         }
         .accessibilityLabel(Text("\(stars) stars"))

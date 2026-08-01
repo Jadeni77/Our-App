@@ -52,6 +52,9 @@ struct AbilityDashboardView: View {
         }
         .navigationTitle(Text("Abilities"))
         .navigationBarTitleDisplayMode(.inline)
+        // One back affordance, the standard "‹", everywhere (owner ruling
+        // 2026-08-01): the home push gets it from the system; the in-game
+        // sheet supplies its own at the SAME spot (see MoonshotGameView).
     }
 
     private func characterPick(_ character: CharacterID) -> some View {
