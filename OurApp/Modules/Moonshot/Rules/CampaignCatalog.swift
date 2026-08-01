@@ -63,4 +63,16 @@ struct CampaignCatalog {
     func globalIndex(of level: MoonshotLevel) -> Int? {
         levels.firstIndex { $0.id == level.id }
     }
+
+    /// Where "Continue" points (M27): the first level this partner hasn't
+    /// cleared solo but CAN play. Nil once the campaign is finished.
+    func nextPlayableIndex(snapshots: [LevelResultSnapshot], partnerID: String) -> Int? {
+        levels.indices.first { index in
+            let cleared = snapshots.contains {
+                $0.partnerID == partnerID && $0.levelID == levels[index].id
+                    && $0.mode == .solo && $0.cleared
+            }
+            return !cleared && isUnlocked(index: index, snapshots: snapshots, partnerID: partnerID)
+        }
+    }
 }
