@@ -517,7 +517,12 @@ extension GameScene: SKPhysicsContactDelegate {
         // contact, idempotently — which also re-damps after an ability
         // zeroed it for a post-bounce boost. Above the impulse guard on
         // purpose: a zero-impulse skim must still end the free slide.
-        for case let sprite as StarSpriteNode in nodes.compactMap({ $0 }) where sprite.launched {
+        // A brush with vapor is the one exception (review finding): the
+        // intangible mist must not brake a flight in open air — or count
+        // as a landing that baits hoppers.
+        let brushesMist = nodes.contains { ($0 as? GloomNode)?.kind == .mist }
+        for case let sprite as StarSpriteNode in nodes.compactMap({ $0 })
+        where sprite.launched && !brushesMist {
             sprite.physicsBody?.linearDamping = MoonshotTuning.spriteLandedLinearDamping
             sprite.physicsBody?.angularDamping = MoonshotTuning.spriteLandedAngularDamping
             hopGloomsNear(sprite.position)
@@ -568,6 +573,14 @@ extension GameScene: SKPhysicsContactDelegate {
 
         for case let gloom as GloomNode in nodes.compactMap({ $0 }) {
             guard gloom.physicsBody != nil, gloom.kind != .mist else { continue }
+            // A hop's own ground landing is forgiven — the dodge must not
+            // cost HP (review finding). Landing on wreckage still hurts:
+            // baiting a hopper onto rubble IS the punish.
+            if gloom.hopping,
+               nodes.contains(where: { $0?.physicsBody?.categoryBitMask == PhysicsCategory.ground }) {
+                gloom.hopping = false
+                continue
+            }
             let hits = GloomDamage.hits(forImpulse: impulse,
                                         kind: gloom.kind,
                                         abilityActive: abilityContact)

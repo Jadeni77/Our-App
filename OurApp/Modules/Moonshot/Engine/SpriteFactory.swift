@@ -101,6 +101,11 @@ final class GloomNode: SKShapeNode {
     private var shellDome: SKShapeNode?
     /// Hopper bookkeeping.
     var lastHop: TimeInterval = 0
+    /// True from take-off until the hop's own ground landing, which the
+    /// damage handler forgives — a hop lands at ~2.5 impulse units, over
+    /// the 1.5 bruise floor, so an unforgiven dodge would cost 1 HP and
+    /// two baited hops would pop the hopper for free (review finding).
+    var hopping = false
 
     /// Hoppers dodge (M29): when a fling lands close, leap up and away —
     /// grounded only, on a cooldown, never during the arming grace (the
@@ -114,6 +119,7 @@ final class GloomNode: SKShapeNode {
         let dy = position.y - point.y
         guard (dx * dx + dy * dy).squareRoot() <= MoonshotTuning.hopperTriggerRadius else { return }
         lastHop = now
+        hopping = true
         body.velocity = CGVector(dx: (dx < 0 ? -1 : 1) * MoonshotTuning.hopperHopLateral,
                                  dy: MoonshotTuning.hopperHopVertical)
     }
@@ -237,12 +243,17 @@ final class GloomNode: SKShapeNode {
             // category is two-sided-intangible to them (pieces already
             // exclude it; sprites learn to below) — but the floor is solid
             // and contact tests still fire so a live power can pop it.
+            // The mist bit in the contact test is for a phasing Misty,
+            // whose own category becomes mist (review finding: without it
+            // the one character whose power IS mist could never touch it).
             body.categoryBitMask = PhysicsCategory.mist
             body.collisionBitMask = PhysicsCategory.ground
+            body.contactTestBitMask = PhysicsCategory.sprite | PhysicsCategory.piece
+                | PhysicsCategory.ground | PhysicsCategory.mist
         } else {
             body.categoryBitMask = PhysicsCategory.gloom
+            body.contactTestBitMask = PhysicsCategory.sprite | PhysicsCategory.piece | PhysicsCategory.ground
         }
-        body.contactTestBitMask = PhysicsCategory.sprite | PhysicsCategory.piece | PhysicsCategory.ground
         physicsBody = body
     }
 
