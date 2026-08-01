@@ -187,6 +187,18 @@ struct LocalizationTests {
                                language: "zh-Hans") == "云绵会把你弹起来——借垫子瞄准")
         #expect(localizedValue("Wind bends every arc — trust your read, not the dots",
                                language: "zh-Hant") == "風會吹彎每道弧線——別全信虛線")
+        #expect(localizedValue("%lld★ to go", language: "zh-Hans") == "还差 %lld★")
+        #expect(localizedValue("+%lld★", language: "zh-Hant") == "+%lld★")
+        #expect(localizedValue("At or under par — 3 stars", language: "zh-Hant") == "打平或低於標準桿——3星")
+        #expect(localizedValue("One over par — 2 stars", language: "zh-Hans") == "超出标准杆一发——2星")
+        #expect(localizedValue("Cleared — 1 star", language: "zh-Hant") == "通關——1星")
+        #expect(localizedValue("How stars work", language: "zh-Hans") == "星星是怎么来的")
+        #expect(localizedValue("Clear a level — 1★. One over par — 2★. At or under par — 3★.",
+                               language: "zh-Hant") == "通關得 1★。超出標準桿一發得 2★。打平或更少得 3★。")
+        #expect(localizedValue("Both partners' best runs pool together — solo and co-op.",
+                               language: "zh-Hans") == "我们俩各自的最好成绩会汇在一起——单人和合作都算。")
+        #expect(localizedValue("Milestones unlock characters, trails, and looks.",
+                               language: "zh-Hant") == "攢到里程碑就解鎖新角色、拖尾和外觀。")
     }
 
     @Test func springboardStringsAreTranslated() {

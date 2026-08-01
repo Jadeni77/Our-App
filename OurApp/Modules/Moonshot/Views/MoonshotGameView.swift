@@ -15,6 +15,9 @@ struct MoonshotGameView: View {
     @State private var session: LevelSession?
     @State private var recordedOutcome = false
     @State private var newGrants: [RewardGrant] = []
+    /// This run's pool movement, for the win overlay's economy line (M26).
+    @State private var poolDelta = 0
+    @State private var poolNow = 0
     /// Bumped per rebuild: SpriteView keeps presenting its ORIGINAL scene
     /// when the scene parameter changes, so Replay/Next level showed the old
     /// rubble driving a dead session (found on the owners' device pass —
@@ -83,7 +86,8 @@ struct MoonshotGameView: View {
             guard case .won(let stars) = phase, !recordedOutcome, let session else { return }
             recordedOutcome = true
             let store = MoonshotProgressStore(context: modelContext)
-            let grantsBefore = MoonshotRewards.grants(pool: store.starPool)
+            let poolBefore = store.starPool
+            let grantsBefore = MoonshotRewards.grants(pool: poolBefore)
             earnedFeats = FeatDetector.feats(
                 flingsUsed: session.flingsUsed,
                 usedAnyAbility: session.usedAnyAbility,
@@ -94,7 +98,9 @@ struct MoonshotGameView: View {
                              stars: stars,
                              flings: session.flingsUsed,
                              feats: earnedFeats)
-            let grantsAfter = MoonshotRewards.grants(pool: store.starPool)
+            poolNow = store.starPool
+            poolDelta = poolNow - poolBefore
+            let grantsAfter = MoonshotRewards.grants(pool: poolNow)
             newGrants = grantsAfter.filter { !grantsBefore.contains($0) }
             Haptics.success()
             #if DEBUG
@@ -375,16 +381,28 @@ struct MoonshotGameView: View {
         case .won(let stars):
             outcomeCard {
                 starRow(stars)
+                starReason
                 featBadges
-                if !newGrants.isEmpty {
-                    VStack(spacing: 4) {
+                if newGrants.isEmpty {
+                    // The economy line: what this run banked, what's next.
+                    HStack(spacing: 8) {
+                        if poolDelta > 0 {
+                            Text("+\(poolDelta)★")
+                                .font(Theme.display(15))
+                                .foregroundStyle(Theme.glow)
+                        }
+                        NextUnlockStrip(pool: poolNow)
+                    }
+                    .frame(maxWidth: 320)
+                } else {
+                    VStack(spacing: 8) {
                         Text("New unlock!")
                             .font(Theme.display(15))
                             .foregroundStyle(Theme.glow)
-                        ForEach(Array(newGrants.enumerated()), id: \.offset) { _, grant in
-                            grantLabel(grant)
-                                .font(Theme.display(20))
-                                .foregroundStyle(.white)
+                        HStack(spacing: 18) {
+                            ForEach(Array(newGrants.enumerated()), id: \.offset) { _, grant in
+                                grantMedallion(grant)
+                            }
                         }
                     }
                 }
@@ -418,15 +436,68 @@ struct MoonshotGameView: View {
         .transition(reduceMotion ? .opacity : .scale.combined(with: .opacity))
     }
 
-    private func grantLabel(_ grant: RewardGrant) -> Text {
-        switch grant {
-        case .trail(.stardust): Text("Stardust")
-        case .trail(.petals): Text("Petals")
-        case .trail(.aurora): Text("Aurora")
-        case .trail(.nebula): Text("Nebula")
-        case .character(let character): Text(LocalizedStringKey(character.displayNameKey))
-        case .theme(.dawn): Text("Dawn veil")
-        case .skin(.golden): Text("Golden slingshot")
+    /// The reason under the stars (owner amendment #2): the economy must
+    /// say WHY, not just how many.
+    @ViewBuilder
+    private var starReason: some View {
+        if let session {
+            Group {
+                if session.flingsUsed <= session.level.par {
+                    Text("At or under par — 3 stars")
+                } else if session.flingsUsed == session.level.par + 1 {
+                    Text("One over par — 2 stars")
+                } else {
+                    Text("Cleared — 1 star")
+                }
+            }
+            .font(.footnote)
+            .foregroundStyle(.white.opacity(0.75))
+        }
+    }
+
+    /// A grant rendered as a thing, not a line of text (M26): swatch or
+    /// portrait, glowing in, with its name underneath.
+    private func grantMedallion(_ grant: RewardGrant) -> some View {
+        VStack(spacing: 6) {
+            ZStack {
+                switch grant {
+                case .trail(let trail):
+                    Capsule()
+                        .fill(LinearGradient(colors: [trailColor(trail), .white.opacity(0.35)],
+                                             startPoint: .leading, endPoint: .trailing))
+                        .frame(width: 58, height: 26)
+                case .character(let character):
+                    Circle()
+                        .fill(character.chipColor)
+                        .frame(width: 54, height: 54)
+                        .overlay(Circle().stroke(.white.opacity(0.85), lineWidth: 2))
+                case .theme:
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(LinearGradient(colors: [Theme.rose, Theme.peach],
+                                             startPoint: .top, endPoint: .bottom))
+                        .frame(width: 54, height: 40)
+                case .skin:
+                    SlingshotGlyph()
+                        .stroke(Color(red: 0.85, green: 0.68, blue: 0.28), lineWidth: 4)
+                        .frame(width: 34, height: 46)
+                }
+            }
+            .frame(height: 56)
+            .shadow(color: Theme.glow.opacity(0.8), radius: 12)
+            grant.titleText
+                .font(Theme.display(14))
+                .foregroundStyle(.white)
+        }
+        .transition(.scale(scale: 0.4).combined(with: .opacity))
+        .accessibilityElement(children: .combine)
+    }
+
+    private func trailColor(_ trail: TrailID) -> Color {
+        switch trail {
+        case .stardust: Theme.glow
+        case .petals: Theme.rose
+        case .aurora: Color(red: 0.45, green: 0.85, blue: 0.75)
+        case .nebula: Color(red: 0.62, green: 0.5, blue: 0.95)
         }
     }
 
@@ -473,6 +544,20 @@ extension CharacterID {
         case .nox: Color(red: 0.45, green: 0.42, blue: 0.72)
         default: Color(bodyUIColor)
         }
+    }
+}
+
+/// A tiny Y-fork slingshot outline for the golden-skin medallion.
+private struct SlingshotGlyph: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.midX, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.midX, y: rect.midY))
+        path.move(to: CGPoint(x: rect.midX, y: rect.midY))
+        path.addLine(to: CGPoint(x: rect.minX + rect.width * 0.12, y: rect.minY))
+        path.move(to: CGPoint(x: rect.midX, y: rect.midY))
+        path.addLine(to: CGPoint(x: rect.maxX - rect.width * 0.12, y: rect.minY))
+        return path
     }
 }
 
