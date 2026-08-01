@@ -146,6 +146,13 @@ struct MoonshotGameView: View {
                 .compactMap { CharacterID(rawValue: String($0)) }
             if !queue.isEmpty { level.queue = queue }
         }
+        // `-moonshotGloomKind shield` recasts EVERY gloom in the loaded
+        // level — variant behaviors verify headlessly on any stage.
+        if let flag = arguments.firstIndex(of: "-moonshotGloomKind"),
+           arguments.indices.contains(flag + 1),
+           let kind = GloomKind(rawValue: arguments[flag + 1]) {
+            level.glooms = level.glooms.map { .init(x: $0.x, y: $0.y, kind: kind) }
+        }
         #endif
         let newSession = LevelSession(level: level)
         let newScene = GameScene(level: level,

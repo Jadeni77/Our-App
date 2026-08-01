@@ -75,6 +75,24 @@ enum GloomDamage {
         if impulse >= MoonshotTuning.gloomBruiseImpulse { return 1 }
         return 0
     }
+
+    /// Kind-aware hits (M29). Mist gates on a live ability and IGNORES the
+    /// impulse — pass-through contacts carry ~zero collision impulse by
+    /// design, so its pop is a contact rule, not a force rule. Great
+    /// converts the tiers to 1/2 HP chips (no one-shot). Everyone else
+    /// keeps the classic tiers; shield's absorb is engine state.
+    static func hits(forImpulse impulse: Double, kind: GloomKind?, abilityActive: Bool) -> Int {
+        switch kind {
+        case .mist:
+            abilityActive ? MoonshotTuning.gloomHP : 0
+        case .great:
+            if impulse >= MoonshotTuning.gloomInstantPopImpulse { 2 }
+            else if impulse >= MoonshotTuning.gloomBruiseImpulse { 1 }
+            else { 0 }
+        case .shield, .hopper, nil:
+            hits(forImpulse: impulse)
+        }
+    }
 }
 
 /// What a tapped ability does to damage, kept in Rules so it's testable

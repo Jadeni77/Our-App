@@ -61,6 +61,29 @@ struct MoonshotMaterialsTests {
                 >= MoonshotTuning.gloomHP)
     }
 
+    @Test func mistGloomsOnlyAnswerToPowers() {
+        #expect(GloomDamage.hits(forImpulse: 100, kind: .mist, abilityActive: false) == 0)
+        #expect(GloomDamage.hits(forImpulse: 0, kind: .mist, abilityActive: true)
+                >= MoonshotTuning.gloomHP)                     // any live-power touch pops
+    }
+
+    @Test func greatGloomChipsNeverPopsInOne() {
+        #expect(GloomDamage.hits(forImpulse: MoonshotTuning.gloomBruiseImpulse,
+                                 kind: .great, abilityActive: false) == 1)
+        #expect(GloomDamage.hits(forImpulse: MoonshotTuning.gloomInstantPopImpulse,
+                                 kind: .great, abilityActive: false) == 2)
+        #expect(GloomDamage.hits(forImpulse: 1000, kind: .great, abilityActive: true) == 2)
+        #expect(MoonshotTuning.greatGloomHP > 2)               // ≥3 solid hits by construction
+    }
+
+    @Test func classicKindsKeepTheOldTiers() {
+        for kind: GloomKind? in [nil, .shield, .hopper] {
+            #expect(GloomDamage.hits(forImpulse: MoonshotTuning.gloomInstantPopImpulse,
+                                     kind: kind, abilityActive: false)
+                    == GloomDamage.hits(forImpulse: MoonshotTuning.gloomInstantPopImpulse))
+        }
+    }
+
     @Test func twoBruisesEqualOneGloom() {
         #expect(GloomDamage.hits(forImpulse: MoonshotTuning.gloomBruiseImpulse) * 2
                 >= MoonshotTuning.gloomHP)

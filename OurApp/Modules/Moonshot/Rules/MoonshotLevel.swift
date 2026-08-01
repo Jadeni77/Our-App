@@ -66,7 +66,22 @@ struct MoonshotLevel: Codable, Equatable, Identifiable {
 
     struct GloomPlacement: Codable, Equatable {
         var x, y: Double
+        /// The gloom's power (M29); absent = the classic gloom every
+        /// shipped level was certified against.
+        var kind: GloomKind?
+
+        init(x: Double, y: Double, kind: GloomKind? = nil) {
+            self.x = x
+            self.y = y
+            self.kind = kind
+        }
     }
+}
+
+/// A gloom variant (M29): shield wears a crackable shell, hopper dodges,
+/// mist answers only to powers, great is the boss.
+enum GloomKind: String, Codable {
+    case shield, hopper, mist, great
 }
 
 /// A constant-force region (M21): rect in level coordinates (y up from the

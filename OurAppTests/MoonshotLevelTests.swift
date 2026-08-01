@@ -16,6 +16,14 @@ struct MoonshotLevelTests {
         #expect(level.wind == nil)
     }
 
+    @Test func gloomKindDecodesAndOldFilesStayClassic() throws {
+        let level = try MoonshotLevel.decoder().decode(MoonshotLevel.self, from: Self.v1JSON)
+        #expect(level.glooms.allSatisfy { $0.kind == nil })
+        let json = #"{"x": 600, "y": 16, "kind": "shield"}"#.data(using: .utf8)!
+        let gloom = try MoonshotLevel.decoder().decode(MoonshotLevel.GloomPlacement.self, from: json)
+        #expect(gloom.kind == .shield)
+    }
+
     @Test func windAndWorldRoundTrip() throws {
         var level = try MoonshotLevel.decoder().decode(MoonshotLevel.self, from: Self.v1JSON)
         level.world = 3

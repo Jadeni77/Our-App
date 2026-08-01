@@ -89,19 +89,40 @@ final class PieceNode: SKSpriteNode {
 
 /// A shadow critter — tough enough to shrug a graze (device-pass ruling):
 /// bruising hits cost HP and narrow the eyes; a clean hit still one-shots.
+/// Kinds (M29): shield wears a crackable dome, great is the triple-size
+/// boss whose face angers per chip; hopper/mist behaviors arrive with
+/// their own PRs.
 final class GloomNode: SKShapeNode {
-    private(set) var hp = MoonshotTuning.gloomHP
+    let kind: GloomKind?
+    private(set) var hp: Int
+    private let maxHP: Int
     private var bruised = false
+    private var shellIntact: Bool
+    private var shellDome: SKShapeNode?
+    /// Hopper bookkeeping (behavior lands in the living-glooms PR).
+    var lastHop: TimeInterval = 0
 
-    /// Applies hit points; true = popped.
-    func applyHits(_ hits: Int) -> Bool {
+    enum HitOutcome { case none, shellShattered, bruised, popped }
+
+    /// Applies hit points, shield-aware: an intact shell eats the first
+    /// real hit whole.
+    func applyHits(_ hits: Int) -> HitOutcome {
+        guard hits > 0 else { return .none }
+        if shellIntact {
+            shellIntact = false
+            shellDome?.removeFromParent()
+            shellDome = nil
+            return .shellShattered
+        }
         hp -= hits
-        if hp <= 0 { return true }
-        if !bruised {
+        if hp <= 0 { return .popped }
+        if kind == .great {
+            showGreatAnger()
+        } else if !bruised {
             bruised = true
             showBruise()
         }
-        return false
+        return .bruised
     }
 
     /// Round eyes become angry slants, plus a crack across the shadow.
@@ -123,7 +144,27 @@ final class GloomNode: SKShapeNode {
         addChild(crack)
     }
 
-    override init() {
+    /// The Great Gloom's face slants steeper with every chip taken.
+    private func showGreatAnger() {
+        children.filter { $0.name == "gloom-eye" }.forEach { $0.removeFromParent() }
+        let fraction = 1 - Double(hp) / Double(maxHP)
+        for side in [-1.0, 1.0] {
+            let eye = SKShapeNode(rectOf: CGSize(width: 6, height: 2), cornerRadius: 1)
+            eye.fillColor = .white
+            eye.strokeColor = .clear
+            eye.name = "gloom-eye"
+            eye.zRotation = side * -(0.15 + 0.75 * fraction)
+            eye.position = CGPoint(x: side * 5.5, y: 3)
+            addChild(eye)
+        }
+    }
+
+    init(kind: GloomKind? = nil) {
+        self.kind = kind
+        let hitPoints = kind == .great ? MoonshotTuning.greatGloomHP : MoonshotTuning.gloomHP
+        hp = hitPoints
+        maxHP = hitPoints
+        shellIntact = kind == .shield
         super.init()
         let radius = MoonshotTuning.gloomRadius
         path = CGPath(ellipseIn: CGRect(x: -radius, y: -radius, width: radius * 2, height: radius * 2), transform: nil)
@@ -141,8 +182,24 @@ final class GloomNode: SKShapeNode {
             addChild(eye)
         }
 
+        if kind == .shield {
+            let dome = SKShapeNode(circleOfRadius: radius + 5)
+            dome.fillColor = UIColor.white.withAlphaComponent(0.16)
+            dome.strokeColor = UIColor.white.withAlphaComponent(0.55)
+            dome.lineWidth = 1.5
+            dome.zPosition = 1
+            addChild(dome)
+            shellDome = dome
+        }
+        if kind == .mist {
+            alpha = 0.55
+        }
+        if kind == .great {
+            setScale(MoonshotTuning.greatGloomScale)
+        }
+
         let body = SKPhysicsBody(circleOfRadius: radius)
-        body.density = MoonshotTuning.gloomDensity
+        body.density = kind == .great ? MoonshotTuning.greatGloomDensity : MoonshotTuning.gloomDensity
         body.friction = MoonshotTuning.gloomFriction
         body.restitution = MoonshotTuning.gloomRestitution
         // Glooms perch, they don't roll — a ball on a 22pt column top would
@@ -326,8 +383,8 @@ final class StarSpriteNode: SKShapeNode {
 @MainActor
 enum SpriteFactory {
     static func makePiece(_ piece: MoonshotLevel.Piece) -> PieceNode { PieceNode(piece: piece) }
-    static func makeGloom(at point: CGPoint) -> GloomNode {
-        let gloom = GloomNode()
+    static func makeGloom(at point: CGPoint, kind: GloomKind? = nil) -> GloomNode {
+        let gloom = GloomNode(kind: kind)
         gloom.position = point
         return gloom
     }

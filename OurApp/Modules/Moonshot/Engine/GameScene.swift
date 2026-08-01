@@ -105,7 +105,8 @@ final class GameScene: SKScene {
             worldNode.addChild(node)
         }
         for gloom in level.glooms {
-            worldNode.addChild(SpriteFactory.makeGloom(at: levelPoint(gloom.x, gloom.y)))
+            worldNode.addChild(SpriteFactory.makeGloom(at: levelPoint(gloom.x, gloom.y),
+                                                       kind: gloom.kind))
         }
 
         var windZones = level.wind ?? []
@@ -361,7 +362,9 @@ final class GameScene: SKScene {
     }
 
     /// With no side walls, a gloom can be shoved clean off the map —
-    /// off the map is gone (the genre's ruling): count it popped.
+    /// off the map is gone (the genre's ruling): count it popped. Applies
+    /// kind-blind on purpose: an escaped shieldling pops shell and all, and
+    /// the Great Gloom's density makes escaping it a non-event.
     private func sweepEscapedGlooms() {
         let margin = MoonshotTuning.gloomRadius * 2
         for case let gloom as GloomNode in worldNode.children where gloom.physicsBody != nil {
@@ -374,7 +377,9 @@ final class GameScene: SKScene {
     private func pop(_ gloom: GloomNode) {
         gloom.physicsBody = nil
         gloom.run(.sequence([
-            .group([.scale(to: 1.5, duration: 0.15), .fadeOut(withDuration: 0.15)]),
+            // Relative, not absolute: the Great Gloom lives at scale 3 and
+            // must SWELL on death, not implode (review finding).
+            .group([.scale(by: 1.5, duration: 0.15), .fadeOut(withDuration: 0.15)]),
             .removeFromParent(),
         ]))
         session.gloomPopped()
@@ -520,12 +525,23 @@ extension GameScene: SKPhysicsContactDelegate {
             }
         }
 
+        let abilityContact = nodes.contains {
+            ($0 as? StarSpriteNode).map { $0.abilityActive || $0.phasing } ?? false
+        }
         for case let gloom as GloomNode in nodes.compactMap({ $0 }) {
             guard gloom.physicsBody != nil else { continue }
-            let hits = GloomDamage.hits(forImpulse: impulse)
-            guard hits > 0 else { continue }
-            guard gloom.applyHits(hits) else { continue }   // bruised, still standing
-            pop(gloom)
+            let hits = GloomDamage.hits(forImpulse: impulse,
+                                        kind: gloom.kind,
+                                        abilityActive: abilityContact)
+            switch gloom.applyHits(hits) {
+            case .none, .bruised:
+                continue                                     // face updates internally
+            case .shellShattered:
+                SpriteFactory.burst(at: gloom.position, material: .crystal, in: worldNode)
+                emit(.impact(.crystal))
+            case .popped:
+                pop(gloom)
+            }
         }
     }
 
