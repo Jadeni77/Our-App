@@ -1,0 +1,40 @@
+{
+  "buildZone": {
+    "height": 340,
+    "width": 370,
+    "x": 470,
+    "y": 0
+  },
+  "createdAt": "2026-08-01T00:00:00Z",
+  "glooms": [
+    {
+      "kind": "shield",
+      "x": 620,
+      "y": 106
+    },
+    {
+      "x": 760,
+      "y": 16
+    }
+  ],
+  "id": "AA000000-0000-4000-8000-000000000038",
+  "kind": "campaign",
+  "par": 2,
+  "pieces": [
+    {
+      "material": "moonwood",
+      "rotation": 0,
+      "shape": "column",
+      "x": 620,
+      "y": 45
+    }
+  ],
+  "queue": [
+    "mochi",
+    "mochi",
+    "mochi"
+  ],
+  "schemaVersion": 1,
+  "updatedAt": "2026-08-01T00:00:00Z",
+  "world": 4
+}

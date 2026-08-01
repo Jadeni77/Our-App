@@ -1,0 +1,55 @@
+{
+  "buildZone": {
+    "height": 340,
+    "width": 370,
+    "x": 470,
+    "y": 0
+  },
+  "createdAt": "2026-08-01T00:00:00Z",
+  "glooms": [
+    {
+      "kind": "hopper",
+      "x": 540,
+      "y": 16
+    },
+    {
+      "kind": "shield",
+      "x": 650,
+      "y": 16
+    }
+  ],
+  "id": "AA000000-0000-4000-8000-000000000042",
+  "kind": "campaign",
+  "par": 3,
+  "pieces": [
+    {
+      "material": "moonwood",
+      "rotation": 0,
+      "shape": "column",
+      "x": 600,
+      "y": 45
+    },
+    {
+      "material": "moonwood",
+      "rotation": 0,
+      "shape": "column",
+      "x": 700,
+      "y": 45
+    },
+    {
+      "material": "moonwood",
+      "rotation": 0,
+      "shape": "plank",
+      "x": 650,
+      "y": 102
+    }
+  ],
+  "queue": [
+    "mochi",
+    "zip",
+    "twinkle"
+  ],
+  "schemaVersion": 1,
+  "updatedAt": "2026-08-01T00:00:00Z",
+  "world": 4
+}

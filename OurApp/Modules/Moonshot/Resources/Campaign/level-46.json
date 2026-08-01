@@ -1,0 +1,47 @@
+{
+  "buildZone": {
+    "height": 340,
+    "width": 370,
+    "x": 470,
+    "y": 0
+  },
+  "createdAt": "2026-08-01T00:00:00Z",
+  "glooms": [
+    {
+      "kind": "shield",
+      "x": 560,
+      "y": 16
+    },
+    {
+      "kind": "mist",
+      "x": 750,
+      "y": 16
+    },
+    {
+      "kind": "hopper",
+      "x": 820,
+      "y": 16
+    }
+  ],
+  "id": "AA000000-0000-4000-8000-000000000046",
+  "kind": "campaign",
+  "par": 3,
+  "pieces": [
+    {
+      "material": "meteorstone",
+      "rotation": 0,
+      "shape": "block",
+      "x": 660,
+      "y": 45
+    }
+  ],
+  "queue": [
+    "mochi",
+    "zip",
+    "twinkle",
+    "mochi"
+  ],
+  "schemaVersion": 1,
+  "updatedAt": "2026-08-01T00:00:00Z",
+  "world": 4
+}

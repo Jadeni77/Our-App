@@ -109,8 +109,13 @@ final class GloomNode: SKShapeNode {
 
     /// Hoppers dodge (M29): when a fling lands close, leap up and away —
     /// grounded only, on a cooldown, never during the arming grace (the
-    /// caller guards that).
-    func hopIfReady(awayFrom point: CGPoint, now: TimeInterval) {
+    /// caller guards that). The dodge must stay IN the world: a full hop
+    /// across the escape sweep counts as a self-pop, turning a missed
+    /// fling into a free win (review finding). The direction never
+    /// reverses — leaping back over a still-rolling sprite is a suicide
+    /// dive (verified on L40) — a cornered hopper just hops SHORTER,
+    /// a panic jump against the wall.
+    func hopIfReady(awayFrom point: CGPoint, now: TimeInterval, worldWidth: CGFloat) {
         guard kind == .hopper,
               let body = physicsBody,
               abs(body.velocity.dy) < 8,
@@ -118,9 +123,14 @@ final class GloomNode: SKShapeNode {
         let dx = position.x - point.x
         let dy = position.y - point.y
         guard (dx * dx + dy * dy).squareRoot() <= MoonshotTuning.hopperTriggerRadius else { return }
+        let direction: CGFloat = dx < 0 ? -1 : 1
+        let room = direction > 0 ? max(0, worldWidth - 40 - position.x)
+                                 : max(0, position.x - 40)
+        let lateral = MoonshotTuning.hopperHopLateral
+            * min(1, room / MoonshotTuning.hopperHopCarry)
         lastHop = now
         hopping = true
-        body.velocity = CGVector(dx: (dx < 0 ? -1 : 1) * MoonshotTuning.hopperHopLateral,
+        body.velocity = CGVector(dx: direction * lateral,
                                  dy: MoonshotTuning.hopperHopVertical)
     }
 
@@ -230,7 +240,12 @@ final class GloomNode: SKShapeNode {
             setScale(MoonshotTuning.greatGloomScale)
         }
 
-        let body = SKPhysicsBody(circleOfRadius: radius)
+        // The body radius must be spelled out: a body created after
+        // setScale does NOT inherit the node's scale, so the great's
+        // radius-16 body left its 48pt art half-sunk into the floor
+        // (found in the W4 stability sweep — it rested at y≈17, not 48).
+        let bodyRadius = kind == .great ? radius * MoonshotTuning.greatGloomScale : radius
+        let body = SKPhysicsBody(circleOfRadius: bodyRadius)
         body.density = kind == .great ? MoonshotTuning.greatGloomDensity : MoonshotTuning.gloomDensity
         body.friction = MoonshotTuning.gloomFriction
         body.restitution = MoonshotTuning.gloomRestitution
@@ -609,17 +624,18 @@ enum SpriteFactory {
     }
 
     /// Six physicsless shards scattering and fading — destruction feedback
-    /// without particle-emitter machinery.
-    static func burst(at point: CGPoint, material: Material, in parent: SKNode) {
-        for _ in 0..<6 {
-            let shard = SKShapeNode(rectOf: CGSize(width: 5, height: 5), cornerRadius: 1)
+    /// without particle-emitter machinery. `scale` doubles the show for the
+    /// Great Gloom's fall (M29): more shards, bigger, thrown further.
+    static func burst(at point: CGPoint, material: Material, in parent: SKNode, scale: CGFloat = 1) {
+        for _ in 0..<Int(6 * scale) {
+            let shard = SKShapeNode(rectOf: CGSize(width: 5 * scale, height: 5 * scale), cornerRadius: scale)
             shard.fillColor = material.fillColor
             shard.strokeColor = .clear
             shard.position = point
             shard.zPosition = 20
             parent.addChild(shard)
-            let dx = CGFloat.random(in: -70...70)
-            let dy = CGFloat.random(in: 20...110)
+            let dx = CGFloat.random(in: (-70 * scale)...(70 * scale))
+            let dy = CGFloat.random(in: 20...(110 * scale))
             shard.run(.sequence([
                 .group([
                     .moveBy(x: dx, y: dy, duration: 0.4),
@@ -636,8 +652,9 @@ enum SpriteFactory {
     /// The dreamy sky, rendered once per scene size and world (M28) from
     /// the core gradient — W1 keeps the moonlit violet, W2 drifts pinker
     /// with soft cloud blobs, W3 darkens to storm indigo with faint
-    /// diagonal streaks. Cached — retry and next-level rebuild the scene,
-    /// not the texture. Code-drawn only (principle 9).
+    /// diagonal streaks, W4 goes near-black with watching eyes. Cached —
+    /// retry and next-level rebuild the scene, not the texture.
+    /// Code-drawn only (principle 9).
     static func skyTexture(size: CGSize, world: Int = 1) -> SKTexture {
         let key = "\(size.width)x\(size.height)-w\(world)"
         if let cached = skyTextureCache[key] { return cached }
@@ -645,6 +662,8 @@ enum SpriteFactory {
             let palette: [Color] = switch world {
             case 2: [Theme.violet, Theme.rose, Theme.rose, Theme.peach]
             case 3: [Color(red: 0.13, green: 0.11, blue: 0.28), Theme.indigo, Theme.violet, Theme.rose]
+            case 4: [Color(red: 0.07, green: 0.06, blue: 0.16), Color(red: 0.13, green: 0.11, blue: 0.28),
+                     Theme.indigo, Theme.violet]
             default: [Theme.indigo, Theme.violet, Theme.rose, Theme.peach]
             }
             let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
@@ -683,6 +702,22 @@ enum SpriteFactory {
                     x += size.width / 12
                 }
                 context.cgContext.strokePath()
+            }
+            if world == 4 {
+                // Watching eyes: five barely-there dot pairs in the dark —
+                // the deep is looking back. Alpha 0.06 keeps them subliminal.
+                let eyes: [(x: CGFloat, y: CGFloat)] = [
+                    (0.14, 0.16), (0.38, 0.08), (0.63, 0.20), (0.82, 0.10), (0.50, 0.34),
+                ]
+                UIColor.white.withAlphaComponent(0.06).setFill()
+                for eye in eyes {
+                    for side: CGFloat in [-1, 1] {
+                        let rect = CGRect(x: size.width * eye.x + side * 7 - 3,
+                                          y: size.height * eye.y - 3,
+                                          width: 6, height: 6)
+                        context.cgContext.fillEllipse(in: rect)
+                    }
+                }
             }
         }
         let texture = SKTexture(image: image)

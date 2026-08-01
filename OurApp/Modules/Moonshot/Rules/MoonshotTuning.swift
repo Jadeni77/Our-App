@@ -115,6 +115,10 @@ enum MoonshotTuning {
     static let hopperCooldown: TimeInterval = 1.2
     static let hopperHopVertical: CGFloat = 520
     static let hopperHopLateral: CGFloat = 260
+    /// How far a full hop carries sideways (~1.25 s of air at 260 pt/s,
+    /// less damping) — the in-world check that keeps a dodge from
+    /// leaping across the escape sweep.
+    static let hopperHopCarry: CGFloat = 330
 
     // MARK: Impulse calibration
     /// SpriteKit's collisionImpulse is kg·m/s (150 pt = 1 m), so real hits

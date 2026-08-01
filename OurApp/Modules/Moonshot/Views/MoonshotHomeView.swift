@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 
 /// Moonshot's front door, rebuilt as a progress hub (M27): Continue where
-/// you left off, the three worlds at a glance, the cast with their powers
+/// you left off, every world at a glance, the cast with their powers
 /// a tap away — and the roadmap shrunk to one quiet line.
 struct MoonshotHomeView: View {
     @Environment(\.modelContext) private var modelContext
@@ -192,7 +192,7 @@ struct MoonshotHomeView: View {
         }
     }
 
-    /// Three worlds at a glance: name, banked stars, lock state.
+    /// Every world at a glance: name, banked stars, lock state.
     private var worldsRow: some View {
         let snapshots = results.map(\.snapshot)
         return HStack(spacing: 10) {
@@ -237,6 +237,7 @@ struct MoonshotHomeView: View {
         switch world {
         case 2: Text("The Cloudfoam Skies")
         case 3: Text("The Storm Heights")
+        case 4: Text("The Deep Gloom")
         default: Text("The Moonlit Fields")
         }
     }

@@ -159,6 +159,8 @@ struct LocalizationTests {
         #expect(localizedValue("The Cloudfoam Skies", language: "zh-Hant") == "雲綿天空")
         #expect(localizedValue("The Storm Heights", language: "zh-Hans") == "风暴之巅")
         #expect(localizedValue("The Storm Heights", language: "zh-Hant") == "風暴之巔")
+        #expect(localizedValue("The Deep Gloom", language: "zh-Hans") == "幽影深处")
+        #expect(localizedValue("The Deep Gloom", language: "zh-Hant") == "幽影深處")
         #expect(localizedValue("One fling", language: "zh-Hans") == "一发通关")
         #expect(localizedValue("One fling", language: "zh-Hant") == "一發通關")
         #expect(localizedValue("No ability", language: "zh-Hans") == "未用技能")
@@ -187,6 +189,10 @@ struct LocalizationTests {
                                language: "zh-Hans") == "云绵会把你弹起来——借垫子瞄准")
         #expect(localizedValue("Wind bends every arc — trust your read, not the dots",
                                language: "zh-Hant") == "風會吹彎每道弧線——別全信虛線")
+        #expect(localizedValue("The deep glooms fight back — watch their tricks",
+                               language: "zh-Hans") == "深处的阴影会反击——看清它们的招")
+        #expect(localizedValue("The deep glooms fight back — watch their tricks",
+                               language: "zh-Hant") == "深處的陰影會反擊——看清它們的招")
         #expect(localizedValue("Back", language: "zh-Hans") == "返回")
         #expect(localizedValue("Back", language: "zh-Hant") == "返回")
         #expect(localizedValue("Abilities", language: "zh-Hans") == "技能图鉴")

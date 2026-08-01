@@ -1,0 +1,57 @@
+{
+  "buildZone": {
+    "height": 340,
+    "width": 370,
+    "x": 470,
+    "y": 0
+  },
+  "createdAt": "2026-08-01T00:00:00Z",
+  "glooms": [
+    {
+      "kind": "shield",
+      "x": 660,
+      "y": 16
+    },
+    {
+      "kind": "hopper",
+      "x": 730,
+      "y": 16
+    },
+    {
+      "kind": "mist",
+      "x": 800,
+      "y": 16
+    }
+  ],
+  "id": "AA000000-0000-4000-8000-000000000047",
+  "kind": "campaign",
+  "par": 3,
+  "pieces": [
+    {
+      "material": "cloudfoam",
+      "rotation": 0,
+      "shape": "plank",
+      "x": 560,
+      "y": 12
+    }
+  ],
+  "queue": [
+    "nox",
+    "mochi",
+    "zip",
+    "twinkle"
+  ],
+  "schemaVersion": 1,
+  "updatedAt": "2026-08-01T00:00:00Z",
+  "wind": [
+    {
+      "forceX": -3,
+      "forceY": 0,
+      "height": 280,
+      "width": 320,
+      "x": 280,
+      "y": 60
+    }
+  ],
+  "world": 4
+}
