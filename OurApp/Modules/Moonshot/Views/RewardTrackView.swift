@@ -37,6 +37,24 @@ struct RewardTrackView: View {
                     }
                     .padding(.top, 10)
 
+                    // The economy, in plain words (owner amendment #2) —
+                    // then what the couple is working toward right now.
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("How stars work")
+                            .font(Theme.display(16))
+                            .foregroundStyle(.white)
+                        Text("Clear a level — 1★. One over par — 2★. At or under par — 3★.")
+                        Text("Both partners' best runs pool together — solo and co-op.")
+                        Text("Milestones unlock characters, trails, and looks.")
+                        NextUnlockStrip(pool: pool)
+                            .padding(.top, 2)
+                    }
+                    .font(.footnote)
+                    .foregroundStyle(.white.opacity(0.85))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(16)
+                    .glassCard(cornerRadius: 22)
+
                     ForEach(Array(MoonshotRewards.track.enumerated()), id: \.offset) { _, milestone in
                         milestoneCard(threshold: milestone.threshold, grant: milestone.grant)
                     }
@@ -115,15 +133,7 @@ struct RewardTrackView: View {
     }
 
     private func grantTitle(_ grant: RewardGrant) -> Text {
-        switch grant {
-        case .trail(.stardust): Text("Stardust")
-        case .trail(.petals): Text("Petals")
-        case .trail(.aurora): Text("Aurora")
-        case .trail(.nebula): Text("Nebula")
-        case .character(let character): Text(LocalizedStringKey(character.displayNameKey))
-        case .theme(.dawn): Text("Dawn veil")
-        case .skin(.golden): Text("Golden slingshot")
-        }
+        grant.titleText
     }
 }
 

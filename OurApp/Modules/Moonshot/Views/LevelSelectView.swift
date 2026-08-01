@@ -181,13 +181,15 @@ private struct WorldConstellationView: View {
                 $0.partnerID == partnerID && $0.levelID == level.id && $0.mode == .solo
             }?.bestStars ?? 0)
         }
-        return VStack(spacing: 2) {
+        return VStack(spacing: 4) {
             Text(style.name)
                 .font(Theme.display(22))
                 .foregroundStyle(.white)
             Text("\(stars)★")
                 .font(Theme.display(14))
                 .foregroundStyle(.white.opacity(0.75))
+            NextUnlockStrip(pool: MoonshotRewards.starPool(results.map(\.snapshot)))
+                .frame(maxWidth: 280)
         }
         .padding(.top, 6)
         .accessibilityElement(children: .combine)
