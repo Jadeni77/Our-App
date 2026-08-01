@@ -186,11 +186,12 @@ final class GameScene: SKScene {
     private var pendingDragHintReduceMotion = false
 
     func showDragHint(reduceMotion: Bool) {
+        // Always remembered — a cancelled grab re-shows with the same style.
+        pendingDragHintReduceMotion = reduceMotion
         if slingshot != nil {
             slingshot.showDragHint(reduceMotion: reduceMotion)
         } else {
             pendingDragHint = true
-            pendingDragHintReduceMotion = reduceMotion
         }
     }
 
@@ -231,8 +232,6 @@ final class GameScene: SKScene {
             aimingTouch = touch
             session.beginAim()
             slingshot.beginPull()
-            onDragHintDismissed?()
-            onDragHintDismissed = nil
             run(SoundBank.stretch)
         case .inFlight:
             tapAbilityNow()
@@ -292,6 +291,11 @@ final class GameScene: SKScene {
         // slingshot's loaded sprite on success), so it must run last.
         guard let sprite = seatedSprite, let velocity = slingshot.endPull() else {
             session.cancelAim()
+            // A grab that never became a pull taught nothing (review
+            // finding): put the hint back for the still-unseen learner.
+            if onDragHintDismissed != nil {
+                slingshot.showDragHint(reduceMotion: pendingDragHintReduceMotion)
+            }
             return
         }
         sprite.activatePhysics()
@@ -301,6 +305,9 @@ final class GameScene: SKScene {
         seatedSprite = nil
         session.fling()
         emit(.flung)
+        // Only a real launch counts as "learned to pull".
+        onDragHintDismissed?()
+        onDragHintDismissed = nil
     }
 
     #if DEBUG
@@ -313,8 +320,6 @@ final class GameScene: SKScene {
         let target = CGPoint(x: slingshot.seatPosition.x + pull.dx,
                              y: slingshot.seatPosition.y + pull.dy)
         slingshot.beginPull()
-        onDragHintDismissed?()
-        onDragHintDismissed = nil
         slingshot.movePull(to: target)
         run(.wait(forDuration: holdFor)) { [weak self] in
             self?.finishFling()
@@ -334,6 +339,9 @@ final class GameScene: SKScene {
         _ = slingshot.endPull()
         seatedSprite.map { slingshot.loadSprite($0) }
         session.cancelAim()
+        if onDragHintDismissed != nil {
+            slingshot.showDragHint(reduceMotion: pendingDragHintReduceMotion)
+        }
     }
 
     // MARK: Flight & settle detection

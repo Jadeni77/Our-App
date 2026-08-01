@@ -194,13 +194,12 @@ struct MoonshotGameView: View {
         showGoalLine = false
         let store = MoonshotProgressStore(context: modelContext)
         guard CoachLedger.momentInFlight(seen: store.seenCoachKeys()) == .abilityTap else { return }
-        // Seen means "the cue fired", not "the tap was obeyed" — it must
-        // never nag a player who chose to save the ability.
-        store.markCoachSeen(.abilityTap)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-            if case .inFlight = session?.phase, session?.abilityUsedThisFlight == false {
-                withAnimation { showAbilityCue = true }
-            }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [modelContext] in
+            guard case .inFlight = session?.phase, session?.abilityUsedThisFlight == false else { return }
+            // Seen means "the cue fired", not "the tap was obeyed" — it
+            // must never nag a player who chose to save the ability.
+            MoonshotProgressStore(context: modelContext).markCoachSeen(.abilityTap)
+            withAnimation { showAbilityCue = true }
         }
     }
 
