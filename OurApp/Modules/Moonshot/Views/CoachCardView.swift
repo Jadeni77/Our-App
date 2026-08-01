@@ -83,10 +83,14 @@ struct CoachCardView: View {
         MoonshotRewards.track.first { $0.grant == .character(character) }?.threshold
     }
 
-    /// The one line that says what this star DOES — shared by the coach
-    /// flow and the home dashboard.
-    private var powerLine: Text {
-        switch character {
+    private var powerLine: Text { character.powerLineText }
+}
+
+extension CharacterID {
+    /// The one line that says what this star DOES — the coach card and the
+    /// abilities dashboard both read from here.
+    var powerLineText: Text {
+        switch self {
         case .mochi: Text("Moon Slam — stop mid-air and drop like the moon")
         case .zip: Text("Comet Dash — a burst of speed, ×2 vs crystal and wood")
         case .twinkle: Text("Split — one star becomes two")
