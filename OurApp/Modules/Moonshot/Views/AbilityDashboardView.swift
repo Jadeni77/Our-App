@@ -6,7 +6,6 @@ import SwiftData
 /// Locked characters demo too; watching the well work is the best
 /// advertisement for earning 24★.
 struct AbilityDashboardView: View {
-    @Environment(\.dismiss) private var dismiss
     @Query private var results: [MoonshotLevelResult]
     @State private var selected: CharacterID
 
@@ -53,31 +52,9 @@ struct AbilityDashboardView: View {
         }
         .navigationTitle(Text("Abilities"))
         .navigationBarTitleDisplayMode(.inline)
-        // Owner bug (2026-08-01): "cannot exit the Ability section" — the
-        // sheet had no Done, the push's back button hides under the shell's
-        // close chrome, and a toolbar Done lands under the same chrome. An
-        // in-content button at the bottom-trailing corner (empirically clear
-        // on every module screen) dismisses OR pops, whichever way in.
-        .overlay(alignment: .bottomTrailing) {
-            Button {
-                Haptics.tap()
-                dismiss()
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "chevron.backward")
-                        .font(.system(size: 13, weight: .semibold))
-                    Text("Back")
-                        .font(Theme.display(16))
-                }
-                .foregroundStyle(.white)
-                .padding(.horizontal, 18)
-                .padding(.vertical, 9)
-                .glassCard(cornerRadius: 18)
-            }
-            .accessibilityLabel(Text("Back"))
-            .padding(.trailing, 18)
-            .padding(.bottom, 10)
-        }
+        // One back affordance, the standard "‹", everywhere (owner ruling
+        // 2026-08-01): the home push gets it from the system; the in-game
+        // sheet supplies its own at the SAME spot (see MoonshotGameView).
     }
 
     private func characterPick(_ character: CharacterID) -> some View {

@@ -351,6 +351,21 @@ struct MoonshotGameView: View {
                     .sheet(isPresented: $showAbilities) {
                         NavigationStack {
                             AbilityDashboardView(initial: session.currentCharacter ?? .mochi)
+                                // Sheets get no system back — supply the
+                                // same "‹" at the same top-left spot.
+                                .toolbar {
+                                    ToolbarItem(placement: .topBarLeading) {
+                                        Button {
+                                            Haptics.tap()
+                                            showAbilities = false
+                                        } label: {
+                                            Image(systemName: "chevron.backward")
+                                                .font(.system(size: 17, weight: .semibold))
+                                                .foregroundStyle(.white)
+                                        }
+                                        .accessibilityLabel(Text("Back"))
+                                    }
+                                }
                         }
                     }
 
