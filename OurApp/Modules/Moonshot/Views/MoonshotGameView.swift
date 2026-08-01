@@ -38,6 +38,7 @@ struct MoonshotGameView: View {
     @State private var showAbilityCue = false
     @State private var pendingIntroCards: [CharacterID] = []
     @State private var pendingWorldBanner: Int?
+    @State private var showAbilities = false
 
     private let catalog = CampaignCatalog.bundled
     #if DEBUG
@@ -328,9 +329,13 @@ struct MoonshotGameView: View {
                     .accessibilityLabel(Text("Replay"))
 
                     // The reference, reachable where the question arises
-                    // (owner amendment #3).
-                    NavigationLink {
-                        AbilityDashboardView(initial: session.currentCharacter ?? .mochi)
+                    // (owner amendment #3). A SHEET, deliberately: a push
+                    // unmounts the SKView and the flight/settle timers are
+                    // wall-clock — browsing demos mid-flight would fast-
+                    // forward the shot into a timeout fail (review C1).
+                    Button {
+                        Haptics.tap()
+                        showAbilities = true
                     } label: {
                         Image(systemName: "questionmark.circle")
                             .font(.system(size: 14, weight: .bold))
@@ -339,6 +344,11 @@ struct MoonshotGameView: View {
                     }
                     .glassCard(cornerRadius: 18)
                     .accessibilityLabel(Text("Abilities"))
+                    .sheet(isPresented: $showAbilities) {
+                        NavigationStack {
+                            AbilityDashboardView(initial: session.currentCharacter ?? .mochi)
+                        }
+                    }
 
                     // Earned characters are a choice, never a requirement:
                     // once the couple pool unlocks one, any ready fling can

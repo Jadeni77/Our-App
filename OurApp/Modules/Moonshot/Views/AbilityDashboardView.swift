@@ -79,6 +79,7 @@ struct AbilityDashboardView: View {
             }
         }
         .accessibilityLabel(Text(LocalizedStringKey(character.displayNameKey)))
+        .accessibilityValue(isUnlocked(character) ? Text("") : Text("Locked"))
     }
 
     private func isUnlocked(_ character: CharacterID) -> Bool {

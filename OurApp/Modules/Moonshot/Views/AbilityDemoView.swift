@@ -9,7 +9,6 @@ struct AbilityDemoView: View {
     let character: CharacterID
 
     @State private var scene: GameScene?
-    @State private var session: LevelSession?
     @State private var generation = 0
     @State private var loopTask: Task<Void, Never>?
 
@@ -33,9 +32,7 @@ struct AbilityDemoView: View {
     private func restart() {
         loopTask?.cancel()
         let demo = AbilityDemos.demo(for: character)
-        let newSession = LevelSession(level: demo.level)
-        let newScene = GameScene(level: demo.level, session: newSession)
-        session = newSession
+        let newScene = GameScene(level: demo.level, session: LevelSession(level: demo.level))
         scene = newScene
         generation += 1
         loopTask = Task { @MainActor [weak newScene] in
