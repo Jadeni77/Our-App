@@ -63,14 +63,18 @@ struct AbilityDashboardView: View {
                 Haptics.tap()
                 dismiss()
             } label: {
-                Text("Done")
-                    .font(Theme.display(16))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 18)
-                    .padding(.vertical, 9)
-                    .glassCard(cornerRadius: 18)
+                HStack(spacing: 6) {
+                    Image(systemName: "chevron.backward")
+                        .font(.system(size: 13, weight: .semibold))
+                    Text("Back")
+                        .font(Theme.display(16))
+                }
+                .foregroundStyle(.white)
+                .padding(.horizontal, 18)
+                .padding(.vertical, 9)
+                .glassCard(cornerRadius: 18)
             }
-            .accessibilityLabel(Text("Done"))
+            .accessibilityLabel(Text("Back"))
             .padding(.trailing, 18)
             .padding(.bottom, 10)
         }
