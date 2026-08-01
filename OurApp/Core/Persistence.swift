@@ -10,6 +10,7 @@ enum Persistence {
             DecisionRecord.self,
             MoonshotLevelResult.self,
             MoonshotCosmeticSetting.self,
+            MoonshotCoachSeen.self,
         ])
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: inMemory)
         return try ModelContainer(for: schema, configurations: [configuration])

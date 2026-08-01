@@ -68,6 +68,27 @@ import Testing
         #expect(row.featCleanSweep && row.featOneFling && !row.featNoAbility)
     }
 
+    @Test func coachSeenPersistsPerPartnerAndIsIdempotent() throws {
+        let fixture = try makeStore()
+        let store = fixture.store
+        #expect(store.seenCoachKeys().isEmpty)
+        store.markCoachSeen(.goal)
+        store.markCoachSeen(.goal)                       // double-mark = one row
+        store.markCoachSeen(.meetCharacter(.zip))
+        #expect(store.seenCoachKeys() == ["goal", "meet-zip"])
+    }
+
+    @Test func coachResetClearsOnlyThisPartner() throws {
+        let fixture = try makeStore()
+        let store = fixture.store
+        store.markCoachSeen(.dragToFling)
+        let other = MoonshotProgressStore(context: fixture.container.mainContext, partnerID: "two")
+        other.markCoachSeen(.dragToFling)
+        store.resetCoach()
+        #expect(store.seenCoachKeys().isEmpty)
+        #expect(other.seenCoachKeys() == ["drag"])
+    }
+
     @Test func trailEquipsAndPersistsPerPartner() throws {
         let fixture = try makeStore()
         let store = fixture.store
