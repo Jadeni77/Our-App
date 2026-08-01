@@ -6,6 +6,7 @@ import SwiftData
 /// Locked characters demo too; watching the well work is the best
 /// advertisement for earning 24★.
 struct AbilityDashboardView: View {
+    @Environment(\.dismiss) private var dismiss
     @Query private var results: [MoonshotLevelResult]
     @State private var selected: CharacterID
 
@@ -52,6 +53,27 @@ struct AbilityDashboardView: View {
         }
         .navigationTitle(Text("Abilities"))
         .navigationBarTitleDisplayMode(.inline)
+        // Owner bug (2026-08-01): "cannot exit the Ability section" — the
+        // sheet had no Done, the push's back button hides under the shell's
+        // close chrome, and a toolbar Done lands under the same chrome. An
+        // in-content button at the bottom-trailing corner (empirically clear
+        // on every module screen) dismisses OR pops, whichever way in.
+        .overlay(alignment: .bottomTrailing) {
+            Button {
+                Haptics.tap()
+                dismiss()
+            } label: {
+                Text("Done")
+                    .font(Theme.display(16))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 9)
+                    .glassCard(cornerRadius: 18)
+            }
+            .accessibilityLabel(Text("Done"))
+            .padding(.trailing, 18)
+            .padding(.bottom, 10)
+        }
     }
 
     private func characterPick(_ character: CharacterID) -> some View {
