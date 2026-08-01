@@ -361,6 +361,16 @@ final class GameScene: SKScene {
         }
     }
 
+    /// A fling touched down: nearby hoppers get their chance to dodge.
+    private func hopGloomsNear(_ point: CGPoint) {
+        guard worldArmed else { return }
+        let now = CACurrentMediaTime()
+        for case let gloom as GloomNode in worldNode.children
+        where gloom.kind == .hopper && gloom.physicsBody != nil {
+            gloom.hopIfReady(awayFrom: point, now: now)
+        }
+    }
+
     /// With no side walls, a gloom can be shoved clean off the map —
     /// off the map is gone (the genre's ruling): count it popped. Applies
     /// kind-blind on purpose: an escaped shieldling pops shell and all, and
@@ -407,7 +417,14 @@ final class GameScene: SKScene {
                 ($0.velocity.dx * $0.velocity.dx + $0.velocity.dy * $0.velocity.dy).squareRoot()
             } ?? 0
             if speed < MoonshotTuning.spriteSpentSpeed {
-                if sprite.slowSince == nil { sprite.slowSince = now }
+                if sprite.slowSince == nil {
+                    sprite.slowSince = now
+                    // The live-ability window closes when the flight dies
+                    // down (PR-1 review ruling): a spent ball rolling into
+                    // a mist gloom is not "a power". Multipliers are
+                    // unaffected — slow rolls carry no real impulse.
+                    sprite.abilityActive = false
+                }
             } else {
                 sprite.slowSince = nil
             }
@@ -503,7 +520,31 @@ extension GameScene: SKPhysicsContactDelegate {
         for case let sprite as StarSpriteNode in nodes.compactMap({ $0 }) where sprite.launched {
             sprite.physicsBody?.linearDamping = MoonshotTuning.spriteLandedLinearDamping
             sprite.physicsBody?.angularDamping = MoonshotTuning.spriteLandedAngularDamping
+            hopGloomsNear(sprite.position)
         }
+
+        // Mist glooms live on CONTACT, not force — their pass-through
+        // touches carry zero collision impulse by design, so they must be
+        // handled before the zero-impulse cutoff below (found when the
+        // verification slam bounced off nothing).
+        let abilityContact = nodes.contains {
+            ($0 as? StarSpriteNode).map { $0.abilityActive || $0.phasing } ?? false
+        }
+        for case let gloom as GloomNode in nodes.compactMap({ $0 })
+        where gloom.kind == .mist && gloom.physicsBody != nil {
+            let hits = GloomDamage.hits(forImpulse: impulse, kind: .mist,
+                                        abilityActive: abilityContact)
+            switch gloom.applyHits(hits) {
+            case .popped:
+                pop(gloom)
+            case .none, .bruised, .shellShattered:
+                if nodes.contains(where: { $0 is StarSpriteNode }) {
+                    AbilityRunner.flashRing(at: gloom.position, in: self,
+                                            color: UIColor(white: 1, alpha: 0.45))
+                }
+            }
+        }
+
         guard impulse > 0 else { return }
 
         for case let piece as PieceNode in nodes.compactMap({ $0 }) where piece.parent != nil {
@@ -525,11 +566,8 @@ extension GameScene: SKPhysicsContactDelegate {
             }
         }
 
-        let abilityContact = nodes.contains {
-            ($0 as? StarSpriteNode).map { $0.abilityActive || $0.phasing } ?? false
-        }
         for case let gloom as GloomNode in nodes.compactMap({ $0 }) {
-            guard gloom.physicsBody != nil else { continue }
+            guard gloom.physicsBody != nil, gloom.kind != .mist else { continue }
             let hits = GloomDamage.hits(forImpulse: impulse,
                                         kind: gloom.kind,
                                         abilityActive: abilityContact)

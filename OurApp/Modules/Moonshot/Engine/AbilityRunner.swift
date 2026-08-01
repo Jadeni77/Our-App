@@ -109,6 +109,9 @@ enum AbilityRunner {
                                              dy: dx * Foundation.sin(angle) + dy * Foundation.cos(angle))
             }
             twin.launched = true
+            // Twins ARE the ability (M29): mist glooms answer to them.
+            // Twinkle's active multiplier is 1.0, so no material rebalance.
+            twin.abilityActive = true
             scene.addLaunchedSprite(twin)
         }
         flashRing(at: position, in: scene, color: UIColor(Theme.rose))
@@ -119,6 +122,9 @@ enum AbilityRunner {
         guard let body = sprite.physicsBody else { return }
         body.isDynamic = false   // frozen, or the well would orbit itself
         sprite.holdsFlight = true
+        // The well is live while he holds it (M29): a mist gloom dragged
+        // into the frozen Nox pops. No nox damage multiplier exists → 1.0.
+        sprite.abilityActive = true
 
         let field = SKFieldNode.radialGravityField()
         field.categoryBitMask = FieldCategory.well
