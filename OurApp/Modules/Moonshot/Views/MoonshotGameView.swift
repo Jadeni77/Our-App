@@ -61,8 +61,13 @@ struct MoonshotGameView: View {
                 CoachCardView(character: character, unlocked: true) {
                     MoonshotProgressStore(context: modelContext)
                         .markCoachSeen(.meetCharacter(character))
-                    withAnimation { _ = pendingIntroCards.removeFirst() }
+                    // Guarded: a double-fire on the last card must not trap
+                    // on an empty array (review finding).
+                    withAnimation {
+                        if !pendingIntroCards.isEmpty { pendingIntroCards.removeFirst() }
+                    }
                 }
+                .id(character)
                 .transition(.opacity)
             }
         }

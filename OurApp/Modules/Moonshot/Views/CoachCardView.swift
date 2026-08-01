@@ -10,9 +10,11 @@ struct CoachCardView: View {
 
     var body: some View {
         ZStack {
+            // The dimmer BLOCKS touches, never dismisses — an accidental
+            // tap must not burn a once-ever teaching moment (review call).
             Color.black.opacity(0.45)
                 .ignoresSafeArea()
-                .onTapGesture { onDismiss() }
+                .onTapGesture {}
             VStack(spacing: 14) {
                 ZStack {
                     Circle()
@@ -46,10 +48,12 @@ struct CoachCardView: View {
                             .padding(.vertical, 10)
                             .background(Capsule().fill(Theme.indigo))
                     }
-                } else if let threshold = unlockThreshold {
-                    Text("Unlocks at \(threshold)★")
-                        .font(.footnote)
-                        .foregroundStyle(Theme.glow)
+                } else {
+                    if let threshold = unlockThreshold {
+                        Text("Unlocks at \(threshold)★")
+                            .font(.footnote)
+                            .foregroundStyle(Theme.glow)
+                    }
                     Button {
                         Haptics.tap()
                         onDismiss()
@@ -68,6 +72,10 @@ struct CoachCardView: View {
             .frame(maxWidth: 420)
             .accessibilityElement(children: .combine)
             .accessibilityAddTraits(.isModal)
+            // .combine may not forward the child button's action reliably —
+            // give VoiceOver an explicit activate and escape (review fix).
+            .accessibilityAction { onDismiss() }
+            .accessibilityAction(.escape) { onDismiss() }
         }
     }
 
