@@ -39,6 +39,19 @@ struct MoonshotRewardsTests {
         #expect(MoonshotRewards.isUnlocked(.mochi, pool: 0))
     }
 
+    @Test func nextMilestoneWalksTheTrackAndEnds() {
+        #expect(MoonshotRewards.nextMilestone(pool: 0)?.threshold == 8)
+        #expect(MoonshotRewards.nextMilestone(pool: 8)?.threshold == 16)
+        #expect(MoonshotRewards.nextMilestone(pool: 95)?.threshold == 96)
+        #expect(MoonshotRewards.nextMilestone(pool: 96) == nil)
+    }
+
+    @Test func previousThresholdFloorsTheProgressBar() {
+        #expect(MoonshotRewards.previousThreshold(pool: 0) == 0)
+        #expect(MoonshotRewards.previousThreshold(pool: 8) == 8)
+        #expect(MoonshotRewards.previousThreshold(pool: 30) == 24)
+    }
+
     @Test func extendedTrackAppendsWithoutRepricing() {
         #expect(MoonshotRewards.track.prefix(4).map(\.threshold) == [8, 16, 24, 32])  // M6: never reprice
         #expect(MoonshotRewards.grants(pool: 96).contains(.character(.misty)))

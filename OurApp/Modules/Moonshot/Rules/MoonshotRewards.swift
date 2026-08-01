@@ -67,6 +67,18 @@ enum MoonshotRewards {
         return bestSolo.values.reduce(0, +) + bestCoop.values.reduce(0, +)
     }
 
+    /// The first milestone the pool hasn't reached — what the couple is
+    /// working toward (M26: the next unlock is always visible). Nil once
+    /// the track is complete.
+    static func nextMilestone(pool: Int) -> (threshold: Int, grant: RewardGrant)? {
+        track.first { $0.threshold > pool }
+    }
+
+    /// The highest reached threshold — the progress bar's floor.
+    static func previousThreshold(pool: Int) -> Int {
+        track.last { $0.threshold <= pool }?.threshold ?? 0
+    }
+
     static func grants(pool: Int) -> [RewardGrant] {
         track.filter { pool >= $0.threshold }.map(\.grant)
     }
