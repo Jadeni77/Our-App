@@ -1,9 +1,14 @@
 import SwiftUI
+import SwiftData
 
-/// Moonshot's front door: Campaign is live; Co-op and 1v1 show themselves
-/// locked (M14 — the roadmap teases itself, one card flips live per slice).
+/// Moonshot's front door, rebuilt as a progress hub (M27): Continue where
+/// you left off, the three worlds at a glance, the cast with their powers
+/// a tap away — and the roadmap shrunk to one quiet line.
 struct MoonshotHomeView: View {
     @Environment(\.modelContext) private var modelContext
+    @Query private var results: [MoonshotLevelResult]
+    private let catalog = CampaignCatalog.bundled
+    private let partnerID = MoonshotProgressStore.devicePartnerID
     /// Headless screenshot paths: `-moonshotLevel N` jumps into level N
     /// (1-based); `-moonshotConstellation` / `-moonshotRewards` open those
     /// screens. DEBUG-only, like the shell's launch args.
@@ -28,59 +33,64 @@ struct MoonshotHomeView: View {
 
     @State private var musicEnabled = MoonshotAudio.shared.musicEnabled
 
+    private var pool: Int { MoonshotRewards.starPool(results.map(\.snapshot)) }
+
     var body: some View {
         NavigationStack {
             ZStack {
                 DreamyBackground()
-                VStack(spacing: 20) {
-                    VStack(spacing: 6) {
-                        Text("Moonshot")
-                            .font(Theme.display(36))
-                            .foregroundStyle(.white)
-                        Text("Relight our sky")
-                            .font(.subheadline)
-                            .foregroundStyle(.white.opacity(0.85))
-                    }
-                    .padding(.top, 24)
-                    .overlay(alignment: .trailing) {
-                        Button {
-                            Haptics.tap()
-                            musicEnabled.toggle()
-                            MoonshotAudio.shared.musicEnabled = musicEnabled
-                        } label: {
-                            Image(systemName: musicEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill")
-                                .font(.system(size: 15, weight: .semibold))
+                HStack(alignment: .top, spacing: 26) {
+                    VStack(spacing: 10) {
+                        VStack(spacing: 4) {
+                            Text("Moonshot")
+                                .font(Theme.display(34))
                                 .foregroundStyle(.white)
-                                .frame(width: 38, height: 38)
+                            Text("Relight our sky")
+                                .font(.subheadline)
+                                .foregroundStyle(.white.opacity(0.85))
                         }
-                        .glassCard(cornerRadius: 19)
-                        .offset(x: 52)
-                        .accessibilityLabel(Text("Music"))
-                        .accessibilityValue(musicEnabled ? Text("On") : Text("Off"))
+                        .overlay(alignment: .trailing) {
+                            Button {
+                                Haptics.tap()
+                                musicEnabled.toggle()
+                                MoonshotAudio.shared.musicEnabled = musicEnabled
+                            } label: {
+                                Image(systemName: musicEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(.white)
+                                    .frame(width: 38, height: 38)
+                            }
+                            .glassCard(cornerRadius: 19)
+                            .offset(x: 52)
+                            .accessibilityLabel(Text("Music"))
+                            .accessibilityValue(musicEnabled ? Text("On") : Text("Off"))
+                        }
+                        Text("\(pool)★")
+                            .font(Theme.display(30))
+                            .foregroundStyle(.white)
+                        Text("Every star either of us earns lights this up")
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.75))
+                            .multilineTextAlignment(.center)
+                        NextUnlockStrip(pool: pool)
+                        Spacer()
+                        Text("Co-op & 1v1 — on the roadmap")
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.5))
                     }
+                    .frame(maxWidth: 250)
 
-                    NavigationLink {
-                        LevelSelectView()
-                    } label: {
-                        modeCard(emoji: "🌌", title: "Campaign", locked: false)
+                    VStack(spacing: 14) {
+                        continueHero
+                        worldsRow
+                        charactersRow
+                        Spacer()
                     }
-                    .buttonStyle(.plain)
-
-                    // Temporary row — PR 5's hub folds this into the
-                    // characters row (owner amendment #3).
-                    NavigationLink {
-                        AbilityDashboardView()
-                    } label: {
-                        modeCard(emoji: "✨", title: "Abilities", locked: false)
-                    }
-                    .buttonStyle(.plain)
-
-                    modeCard(emoji: "🤝", title: "Co-op", locked: true)
-                    modeCard(emoji: "⚔️", title: "1v1", locked: true)
-
-                    Spacer()
+                    .frame(maxWidth: .infinity)
                 }
                 .padding(.horizontal, 28)
+                .padding(.top, 18)
+                .padding(.bottom, 12)
             }
             .navigationDestination(item: $debugLevelIndex) { index in
                 MoonshotGameView(levelIndex: index)
@@ -126,27 +136,138 @@ struct MoonshotHomeView: View {
         #endif
     }
 
-    private func modeCard(emoji: String, title: LocalizedStringKey, locked: Bool) -> some View {
-        HStack(spacing: 14) {
-            Text(emoji).font(.system(size: 34))
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(Theme.display(20))
-                    .foregroundStyle(.white)
-                if locked {
-                    Text("Coming soon")
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.7))
+    // MARK: The hub (M27)
+
+    /// One tap back into the journey — or an invitation to replay it.
+    @ViewBuilder
+    private var continueHero: some View {
+        let snapshots = results.map(\.snapshot)
+        if let index = catalog.nextPlayableIndex(snapshots: snapshots, partnerID: partnerID) {
+            NavigationLink {
+                MoonshotGameView(levelIndex: index)
+            } label: {
+                HStack(spacing: 14) {
+                    Text("🌌").font(.system(size: 32))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Continue")
+                            .font(Theme.display(20))
+                            .foregroundStyle(.white)
+                        Text("W\(catalog.levels[index].worldNumber) · L\(index + 1)")
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.75))
+                    }
+                    Spacer()
+                    Image(systemName: "play.fill")
+                        .foregroundStyle(Theme.glow)
                 }
+                .padding(16)
+                .glassCard(cornerRadius: 22)
             }
-            Spacer()
-            Image(systemName: locked ? "lock.fill" : "chevron.right")
-                .foregroundStyle(.white.opacity(0.8))
+            .buttonStyle(.plain)
+            .accessibilityElement(children: .combine)
+        } else {
+            NavigationLink {
+                LevelSelectView()
+            } label: {
+                HStack(spacing: 14) {
+                    Text("🌌").font(.system(size: 32))
+                    Text("All clear — replay your sky")
+                        .font(Theme.display(18))
+                        .foregroundStyle(.white)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .foregroundStyle(.white.opacity(0.8))
+                }
+                .padding(16)
+                .glassCard(cornerRadius: 22)
+            }
+            .buttonStyle(.plain)
+            .accessibilityElement(children: .combine)
         }
-        .padding(18)
-        .glassCard(cornerRadius: 24)
-        .opacity(locked ? 0.55 : 1)
-        .accessibilityElement(children: .combine)
+    }
+
+    /// Three worlds at a glance: name, banked stars, lock state.
+    private var worldsRow: some View {
+        let snapshots = results.map(\.snapshot)
+        return HStack(spacing: 10) {
+            ForEach(1...max(catalog.worldCount, 1), id: \.self) { world in
+                let unlocked = catalog.isWorldUnlocked(world, snapshots: snapshots, partnerID: partnerID)
+                let stars = catalog.levels(inWorld: world).reduce(0) { sum, level in
+                    sum + (results.first {
+                        $0.partnerID == partnerID && $0.levelID == level.id && $0.mode == .solo
+                    }?.bestStars ?? 0)
+                }
+                NavigationLink {
+                    LevelSelectView(initialWorld: world)
+                } label: {
+                    VStack(spacing: 4) {
+                        worldName(world)
+                            .font(Theme.display(12))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                        if unlocked {
+                            Text("\(stars)★")
+                                .font(.caption2)
+                                .foregroundStyle(Theme.glow)
+                        } else {
+                            Image(systemName: "lock.fill")
+                                .font(.system(size: 10))
+                                .foregroundStyle(.white.opacity(0.55))
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .glassCard(cornerRadius: 16)
+                    .opacity(unlocked ? 1 : 0.6)
+                }
+                .buttonStyle(.plain)
+                .accessibilityElement(children: .combine)
+            }
+        }
+    }
+
+    private func worldName(_ world: Int) -> Text {
+        switch world {
+        case 2: Text("The Cloudfoam Skies")
+        case 3: Text("The Storm Heights")
+        default: Text("The Moonlit Fields")
+        }
+    }
+
+    /// The cast, powers a tap away (owner amendment #3): each pick lands on
+    /// that character's live demo in the dashboard.
+    private var charactersRow: some View {
+        HStack(spacing: 12) {
+            ForEach(CharacterID.allCases, id: \.self) { character in
+                let unlocked = MoonshotRewards.isUnlocked(character, pool: pool)
+                NavigationLink {
+                    AbilityDashboardView(initial: character)
+                } label: {
+                    VStack(spacing: 3) {
+                        ZStack {
+                            Circle()
+                                .fill(unlocked ? character.chipColor : Color.white.opacity(0.15))
+                                .frame(width: 40, height: 40)
+                            if !unlocked {
+                                Image(systemName: "lock.fill")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(.white.opacity(0.6))
+                            }
+                        }
+                        Text(LocalizedStringKey(character.displayNameKey))
+                            .font(Theme.display(10))
+                            .foregroundStyle(.white.opacity(0.8))
+                    }
+                }
+                .buttonStyle(.plain)
+                .accessibilityElement(children: .combine)
+                .accessibilityValue(unlocked ? Text("") : Text("Locked"))
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .glassCard(cornerRadius: 18)
     }
 }
 

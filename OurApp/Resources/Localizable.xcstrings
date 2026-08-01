@@ -319,6 +319,29 @@
         }
       }
     },
+    "All clear — replay your sky" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All clear — replay your sky"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部通关——回去重温星空吧"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部通關——回去重溫星空吧"
+          }
+        }
+      }
+    },
     "Allow location access in Settings and we'll find %@ nearby." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -710,6 +733,29 @@
         }
       }
     },
+    "Co-op & 1v1 — on the roadmap" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Co-op & 1v1 — on the roadmap"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "双人合作与对决——都在路上"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "雙人合作與對決——都在路上"
+          }
+        }
+      }
+    },
     "Collection name" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -775,6 +821,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "敬請期待"
+          }
+        }
+      }
+    },
+    "Continue" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "继续"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "繼續"
           }
         }
       }
@@ -2826,6 +2895,29 @@
         }
       }
     },
+    "The glooms giggle. Try again?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The glooms giggle. Try again?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "阴影们在偷笑。再来一次？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "陰影們在偷笑。再來一次？"
+          }
+        }
+      }
+    },
     "The Moonlit Fields" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3041,6 +3133,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "改用捷徑"
+          }
+        }
+      }
+    },
+    "W%lld · L%lld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "W%lld · L%lld"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "W%lld · L%lld"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "W%lld · L%lld"
           }
         }
       }
