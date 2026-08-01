@@ -105,7 +105,8 @@ final class GameScene: SKScene {
             worldNode.addChild(node)
         }
         for gloom in level.glooms {
-            worldNode.addChild(SpriteFactory.makeGloom(at: levelPoint(gloom.x, gloom.y)))
+            worldNode.addChild(SpriteFactory.makeGloom(at: levelPoint(gloom.x, gloom.y),
+                                                       kind: gloom.kind))
         }
 
         var windZones = level.wind ?? []
@@ -520,12 +521,23 @@ extension GameScene: SKPhysicsContactDelegate {
             }
         }
 
+        let abilityContact = nodes.contains {
+            ($0 as? StarSpriteNode).map { $0.abilityActive || $0.phasing } ?? false
+        }
         for case let gloom as GloomNode in nodes.compactMap({ $0 }) {
             guard gloom.physicsBody != nil else { continue }
-            let hits = GloomDamage.hits(forImpulse: impulse)
-            guard hits > 0 else { continue }
-            guard gloom.applyHits(hits) else { continue }   // bruised, still standing
-            pop(gloom)
+            let hits = GloomDamage.hits(forImpulse: impulse,
+                                        kind: gloom.kind,
+                                        abilityActive: abilityContact)
+            switch gloom.applyHits(hits) {
+            case .none, .bruised:
+                continue                                     // face updates internally
+            case .shellShattered:
+                SpriteFactory.burst(at: gloom.position, material: .crystal, in: worldNode)
+                emit(.impact(.crystal))
+            case .popped:
+                pop(gloom)
+            }
         }
     }
 
