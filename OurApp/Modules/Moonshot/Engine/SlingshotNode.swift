@@ -54,12 +54,76 @@ final class SlingshotNode: SKNode {
         sprite.position = seatPosition
     }
 
+    // MARK: Drag hint (M25)
+
+    private var dragHint: SKNode?
+
+    /// A first-timer's hand: a fingertip dot rides the pull path from the
+    /// seat down-and-back along a dashed guide with an arrowhead. Under
+    /// Reduce Motion the fingertip just sits at the pull end, static.
+    func showDragHint(reduceMotion: Bool) {
+        removeDragHint()
+        let hint = SKNode()
+        hint.zPosition = 8
+
+        let seat = CGPoint(x: 0, y: MoonshotTuning.slingshotHeight)
+        let pullEnd = CGPoint(x: seat.x - 46, y: seat.y - 40)
+
+        let guide = CGMutablePath()
+        guide.move(to: seat)
+        guide.addQuadCurve(to: pullEnd, control: CGPoint(x: seat.x - 32, y: seat.y - 8))
+        let guideNode = SKShapeNode(path: guide.copy(dashingWithPhase: 0, lengths: [4, 5]))
+        guideNode.strokeColor = UIColor.white.withAlphaComponent(0.5)
+        guideNode.lineWidth = 2
+        hint.addChild(guideNode)
+
+        let head = CGMutablePath()
+        head.move(to: CGPoint(x: pullEnd.x + 10, y: pullEnd.y + 6))
+        head.addLine(to: pullEnd)
+        head.addLine(to: CGPoint(x: pullEnd.x + 8, y: pullEnd.y + 11))
+        let headNode = SKShapeNode(path: head)
+        headNode.strokeColor = UIColor.white.withAlphaComponent(0.7)
+        headNode.lineWidth = 2
+        headNode.lineCap = .round
+        hint.addChild(headNode)
+
+        let finger = SKShapeNode(circleOfRadius: 9)
+        finger.fillColor = UIColor.white.withAlphaComponent(0.85)
+        finger.strokeColor = .white
+        finger.lineWidth = 1.5
+        finger.position = seat
+        hint.addChild(finger)
+
+        if reduceMotion {
+            finger.position = pullEnd
+            hint.alpha = 0.8
+        } else {
+            let ride = SKAction.follow(guide, asOffset: false, orientToPath: false, duration: 1.1)
+            ride.timingMode = .easeInEaseOut
+            finger.run(.repeatForever(.sequence([
+                .fadeIn(withDuration: 0.15),
+                ride,
+                .wait(forDuration: 0.25),
+                .fadeOut(withDuration: 0.2),
+                .move(to: seat, duration: 0),
+            ])))
+        }
+        addChild(hint)
+        dragHint = hint
+    }
+
+    func removeDragHint() {
+        dragHint?.removeFromParent()
+        dragHint = nil
+    }
+
     // MARK: Pulling
 
     /// Grabbing does NOT move the sprite (device-pass ruling 2026-07-31: a
     /// stray tap near the seat teleported the band taut and fired on lift).
     /// Only real drag movement pulls; a grab just shows the bands.
     func beginPull() {
+        removeDragHint()
         guard let sprite = loadedSprite else { return }
         drawBands(to: sprite.position)
     }

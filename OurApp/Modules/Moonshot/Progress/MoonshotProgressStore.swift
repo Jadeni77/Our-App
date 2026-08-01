@@ -94,6 +94,34 @@ final class MoonshotProgressStore {
         try? context.save()
     }
 
+    // MARK: Coach ledger (M25)
+
+    /// Storage keys of every coach moment this partner has seen.
+    func seenCoachKeys() -> Set<String> {
+        let partner = partnerID
+        let descriptor = FetchDescriptor<MoonshotCoachSeen>(predicate: #Predicate {
+            $0.partnerID == partner
+        })
+        return Set((try? context.fetch(descriptor))?.map(\.momentKey) ?? [])
+    }
+
+    /// Append-only, idempotent — a double-mark leaves one row.
+    func markCoachSeen(_ moment: CoachMoment) {
+        guard !seenCoachKeys().contains(moment.storageKey) else { return }
+        context.insert(MoonshotCoachSeen(partnerID: partnerID, momentKey: moment.storageKey))
+        try? context.save()
+    }
+
+    /// DEBUG re-teaching aid (`-moonshotCoachReset`) — this partner only.
+    func resetCoach() {
+        let partner = partnerID
+        let descriptor = FetchDescriptor<MoonshotCoachSeen>(predicate: #Predicate {
+            $0.partnerID == partner
+        })
+        for row in (try? context.fetch(descriptor)) ?? [] { context.delete(row) }
+        try? context.save()
+    }
+
     private func ensureCosmeticRow() -> MoonshotCosmeticSetting {
         cosmeticRow() ?? {
             let fresh = MoonshotCosmeticSetting(partnerID: partnerID, trail: nil)

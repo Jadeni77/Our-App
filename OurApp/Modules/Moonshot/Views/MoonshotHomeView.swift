@@ -109,6 +109,8 @@ struct MoonshotHomeView: View {
            let skin = SlingshotSkin(rawValue: arguments[flag + 1]) {
             store.equipSkin(skin)
         }
+        // Re-teach without wiping the store: coach moments only.
+        if arguments.contains("-moonshotCoachReset") { store.resetCoach() }
         #endif
     }
 

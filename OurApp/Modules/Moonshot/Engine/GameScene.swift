@@ -117,6 +117,10 @@ final class GameScene: SKScene {
         slingshot = SlingshotNode(showsTrajectoryHint: showsTrajectoryHint, skin: slingshotSkin)
         slingshot.position = CGPoint(x: MoonshotTuning.slingshotX, y: MoonshotTuning.groundY)
         addChild(slingshot)
+        if pendingDragHint == true {
+            pendingDragHint = nil
+            slingshot.showDragHint(reduceMotion: pendingDragHintReduceMotion)
+        }
         activeSprites.removeAll()
         seatNextSprite()
 
@@ -170,6 +174,26 @@ final class GameScene: SKScene {
                         forceX: parts[4], forceY: parts[5])
     }
     #endif
+
+    // MARK: Coach hooks (M25)
+
+    /// Fired once, on the first real pull — the coach layer marks the drag
+    /// moment seen and never shows the hint again.
+    var onDragHintDismissed: (() -> Void)?
+    /// The view configures the scene BEFORE presentation, but the slingshot
+    /// only exists after buildWorld — park the request until then.
+    private var pendingDragHint: Bool?
+    private var pendingDragHintReduceMotion = false
+
+    func showDragHint(reduceMotion: Bool) {
+        // Always remembered — a cancelled grab re-shows with the same style.
+        pendingDragHintReduceMotion = reduceMotion
+        if slingshot != nil {
+            slingshot.showDragHint(reduceMotion: reduceMotion)
+        } else {
+            pendingDragHint = true
+        }
+    }
 
     private(set) var seatedSprite: StarSpriteNode?
 
@@ -267,6 +291,11 @@ final class GameScene: SKScene {
         // slingshot's loaded sprite on success), so it must run last.
         guard let sprite = seatedSprite, let velocity = slingshot.endPull() else {
             session.cancelAim()
+            // A grab that never became a pull taught nothing (review
+            // finding): put the hint back for the still-unseen learner.
+            if onDragHintDismissed != nil {
+                slingshot.showDragHint(reduceMotion: pendingDragHintReduceMotion)
+            }
             return
         }
         sprite.activatePhysics()
@@ -276,6 +305,9 @@ final class GameScene: SKScene {
         seatedSprite = nil
         session.fling()
         emit(.flung)
+        // Only a real launch counts as "learned to pull".
+        onDragHintDismissed?()
+        onDragHintDismissed = nil
     }
 
     #if DEBUG
@@ -307,6 +339,9 @@ final class GameScene: SKScene {
         _ = slingshot.endPull()
         seatedSprite.map { slingshot.loadSprite($0) }
         session.cancelAim()
+        if onDragHintDismissed != nil {
+            slingshot.showDragHint(reduceMotion: pendingDragHintReduceMotion)
+        }
     }
 
     // MARK: Flight & settle detection
