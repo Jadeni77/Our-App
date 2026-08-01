@@ -117,6 +117,10 @@ final class GameScene: SKScene {
         slingshot = SlingshotNode(showsTrajectoryHint: showsTrajectoryHint, skin: slingshotSkin)
         slingshot.position = CGPoint(x: MoonshotTuning.slingshotX, y: MoonshotTuning.groundY)
         addChild(slingshot)
+        if pendingDragHint == true {
+            pendingDragHint = nil
+            slingshot.showDragHint(reduceMotion: pendingDragHintReduceMotion)
+        }
         activeSprites.removeAll()
         seatNextSprite()
 
@@ -171,6 +175,25 @@ final class GameScene: SKScene {
     }
     #endif
 
+    // MARK: Coach hooks (M25)
+
+    /// Fired once, on the first real pull — the coach layer marks the drag
+    /// moment seen and never shows the hint again.
+    var onDragHintDismissed: (() -> Void)?
+    /// The view configures the scene BEFORE presentation, but the slingshot
+    /// only exists after buildWorld — park the request until then.
+    private var pendingDragHint: Bool?
+    private var pendingDragHintReduceMotion = false
+
+    func showDragHint(reduceMotion: Bool) {
+        if slingshot != nil {
+            slingshot.showDragHint(reduceMotion: reduceMotion)
+        } else {
+            pendingDragHint = true
+            pendingDragHintReduceMotion = reduceMotion
+        }
+    }
+
     private(set) var seatedSprite: StarSpriteNode?
 
     private func seatNextSprite() {
@@ -208,6 +231,8 @@ final class GameScene: SKScene {
             aimingTouch = touch
             session.beginAim()
             slingshot.beginPull()
+            onDragHintDismissed?()
+            onDragHintDismissed = nil
             run(SoundBank.stretch)
         case .inFlight:
             tapAbilityNow()
@@ -288,6 +313,8 @@ final class GameScene: SKScene {
         let target = CGPoint(x: slingshot.seatPosition.x + pull.dx,
                              y: slingshot.seatPosition.y + pull.dy)
         slingshot.beginPull()
+        onDragHintDismissed?()
+        onDragHintDismissed = nil
         slingshot.movePull(to: target)
         run(.wait(forDuration: holdFor)) { [weak self] in
             self?.finishFling()
