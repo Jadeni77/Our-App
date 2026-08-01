@@ -36,6 +36,9 @@ final class GameScene: SKScene {
     }
     /// All launched, still-live sprites (Split will add siblings in PR 3).
     private(set) var activeSprites: [StarSpriteNode] = []
+    /// Build cost of every piece destroyed this level — the win handler
+    /// mints it into moondust (M31).
+    private(set) var wreckageValue = 0
 
     init(level: MoonshotLevel, session: LevelSession,
          showsTrajectoryHint: Bool = false, trail: TrailID? = nil,
@@ -571,6 +574,7 @@ extension GameScene: SKPhysicsContactDelegate {
                 piece.showCrackOverlay()
                 emit(.impact(piece.material))
             case .destroyed:
+                wreckageValue += piece.cost
                 SpriteFactory.burst(at: piece.position, material: piece.material, in: worldNode)
                 piece.removeFromParent()
                 emit(.pieceDestroyed(piece.material))

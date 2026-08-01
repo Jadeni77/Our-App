@@ -97,6 +97,29 @@
         }
       }
     },
+    "+%lld moondust" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "+%lld moondust"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月尘 +%lld"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月塵 +%lld"
+          }
+        }
+      }
+    },
     "+%lld★" : {
       "extractionState" : "manual",
       "localizations" : {

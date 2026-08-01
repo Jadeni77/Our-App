@@ -42,6 +42,9 @@ struct MoonshotGameView: View {
     @State private var pendingBanners: [CoachMoment] = []
     @State private var showAbilities = false
     @State private var starsRevealed = false
+    /// Moondust minted by this run (wreckage + first-clear bonus), for
+    /// the win overlay's dust tick (M31).
+    @State private var dustEarned = 0
 
     private let catalog = CampaignCatalog.bundled
     #if DEBUG
@@ -92,6 +95,9 @@ struct MoonshotGameView: View {
             let store = MoonshotProgressStore(context: modelContext)
             let poolBefore = store.starPool
             let grantsBefore = MoonshotRewards.grants(pool: poolBefore)
+            // Checked BEFORE recording — recordSolo flips `cleared` and
+            // would make every win look like a rerun.
+            let firstClear = store.result(for: session.level.id)?.cleared != true
             earnedFeats = FeatDetector.feats(
                 flingsUsed: session.flingsUsed,
                 usedAnyAbility: session.usedAnyAbility,
@@ -102,6 +108,12 @@ struct MoonshotGameView: View {
                              stars: stars,
                              flings: session.flingsUsed,
                              feats: earnedFeats)
+            // Destruction pays (M31): wreckage mints dust every run,
+            // the first clear adds its bonus once.
+            let wreckDust = (scene?.wreckageValue ?? 0) * MoonshotTuning.moondustPerCost
+            if wreckDust > 0 { store.addMoondust(wreckDust, reason: "wreckage") }
+            if firstClear { store.addMoondust(MoonshotTuning.moondustFirstClear, reason: "first-clear") }
+            dustEarned = wreckDust + (firstClear ? MoonshotTuning.moondustFirstClear : 0)
             poolNow = store.starPool
             poolDelta = poolNow - poolBefore
             let grantsAfter = MoonshotRewards.grants(pool: poolNow)
@@ -131,6 +143,7 @@ struct MoonshotGameView: View {
         destroyedPieces = 0
         earnedFeats = []
         starsRevealed = false
+        dustEarned = 0
         sceneGeneration += 1
         let store = MoonshotProgressStore(context: modelContext)
         let pool = store.starPool
@@ -476,6 +489,17 @@ struct MoonshotGameView: View {
                                 grantMedallion(grant)
                             }
                         }
+                    }
+                }
+                if dustEarned > 0 {
+                    // Destruction's payout (M31), under the star economy.
+                    HStack(spacing: 5) {
+                        MoondustGem()
+                            .fill(Theme.glow)
+                            .frame(width: 11, height: 11)
+                        Text("+\(dustEarned) moondust")
+                            .font(Theme.display(14))
+                            .foregroundStyle(Theme.glow.opacity(0.9))
                     }
                 }
                 HStack(spacing: 14) {

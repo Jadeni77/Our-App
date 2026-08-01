@@ -185,6 +185,8 @@ struct LocalizationTests {
         #expect(localizedValue("Tap mid-flight to use it", language: "zh-Hant") == "飛行途中點一下就能用")
         #expect(localizedValue("Let's go", language: "zh-Hans") == "出发！")
         #expect(localizedValue("Unlocks at %lld★", language: "zh-Hant") == "集滿 %lld★ 解鎖")
+        #expect(localizedValue("+%lld moondust", language: "zh-Hans") == "月尘 +%lld")
+        #expect(localizedValue("+%lld moondust", language: "zh-Hant") == "月塵 +%lld")
         #expect(localizedValue("Cloudfoam bounces you — aim off the pads",
                                language: "zh-Hans") == "云绵会把你弹起来——借垫子瞄准")
         #expect(localizedValue("Wind bends every arc — trust your read, not the dots",

@@ -29,11 +29,15 @@ final class PieceNode: SKSpriteNode {
     enum Fate { case intact, cracked, destroyed }
 
     let material: Material
+    /// The authored build cost (M7's one number) — demolition mints this
+    /// much moondust when the piece dies (M31).
+    let cost: Int
     private(set) var hp: Double
     private var showedCrack = false
 
     init(piece: MoonshotLevel.Piece) {
         material = piece.material
+        cost = piece.cost
         hp = piece.material.hp
         let size = piece.shape.size
         super.init(texture: SpriteFactory.pieceTexture(shape: piece.shape, material: piece.material),
