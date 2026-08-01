@@ -104,6 +104,18 @@ enum MoonshotTuning {
     /// a ghost drifting forever would break spent detection's promises.
     static let phaseTimeout: TimeInterval = 1.5
 
+    // MARK: Gloom kinds (M29)
+    /// The Great Gloom: a boss that chips, never pops in one.
+    static let greatGloomHP = 5
+    static let greatGloomScale: CGFloat = 3.0
+    static let greatGloomDensity: CGFloat = 8.0
+    /// Hoppers dodge: trigger distance to a landing sprite, cooldown
+    /// between hops, and the hop's velocity components.
+    static let hopperTriggerRadius: CGFloat = 100
+    static let hopperCooldown: TimeInterval = 1.2
+    static let hopperHopVertical: CGFloat = 520
+    static let hopperHopLateral: CGFloat = 260
+
     // MARK: Impulse calibration
     /// SpriteKit's collisionImpulse is kg·m/s (150 pt = 1 m), so real hits
     /// measure ~0.05–0.5. The damage model speaks in abstract units — this
