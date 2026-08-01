@@ -33,6 +33,8 @@ struct MoonshotGameView: View {
     @State private var coachMoments: [CoachMoment] = []
     @State private var showGoalLine = false
     @State private var showAbilityCue = false
+    @State private var pendingIntroCards: [CharacterID] = []
+    @State private var pendingWorldBanner: Int?
 
     private let catalog = CampaignCatalog.bundled
     #if DEBUG
@@ -55,6 +57,19 @@ struct MoonshotGameView: View {
             hud
             coachOverlay
             outcomeOverlay
+            if let character = pendingIntroCards.first {
+                CoachCardView(character: character, unlocked: true) {
+                    MoonshotProgressStore(context: modelContext)
+                        .markCoachSeen(.meetCharacter(character))
+                    // Guarded: a double-fire on the last card must not trap
+                    // on an empty array (review finding).
+                    withAnimation {
+                        if !pendingIntroCards.isEmpty { pendingIntroCards.removeFirst() }
+                    }
+                }
+                .id(character)
+                .transition(.opacity)
+            }
         }
         .onAppear {
             if scene == nil { buildLevel(currentIndex) }
@@ -168,15 +183,23 @@ struct MoonshotGameView: View {
     // MARK: Coach moments (M25)
 
     private func startCoaching(for level: MoonshotLevel, scene: GameScene, store: MoonshotProgressStore) {
-        coachMoments = CoachLedger.momentsAtLevelOpen(level: level, seen: store.seenCoachKeys())
+        coachMoments = CoachLedger.momentsAtLevelOpen(level: level,
+                                                      swapCharacters: extraCharacters,
+                                                      seen: store.seenCoachKeys())
         showGoalLine = false
         showAbilityCue = false
+        pendingIntroCards = coachMoments.compactMap {
+            if case .meetCharacter(let character) = $0 { character } else { nil }
+        }
+        pendingWorldBanner = nil
+        for case .worldMechanic(let world) in coachMoments {
+            pendingWorldBanner = world
+        }
+        // Goal/banner mark seen and start their fade timers in .onAppear —
+        // intro cards cover this layer, and a caption that fades behind a
+        // card was never taught (found in PR-2 verification).
         if coachMoments.contains(.goal) {
             showGoalLine = true
-            store.markCoachSeen(.goal)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
-                withAnimation { showGoalLine = false }
-            }
         }
         if coachMoments.contains(.dragToFling) {
             scene.showDragHint(reduceMotion: reduceMotion)
@@ -192,6 +215,7 @@ struct MoonshotGameView: View {
             return
         }
         showGoalLine = false
+        pendingWorldBanner = nil
         let store = MoonshotProgressStore(context: modelContext)
         guard CoachLedger.momentInFlight(seen: store.seenCoachKeys()) == .abilityTap else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [modelContext] in
@@ -206,7 +230,29 @@ struct MoonshotGameView: View {
     @ViewBuilder
     private var coachOverlay: some View {
         VStack(spacing: 10) {
-            if showGoalLine {
+            if pendingIntroCards.isEmpty, let world = pendingWorldBanner {
+                Group {
+                    if world == 2 {
+                        Text("Cloudfoam bounces you — aim off the pads")
+                    } else {
+                        Text("Wind bends every arc — trust your read, not the dots")
+                    }
+                }
+                .font(Theme.display(15))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .glassCard(cornerRadius: 16)
+                .transition(.opacity)
+                .onAppear {
+                    MoonshotProgressStore(context: modelContext)
+                        .markCoachSeen(.worldMechanic(world))
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                        withAnimation { pendingWorldBanner = nil }
+                    }
+                }
+            }
+            if pendingIntroCards.isEmpty, showGoalLine {
                 Text("Pop every gloom to relight the sky")
                     .font(Theme.display(15))
                     .foregroundStyle(.white)
@@ -214,6 +260,12 @@ struct MoonshotGameView: View {
                     .padding(.vertical, 8)
                     .glassCard(cornerRadius: 16)
                     .transition(.opacity)
+                    .onAppear {
+                        MoonshotProgressStore(context: modelContext).markCoachSeen(.goal)
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+                            withAnimation { showGoalLine = false }
+                        }
+                    }
             }
             if showAbilityCue, let session,
                session.phase == .inFlight, !session.abilityUsedThisFlight,

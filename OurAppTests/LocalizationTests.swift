@@ -171,6 +171,22 @@ struct LocalizationTests {
                 == "打走所有陰影，點亮我們的星空")
         #expect(localizedValue("Tap — %@'s power!", language: "zh-Hans") == "点一下——%@的技能！")
         #expect(localizedValue("Tap — %@'s power!", language: "zh-Hant") == "點一下——%@的技能！")
+        #expect(localizedValue("Moon Slam — stop mid-air and drop like the moon",
+                               language: "zh-Hans") == "月落——空中急停，垂直砸下")
+        #expect(localizedValue("Comet Dash — a burst of speed, ×2 vs crystal and wood",
+                               language: "zh-Hant") == "彗星衝刺——瞬間加速，對水晶和月木傷害×2")
+        #expect(localizedValue("Split — one star becomes two", language: "zh-Hans") == "一分为二——一颗星变成两颗")
+        #expect(localizedValue("Gravity Well — freeze and pull the world in",
+                               language: "zh-Hant") == "引力井——凝住自己，把世界拉過來")
+        #expect(localizedValue("Phase — turn to mist, slip through one piece",
+                               language: "zh-Hans") == "雾化——化作薄雾，穿过一块积木")
+        #expect(localizedValue("Tap mid-flight to use it", language: "zh-Hant") == "飛行途中點一下就能用")
+        #expect(localizedValue("Let's go", language: "zh-Hans") == "出发！")
+        #expect(localizedValue("Unlocks at %lld★", language: "zh-Hant") == "集滿 %lld★ 解鎖")
+        #expect(localizedValue("Cloudfoam bounces you — aim off the pads",
+                               language: "zh-Hans") == "云绵会把你弹起来——借垫子瞄准")
+        #expect(localizedValue("Wind bends every arc — trust your read, not the dots",
+                               language: "zh-Hant") == "風會吹彎每道弧線——別全信虛線")
     }
 
     @Test func springboardStringsAreTranslated() {

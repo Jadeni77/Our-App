@@ -503,6 +503,29 @@
         }
       }
     },
+    "Cloudfoam bounces you — aim off the pads" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cloudfoam bounces you — aim off the pads"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "云绵会把你弹起来——借垫子瞄准"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "雲綿會把你彈起來——借墊子瞄準"
+          }
+        }
+      }
+    },
     "Co-op" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -545,6 +568,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "合輯名稱"
+          }
+        }
+      }
+    },
+    "Comet Dash — a burst of speed, ×2 vs crystal and wood" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comet Dash — a burst of speed, ×2 vs crystal and wood"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "彗星冲刺——瞬间加速，对水晶和月木伤害×2"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "彗星衝刺——瞬間加速，對水晶和月木傷害×2"
           }
         }
       }
@@ -1032,6 +1078,29 @@
         }
       }
     },
+    "Gravity Well — freeze and pull the world in" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gravity Well — freeze and pull the world in"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "引力井——凝住自己，把世界拉过来"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "引力井——凝住自己，把世界拉過來"
+          }
+        }
+      }
+    },
     "Hand the phone over 📱" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1143,6 +1212,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "語言"
+          }
+        }
+      }
+    },
+    "Let's go" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Let's go"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "出发！"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "出發！"
           }
         }
       }
@@ -1327,6 +1419,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "團團"
+          }
+        }
+      }
+    },
+    "Moon Slam — stop mid-air and drop like the moon" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moon Slam — stop mid-air and drop like the moon"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月落——空中急停，垂直砸下"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月落——空中急停，垂直砸下"
           }
         }
       }
@@ -1975,6 +2090,29 @@
         }
       }
     },
+    "Phase — turn to mist, slip through one piece" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Phase — turn to mist, slip through one piece"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "雾化——化作薄雾，穿过一块积木"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "霧化——化作薄霧，穿過一塊積木"
+          }
+        }
+      }
+    },
     "Play as %@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2251,6 +2389,29 @@
         }
       }
     },
+    "Split — one star becomes two" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Split — one star becomes two"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一分为二——一颗星变成两颗"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一分為二——一顆星變成兩顆"
+          }
+        }
+      }
+    },
     "Stardust" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2339,6 +2500,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "跟隨系統"
+          }
+        }
+      }
+    },
+    "Tap mid-flight to use it" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap mid-flight to use it"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "飞行途中点一下就能用"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "飛行途中點一下就能用"
           }
         }
       }
@@ -2539,6 +2723,29 @@
         }
       }
     },
+    "Unlocks at %lld★" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlocks at %lld★"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "集满 %lld★ 解锁"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "集滿 %lld★ 解鎖"
+          }
+        }
+      }
+    },
     "Unnamed spot" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2673,6 +2880,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "吃點什麼好？"
+          }
+        }
+      }
+    },
+    "Wind bends every arc — trust your read, not the dots" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wind bends every arc — trust your read, not the dots"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "风会吹弯每道弧线——别全信虚线"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "風會吹彎每道弧線——別全信虛線"
           }
         }
       }

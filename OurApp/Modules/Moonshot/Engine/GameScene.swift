@@ -72,7 +72,7 @@ final class GameScene: SKScene {
         removeAllChildren()
         worldNode = SKNode()
 
-        let sky = SKSpriteNode(texture: SpriteFactory.skyTexture(size: size))
+        let sky = SKSpriteNode(texture: SpriteFactory.skyTexture(size: size, world: level.worldNumber))
         sky.position = CGPoint(x: size.width / 2, y: size.height / 2)
         sky.zPosition = -100
         addChild(sky)
