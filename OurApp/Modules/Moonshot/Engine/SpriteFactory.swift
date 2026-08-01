@@ -491,20 +491,57 @@ enum SpriteFactory {
 
     private static var skyTextureCache: [String: SKTexture] = [:]
 
-    /// The dreamy sky, rendered once per scene size from the core gradient
-    /// (cached — retry and next-level rebuild the scene, not the texture).
-    static func skyTexture(size: CGSize) -> SKTexture {
-        let key = "\(size.width)x\(size.height)"
+    /// The dreamy sky, rendered once per scene size and world (M28) from
+    /// the core gradient — W1 keeps the moonlit violet, W2 drifts pinker
+    /// with soft cloud blobs, W3 darkens to storm indigo with faint
+    /// diagonal streaks. Cached — retry and next-level rebuild the scene,
+    /// not the texture. Code-drawn only (principle 9).
+    static func skyTexture(size: CGSize, world: Int = 1) -> SKTexture {
+        let key = "\(size.width)x\(size.height)-w\(world)"
         if let cached = skyTextureCache[key] { return cached }
         let image = UIGraphicsImageRenderer(size: size).image { context in
-            let colors = [Theme.indigo, Theme.violet, Theme.rose, Theme.peach].map { UIColor($0).cgColor }
+            let palette: [Color] = switch world {
+            case 2: [Theme.violet, Theme.rose, Theme.rose, Theme.peach]
+            case 3: [Color(red: 0.13, green: 0.11, blue: 0.28), Theme.indigo, Theme.violet, Theme.rose]
+            default: [Theme.indigo, Theme.violet, Theme.rose, Theme.peach]
+            }
             let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
-                                      colors: colors as CFArray,
+                                      colors: palette.map { UIColor($0).cgColor } as CFArray,
                                       locations: [0, 0.4, 0.75, 1])!
             context.cgContext.drawLinearGradient(gradient,
                                                  start: CGPoint(x: 0, y: 0),
                                                  end: CGPoint(x: 0, y: size.height),
                                                  options: [])
+            if world == 2 {
+                // Soft cloud blobs: concentric fading ellipses fake a blur.
+                let clouds: [(x: CGFloat, y: CGFloat, w: CGFloat)] = [
+                    (0.18, 0.22, 0.34), (0.55, 0.12, 0.42), (0.82, 0.30, 0.30),
+                    (0.38, 0.38, 0.26), (0.70, 0.48, 0.36),
+                ]
+                for cloud in clouds {
+                    let width = size.width * cloud.w
+                    for (scale, alpha) in [(1.0, 0.05), (0.72, 0.06), (0.45, 0.07)] {
+                        let w = width * scale
+                        let rect = CGRect(x: size.width * cloud.x - w / 2,
+                                          y: size.height * cloud.y - w * 0.16,
+                                          width: w, height: w * 0.32)
+                        UIColor.white.withAlphaComponent(alpha).setFill()
+                        context.cgContext.fillEllipse(in: rect)
+                    }
+                }
+            }
+            if world == 3 {
+                // Faint diagonal streaks: the storm's wind made visible.
+                UIColor.white.withAlphaComponent(0.08).setStroke()
+                context.cgContext.setLineWidth(1)
+                var x: CGFloat = -size.height * 0.6
+                while x < size.width {
+                    context.cgContext.move(to: CGPoint(x: x, y: 0))
+                    context.cgContext.addLine(to: CGPoint(x: x + size.height * 0.58, y: size.height))
+                    x += size.width / 12
+                }
+                context.cgContext.strokePath()
+            }
         }
         let texture = SKTexture(image: image)
         skyTextureCache[key] = texture
