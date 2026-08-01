@@ -109,8 +109,13 @@ final class GloomNode: SKShapeNode {
 
     /// Hoppers dodge (M29): when a fling lands close, leap up and away —
     /// grounded only, on a cooldown, never during the arming grace (the
-    /// caller guards that).
-    func hopIfReady(awayFrom point: CGPoint, now: TimeInterval) {
+    /// caller guards that). The dodge must stay IN the world: a full hop
+    /// across the escape sweep counts as a self-pop, turning a missed
+    /// fling into a free win (review finding). The direction never
+    /// reverses — leaping back over a still-rolling sprite is a suicide
+    /// dive (verified on L40) — a cornered hopper just hops SHORTER,
+    /// a panic jump against the wall.
+    func hopIfReady(awayFrom point: CGPoint, now: TimeInterval, worldWidth: CGFloat) {
         guard kind == .hopper,
               let body = physicsBody,
               abs(body.velocity.dy) < 8,
@@ -118,9 +123,14 @@ final class GloomNode: SKShapeNode {
         let dx = position.x - point.x
         let dy = position.y - point.y
         guard (dx * dx + dy * dy).squareRoot() <= MoonshotTuning.hopperTriggerRadius else { return }
+        let direction: CGFloat = dx < 0 ? -1 : 1
+        let room = direction > 0 ? max(0, worldWidth - 40 - position.x)
+                                 : max(0, position.x - 40)
+        let lateral = MoonshotTuning.hopperHopLateral
+            * min(1, room / MoonshotTuning.hopperHopCarry)
         lastHop = now
         hopping = true
-        body.velocity = CGVector(dx: (dx < 0 ? -1 : 1) * MoonshotTuning.hopperHopLateral,
+        body.velocity = CGVector(dx: direction * lateral,
                                  dy: MoonshotTuning.hopperHopVertical)
     }
 

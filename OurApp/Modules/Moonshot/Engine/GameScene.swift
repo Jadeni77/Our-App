@@ -367,7 +367,7 @@ final class GameScene: SKScene {
         let now = CACurrentMediaTime()
         for case let gloom as GloomNode in worldNode.children
         where gloom.kind == .hopper && gloom.physicsBody != nil {
-            gloom.hopIfReady(awayFrom: point, now: now)
+            gloom.hopIfReady(awayFrom: point, now: now, worldWidth: size.width)
         }
     }
 
