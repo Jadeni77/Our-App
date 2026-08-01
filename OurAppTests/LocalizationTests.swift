@@ -188,6 +188,7 @@ struct LocalizationTests {
         #expect(localizedValue("Wind bends every arc — trust your read, not the dots",
                                language: "zh-Hant") == "風會吹彎每道弧線——別全信虛線")
         #expect(localizedValue("%lld★ to go", language: "zh-Hans") == "还差 %lld★")
+        #expect(localizedValue("+%lld★", language: "zh-Hant") == "+%lld★")
         #expect(localizedValue("At or under par — 3 stars", language: "zh-Hant") == "打平或低於標準桿——3星")
         #expect(localizedValue("One over par — 2 stars", language: "zh-Hans") == "超出标准杆一发——2星")
         #expect(localizedValue("Cleared — 1 star", language: "zh-Hant") == "通關——1星")

@@ -30,6 +30,7 @@ struct NextUnlockStrip: View {
                 Image(systemName: "gift.fill")
                     .font(.system(size: 13))
                     .foregroundStyle(Theme.glow)
+                    .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 6) {
                         next.grant.titleText
