@@ -45,11 +45,13 @@ struct MoonshotGameView: View {
     /// Moondust minted by this run (wreckage + first-clear bonus), for
     /// the win overlay's dust tick (M31).
     @State private var dustEarned = 0
-    /// The fling picker (M31): choose who flies next. The wallet balance
-    /// is snapshotted on open and after each spend — no live query needed
-    /// for a modal moment.
+    /// The fling picker (M31): choose who flies next. Wallet balance and
+    /// star pool are snapshotted on open (and balance after each spend) —
+    /// neither can change while a modal moment is up, and per-render
+    /// store fetches are exactly what the HUD forbids.
     @State private var showFlingPicker = false
     @State private var pickerBalance = 0
+    @State private var pickerPool = 0
 
     private let catalog = CampaignCatalog.bundled
     #if DEBUG
@@ -150,6 +152,7 @@ struct MoonshotGameView: View {
         earnedFeats = []
         starsRevealed = false
         dustEarned = 0
+        showFlingPicker = false
         sceneGeneration += 1
         let store = MoonshotProgressStore(context: modelContext)
         let pool = store.starPool
@@ -368,13 +371,17 @@ struct MoonshotGameView: View {
                         // to choose who flies — only while ready, the same
                         // gate the old swap chips had.
                         Button {
-                            guard session.phase == .ready else { return }
                             Haptics.tap()
-                            pickerBalance = MoonshotProgressStore(context: modelContext).moondustBalance()
+                            let store = MoonshotProgressStore(context: modelContext)
+                            pickerBalance = store.moondustBalance()
+                            pickerPool = store.starPool
                             showFlingPicker = true
                         } label: {
                             queueDots(session)
+                                .padding(6)
+                                .contentShape(Rectangle())
                         }
+                        .disabled(session.phase != .ready)
                         .accessibilityLabel(Text("Choose your star"))
                         // "Current fling" = the airborne one mid-flight, the
                         // next one when ready (review note from the engine PR).
@@ -496,6 +503,9 @@ struct MoonshotGameView: View {
                                 .font(Theme.display(14))
                                 .foregroundStyle(Theme.glow)
                         }
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(Text("Moondust"))
+                        .accessibilityValue(Text("\(pickerBalance)"))
                     }
                     Text("Choose your star")
                         .font(Theme.display(17))
@@ -509,28 +519,45 @@ struct MoonshotGameView: View {
                 .padding(22)
                 .glassCard(cornerRadius: 24)
                 .frame(maxWidth: 460)
+                // A modal to touches must be a modal to VoiceOver too, or
+                // focus walks through the scrim onto Replay and rebuilds
+                // the level under the open picker (review finding; same
+                // treatment as CoachCardView).
+                .accessibilityAddTraits(.isModal)
+                .accessibilityAction(.escape) { showFlingPicker = false }
             }
             .transition(reduceMotion ? .opacity : .scale.combined(with: .opacity))
         }
     }
 
     private func pickerChoice(_ character: CharacterID, session: LevelSession) -> some View {
-        let pool = MoonshotProgressStore(context: modelContext).starPool
-        let unlocked = MoonshotRewards.isUnlocked(character, pool: pool)
+        let unlocked = MoonshotRewards.isUnlocked(character, pool: pickerPool)
         let current = session.currentCharacter == character
         let priced = session.swapsUsed > 0
         let affordable = !priced || pickerBalance >= MoonshotTuning.moondustSwapPrice
         return Button {
             Haptics.tap()
+            let store = MoonshotProgressStore(context: modelContext)
+            // Affordability re-checked against the store, not the snapshot:
+            // a swap must never be granted on a spend that would fail
+            // (review finding — future dust sinks could stale the snapshot).
+            if priced {
+                guard store.moondustBalance() >= MoonshotTuning.moondustSwapPrice else {
+                    pickerBalance = store.moondustBalance()
+                    return
+                }
+            }
             let before = session.swapsUsed
             scene?.swapSeatedCharacter(to: character)
             if session.swapsUsed > before, priced {
-                let store = MoonshotProgressStore(context: modelContext)
                 store.spendMoondust(MoonshotTuning.moondustSwapPrice, reason: "swap")
                 pickerBalance = store.moondustBalance()
             }
             showFlingPicker = false
         } label: {
+            let threshold = MoonshotRewards.track.first {
+                $0.grant == .character(character)
+            }?.threshold
             VStack(spacing: 6) {
                 Circle()
                     .fill(character.chipColor.opacity(unlocked ? 1 : 0.35))
@@ -543,9 +570,7 @@ struct MoonshotGameView: View {
                 Text(LocalizedStringKey(character.displayNameKey))
                     .font(Theme.display(12))
                     .foregroundStyle(.white.opacity(unlocked ? 0.9 : 0.5))
-                if !unlocked, let threshold = MoonshotRewards.track.first(where: {
-                    $0.grant == .character(character)
-                })?.threshold {
+                if !unlocked, let threshold {
                     Text("\(threshold)★")
                         .font(.caption2)
                         .foregroundStyle(Theme.glow.opacity(0.8))
@@ -570,6 +595,22 @@ struct MoonshotGameView: View {
             }
         }
         .disabled(!unlocked || current || !affordable)
+        .accessibilityValue(pickerChoiceValue(
+            unlocked: unlocked, current: current, priced: priced, character: character))
+    }
+
+    /// What VoiceOver says after the character's name — the price line.
+    private func pickerChoiceValue(unlocked: Bool, current: Bool, priced: Bool,
+                                   character: CharacterID) -> Text {
+        if !unlocked, let threshold = MoonshotRewards.track.first(where: {
+            $0.grant == .character(character)
+        })?.threshold {
+            Text("Unlocks at \(threshold)★")
+        } else if current || !priced {
+            current ? Text("") : Text("Free")
+        } else {
+            Text("\(MoonshotTuning.moondustSwapPrice)")
+        }
     }
 
     // MARK: Win / fail overlays

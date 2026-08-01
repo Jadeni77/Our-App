@@ -142,7 +142,6 @@ struct LocalizationTests {
         #expect(localizedValue("New unlock!", language: "zh-Hans") == "新解锁！")
         #expect(localizedValue("Stardust", language: "zh-Hant") == "星塵")
         #expect(localizedValue("Aurora", language: "zh-Hans") == "极光")
-        #expect(localizedValue("Play as %@", language: "zh-Hant") == "讓 %@ 上場")
         #expect(localizedValue("Level %lld, locked", language: "zh-Hans") == "第 %lld 关，未解锁")
         #expect(localizedValue("Music", language: "zh-Hans") == "音乐")
         #expect(localizedValue("Music", language: "zh-Hant") == "音樂")

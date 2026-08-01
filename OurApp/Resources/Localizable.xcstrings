@@ -2573,29 +2573,6 @@
         }
       }
     },
-    "Play as %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Play as %@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "让 %@ 上场"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "讓 %@ 上場"
-          }
-        }
-      }
-    },
     "Pop every gloom to relight the sky" : {
       "extractionState" : "manual",
       "localizations" : {

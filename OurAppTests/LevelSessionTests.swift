@@ -73,6 +73,11 @@ struct LevelSessionTests {
         #expect(s.swapsUsed == 2)
         #expect(!s.swapCurrentCharacter(to: .nox))   // same character no-ops
         #expect(s.currentCharacter == .nox)
+        // The ready-only veto is the picker's anti-charge mechanism — a
+        // refused swap must never report success (review pin).
+        s.beginAim(); s.fling()
+        #expect(!s.swapCurrentCharacter(to: .mochi))
+        #expect(s.swapsUsed == 2)
     }
 
     @Test func abilityUseIsRememberedAcrossFlings() {

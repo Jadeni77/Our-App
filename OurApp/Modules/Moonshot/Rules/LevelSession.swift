@@ -41,9 +41,6 @@ final class LevelSession {
     /// no-ops so a mistap never costs dust.
     private(set) var swapsUsed = 0
 
-    /// The feats detector's question — did any swap happen at all.
-    var usedCharacterSwap: Bool { swapsUsed > 0 }
-
     @discardableResult
     func swapCurrentCharacter(to character: CharacterID) -> Bool {
         guard phase == .ready,

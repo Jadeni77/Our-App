@@ -107,8 +107,8 @@ final class MoonshotProgressStore {
         try? context.save()
     }
 
-    /// A spend is a negative row AFTER the guard — the append-only ledger
-    /// never goes below zero and union-merge can't create debt.
+    /// A spend is a negative row AFTER the guard — this device's ledger
+    /// never goes below zero (cross-device reconciliation is slice (d)'s).
     @discardableResult
     func spendMoondust(_ amount: Int, reason: String) -> Bool {
         guard moondustBalance() >= amount else { return false }
