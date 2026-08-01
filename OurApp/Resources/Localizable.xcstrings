@@ -1469,6 +1469,52 @@
         }
       }
     },
+    "It jumps when you land close — bait it" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It jumps when you land close — bait it"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你落得近它就跳——先骗它跳"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你落得近它就跳——先騙它跳"
+          }
+        }
+      }
+    },
+    "Its shell breaks first — hit it twice" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Its shell breaks first — hit it twice"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "它有壳——先敲碎，再打一下"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "它有殼——先敲碎，再打一下"
+          }
+        }
+      }
+    },
     "Language" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2132,6 +2178,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "超出標準桿一發——2星"
+          }
+        }
+      }
+    },
+    "Only a power can touch the mist" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only a power can touch the mist"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "只有技能碰得到雾"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "只有技能碰得到霧"
           }
         }
       }
@@ -2937,6 +3006,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "陰影們在偷笑。再來一次？"
+          }
+        }
+      }
+    },
+    "The Great Gloom shrugs — chip away" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Great Gloom shrugs — chip away"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "巨影不怕撞——慢慢磨"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "巨影不怕撞——慢慢磨"
           }
         }
       }

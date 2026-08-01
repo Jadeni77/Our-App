@@ -52,6 +52,22 @@ struct CoachLedgerTests {
         #expect(moments == [.meetCharacter(.zip), .meetCharacter(.misty)])
     }
 
+    @Test func unmetGloomKindsGetBannersAfterCards() {
+        var lvl = level(queue: [.zip])
+        lvl.glooms = [.init(x: 600, y: 16, kind: .shield),
+                      .init(x: 650, y: 16, kind: .shield),
+                      .init(x: 700, y: 16, kind: .mist)]
+        let moments = CoachLedger.momentsAtLevelOpen(
+            level: lvl, swapCharacters: [],
+            seen: ["goal", "drag", "meet-zip", "gloom-mist"])
+        #expect(moments == [.meetGloom(.shield)])
+    }
+
+    @Test func classicGloomsNeedNoIntroduction() {
+        let moments = CoachLedger.momentsAtLevelOpen(level: level(), seen: ["goal", "drag"])
+        #expect(moments.isEmpty)
+    }
+
     @Test func abilityCueFiresOnceEver() {
         #expect(CoachLedger.momentInFlight(seen: []) == .abilityTap)
         #expect(CoachLedger.momentInFlight(seen: ["ability"]) == nil)

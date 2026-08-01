@@ -99,8 +99,30 @@ final class GloomNode: SKShapeNode {
     private var bruised = false
     private var shellIntact: Bool
     private var shellDome: SKShapeNode?
-    /// Hopper bookkeeping (behavior lands in the living-glooms PR).
+    /// Hopper bookkeeping.
     var lastHop: TimeInterval = 0
+    /// True from take-off until the hop's own ground landing, which the
+    /// damage handler forgives — a hop lands at ~2.5 impulse units, over
+    /// the 1.5 bruise floor, so an unforgiven dodge would cost 1 HP and
+    /// two baited hops would pop the hopper for free (review finding).
+    var hopping = false
+
+    /// Hoppers dodge (M29): when a fling lands close, leap up and away —
+    /// grounded only, on a cooldown, never during the arming grace (the
+    /// caller guards that).
+    func hopIfReady(awayFrom point: CGPoint, now: TimeInterval) {
+        guard kind == .hopper,
+              let body = physicsBody,
+              abs(body.velocity.dy) < 8,
+              now - lastHop >= MoonshotTuning.hopperCooldown else { return }
+        let dx = position.x - point.x
+        let dy = position.y - point.y
+        guard (dx * dx + dy * dy).squareRoot() <= MoonshotTuning.hopperTriggerRadius else { return }
+        lastHop = now
+        hopping = true
+        body.velocity = CGVector(dx: (dx < 0 ? -1 : 1) * MoonshotTuning.hopperHopLateral,
+                                 dy: MoonshotTuning.hopperHopVertical)
+    }
 
     enum HitOutcome { case none, shellShattered, bruised, popped }
 
@@ -193,6 +215,16 @@ final class GloomNode: SKShapeNode {
         }
         if kind == .mist {
             alpha = 0.55
+            // A static wisp curl (Reduce Motion-safe) sells the vapor.
+            let curl = SKShapeNode()
+            let curlPath = CGMutablePath()
+            curlPath.addArc(center: CGPoint(x: 6, y: -8), radius: 5,
+                            startAngle: .pi, endAngle: 0, clockwise: true)
+            curl.path = curlPath
+            curl.strokeColor = UIColor.white.withAlphaComponent(0.6)
+            curl.lineWidth = 1.2
+            curl.lineCap = .round
+            addChild(curl)
         }
         if kind == .great {
             setScale(MoonshotTuning.greatGloomScale)
@@ -206,8 +238,22 @@ final class GloomNode: SKShapeNode {
         // roll off during the settle and un-author every pillar level.
         body.allowsRotation = false
         body.fieldBitMask = FieldCategory.well
-        body.categoryBitMask = PhysicsCategory.gloom
-        body.contactTestBitMask = PhysicsCategory.sprite | PhysicsCategory.piece | PhysicsCategory.ground
+        if kind == .mist {
+            // Vapor (M29): sprites and rubble pass THROUGH — the mist
+            // category is two-sided-intangible to them (pieces already
+            // exclude it; sprites learn to below) — but the floor is solid
+            // and contact tests still fire so a live power can pop it.
+            // The mist bit in the contact test is for a phasing Misty,
+            // whose own category becomes mist (review finding: without it
+            // the one character whose power IS mist could never touch it).
+            body.categoryBitMask = PhysicsCategory.mist
+            body.collisionBitMask = PhysicsCategory.ground
+            body.contactTestBitMask = PhysicsCategory.sprite | PhysicsCategory.piece
+                | PhysicsCategory.ground | PhysicsCategory.mist
+        } else {
+            body.categoryBitMask = PhysicsCategory.gloom
+            body.contactTestBitMask = PhysicsCategory.sprite | PhysicsCategory.piece | PhysicsCategory.ground
+        }
         physicsBody = body
     }
 
@@ -275,6 +321,9 @@ final class StarSpriteNode: SKShapeNode {
         // and any column face. Without CCD he phases through thin walls.
         body.usesPreciseCollisionDetection = true
         body.fieldBitMask = FieldCategory.wind | FieldCategory.well
+        // Mist-category bodies (mist glooms, a phasing Misty) pass through:
+        // Misty's phase math composes on top (&= ~piece / |= piece).
+        body.collisionBitMask = ~PhysicsCategory.mist
         body.categoryBitMask = PhysicsCategory.sprite
         body.contactTestBitMask = PhysicsCategory.piece | PhysicsCategory.gloom | PhysicsCategory.ground
         physicsBody = body

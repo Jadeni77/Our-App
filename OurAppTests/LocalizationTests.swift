@@ -212,6 +212,14 @@ struct LocalizationTests {
         #expect(localizedValue("The glooms giggle. Try again?", language: "zh-Hans")
                 == "阴影们在偷笑。再来一次？")
         #expect(localizedValue("W%lld · L%lld", language: "zh-Hant") == "W%lld · L%lld")
+        #expect(localizedValue("Its shell breaks first — hit it twice", language: "zh-Hans")
+                == "它有壳——先敲碎，再打一下")
+        #expect(localizedValue("It jumps when you land close — bait it", language: "zh-Hant")
+                == "你落得近它就跳——先騙它跳")
+        #expect(localizedValue("Only a power can touch the mist", language: "zh-Hans")
+                == "只有技能碰得到雾")
+        #expect(localizedValue("The Great Gloom shrugs — chip away", language: "zh-Hant")
+                == "巨影不怕撞——慢慢磨")
     }
 
     @Test func springboardStringsAreTranslated() {
