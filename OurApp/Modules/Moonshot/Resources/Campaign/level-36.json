@@ -8,7 +8,7 @@
   "createdAt": "2026-07-31T00:00:00Z",
   "glooms": [
     {
-      "x": 690,
+      "x": 670,
       "y": 16
     },
     {
@@ -24,7 +24,7 @@
       "y": 106
     },
     {
-      "x": 800,
+      "x": 710,
       "y": 16
     }
   ],
@@ -54,7 +54,7 @@
       "y": 45
     },
     {
-      "material": "meteorstone",
+      "material": "moonwood",
       "rotation": 0,
       "shape": "column",
       "x": 640,
@@ -104,14 +104,14 @@
     "mochi"
   ],
   "schemaVersion": 1,
-  "updatedAt": "2026-07-31T00:00:00Z",
+  "updatedAt": "2026-08-01T00:00:00Z",
   "wind": [
     {
-      "forceX": -3.5,
+      "forceX": -3.0,
       "forceY": 0,
       "height": 260,
-      "width": 340,
-      "x": 240,
+      "width": 240,
+      "x": 280,
       "y": 80
     }
   ],
