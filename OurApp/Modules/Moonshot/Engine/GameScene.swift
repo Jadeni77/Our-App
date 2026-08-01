@@ -310,10 +310,10 @@ final class GameScene: SKScene {
         onDragHintDismissed = nil
     }
 
-    #if DEBUG
-    /// Headless verification: drives the exact aim → pull → hold → release
-    /// path the touch handlers use, so screenshots can watch a real fling.
-    func debugFling(pull: CGVector, holdFor: TimeInterval = 0.6) {
+    /// Drives the exact aim → pull → hold → release path the touch handlers
+    /// use. Two callers: DEBUG verification args, and the abilities
+    /// dashboard's live demo loop (owner amendment #3) — hence not DEBUG.
+    func demoFling(pull: CGVector, holdFor: TimeInterval = 0.6) {
         guard slingshot != nil, worldArmed, session.phase == .ready else { return }
         aimingTouch = nil   // this aim has no owning touch; handlers must match nothing
         session.beginAim()
@@ -326,11 +326,10 @@ final class GameScene: SKScene {
         }
     }
 
-    /// Headless ability tap — the same routing the in-flight touch uses.
-    func debugTapAbility() {
+    /// The ability tap by code — the same routing the in-flight touch uses.
+    func demoTapAbility() {
         tapAbilityNow()
     }
-    #endif
 
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard session.phase == .aiming,

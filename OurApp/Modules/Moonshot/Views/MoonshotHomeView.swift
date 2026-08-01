@@ -10,6 +10,7 @@ struct MoonshotHomeView: View {
     @State private var debugLevelIndex: Int?
     @State private var debugShowConstellation = false
     @State private var debugShowRewards = false
+    @State private var debugShowAbilities = false
 
     init() {
         #if DEBUG
@@ -21,6 +22,7 @@ struct MoonshotHomeView: View {
         }
         _debugShowConstellation = State(initialValue: arguments.contains("-moonshotConstellation"))
         _debugShowRewards = State(initialValue: arguments.contains("-moonshotRewards"))
+        _debugShowAbilities = State(initialValue: arguments.contains("-moonshotAbilities"))
         #endif
     }
 
@@ -64,6 +66,15 @@ struct MoonshotHomeView: View {
                     }
                     .buttonStyle(.plain)
 
+                    // Temporary row — PR 5's hub folds this into the
+                    // characters row (owner amendment #3).
+                    NavigationLink {
+                        AbilityDashboardView()
+                    } label: {
+                        modeCard(emoji: "✨", title: "Abilities", locked: false)
+                    }
+                    .buttonStyle(.plain)
+
                     modeCard(emoji: "🤝", title: "Co-op", locked: true)
                     modeCard(emoji: "⚔️", title: "1v1", locked: true)
 
@@ -76,6 +87,7 @@ struct MoonshotHomeView: View {
             }
             .navigationDestination(isPresented: $debugShowConstellation) { LevelSelectView() }
             .navigationDestination(isPresented: $debugShowRewards) { RewardTrackView() }
+            .navigationDestination(isPresented: $debugShowAbilities) { AbilityDashboardView() }
             .onAppear(perform: seedStarsIfAsked)
         }
     }

@@ -187,6 +187,8 @@ struct LocalizationTests {
                                language: "zh-Hans") == "云绵会把你弹起来——借垫子瞄准")
         #expect(localizedValue("Wind bends every arc — trust your read, not the dots",
                                language: "zh-Hant") == "風會吹彎每道弧線——別全信虛線")
+        #expect(localizedValue("Abilities", language: "zh-Hans") == "技能图鉴")
+        #expect(localizedValue("Abilities", language: "zh-Hant") == "技能圖鑑")
         #expect(localizedValue("%lld★ to go", language: "zh-Hans") == "还差 %lld★")
         #expect(localizedValue("+%lld★", language: "zh-Hant") == "+%lld★")
         #expect(localizedValue("At or under par — 3 stars", language: "zh-Hant") == "打平或低於標準桿——3星")

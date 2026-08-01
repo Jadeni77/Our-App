@@ -111,7 +111,7 @@ struct MoonshotGameView: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                     buildLevel(currentIndex)
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                        scene?.debugFling(pull: CGVector(dx: -53, dy: -53))
+                        scene?.demoFling(pull: CGVector(dx: -53, dy: -53))
                     }
                 }
             }
@@ -172,14 +172,14 @@ struct MoonshotGameView: View {
         if arguments.contains("-moonshotAutoFling"), !Self.autoFlingFired {
             Self.autoFlingFired = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak newScene] in
-                newScene?.debugFling(pull: CGVector(dx: -53, dy: -53))
+                newScene?.demoFling(pull: CGVector(dx: -53, dy: -53))
             }
             // `-moonshotAbilityDelay 0.5` taps the ability that long after release.
             if let flag = arguments.firstIndex(of: "-moonshotAbilityDelay"),
                arguments.indices.contains(flag + 1),
                let delay = Double(arguments[flag + 1]) {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.2 + 0.6 + delay) { [weak newScene] in
-                    newScene?.debugTapAbility()
+                    newScene?.demoTapAbility()
                 }
             }
         }
@@ -326,6 +326,19 @@ struct MoonshotGameView: View {
                     }
                     .glassCard(cornerRadius: 18)
                     .accessibilityLabel(Text("Replay"))
+
+                    // The reference, reachable where the question arises
+                    // (owner amendment #3).
+                    NavigationLink {
+                        AbilityDashboardView(initial: session.currentCharacter ?? .mochi)
+                    } label: {
+                        Image(systemName: "questionmark.circle")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 36, height: 36)
+                    }
+                    .glassCard(cornerRadius: 18)
+                    .accessibilityLabel(Text("Abilities"))
 
                     // Earned characters are a choice, never a requirement:
                     // once the couple pool unlocks one, any ready fling can
