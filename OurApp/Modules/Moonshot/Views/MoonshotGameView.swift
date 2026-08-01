@@ -37,7 +37,9 @@ struct MoonshotGameView: View {
     @State private var showGoalLine = false
     @State private var showAbilityCue = false
     @State private var pendingIntroCards: [CharacterID] = []
-    @State private var pendingWorldBanner: Int?
+    /// World-mechanic and gloom-kind banners, shown one at a time after
+    /// the cards clear.
+    @State private var pendingBanners: [CoachMoment] = []
     @State private var showAbilities = false
     @State private var starsRevealed = false
 
@@ -207,9 +209,11 @@ struct MoonshotGameView: View {
         pendingIntroCards = coachMoments.compactMap {
             if case .meetCharacter(let character) = $0 { character } else { nil }
         }
-        pendingWorldBanner = nil
-        for case .worldMechanic(let world) in coachMoments {
-            pendingWorldBanner = world
+        pendingBanners = coachMoments.filter {
+            switch $0 {
+            case .worldMechanic, .meetGloom: true
+            default: false
+            }
         }
         // Goal/banner mark seen and start their fade timers in .onAppear —
         // intro cards cover this layer, and a caption that fades behind a
@@ -225,13 +229,32 @@ struct MoonshotGameView: View {
         }
     }
 
+    private func bannerText(_ moment: CoachMoment) -> Text {
+        switch moment {
+        case .worldMechanic(2):
+            Text("Cloudfoam bounces you — aim off the pads")
+        case .worldMechanic:
+            Text("Wind bends every arc — trust your read, not the dots")
+        case .meetGloom(.shield):
+            Text("Its shell breaks first — hit it twice")
+        case .meetGloom(.hopper):
+            Text("It jumps when you land close — bait it")
+        case .meetGloom(.mist):
+            Text("Only a power can touch the mist")
+        case .meetGloom(.great):
+            Text("The Great Gloom shrugs — chip away")
+        default:
+            Text("")
+        }
+    }
+
     private func coachOnPhaseChange(_ phase: LevelSession.Phase?) {
         guard case .inFlight = phase else {
             showAbilityCue = false
             return
         }
         showGoalLine = false
-        pendingWorldBanner = nil
+        pendingBanners = []
         let store = MoonshotProgressStore(context: modelContext)
         guard CoachLedger.momentInFlight(seen: store.seenCoachKeys()) == .abilityTap else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [modelContext] in
@@ -246,27 +269,25 @@ struct MoonshotGameView: View {
     @ViewBuilder
     private var coachOverlay: some View {
         VStack(spacing: 10) {
-            if pendingIntroCards.isEmpty, let world = pendingWorldBanner {
-                Group {
-                    if world == 2 {
-                        Text("Cloudfoam bounces you — aim off the pads")
-                    } else {
-                        Text("Wind bends every arc — trust your read, not the dots")
+            if pendingIntroCards.isEmpty, let banner = pendingBanners.first {
+                bannerText(banner)
+                    .font(Theme.display(15))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .glassCard(cornerRadius: 16)
+                    .transition(.opacity)
+                    .id(banner.storageKey)   // fresh onAppear per banner
+                    .onAppear {
+                        MoonshotProgressStore(context: modelContext).markCoachSeen(banner)
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                            withAnimation {
+                                if pendingBanners.first == banner {
+                                    pendingBanners.removeFirst()
+                                }
+                            }
+                        }
                     }
-                }
-                .font(Theme.display(15))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .glassCard(cornerRadius: 16)
-                .transition(.opacity)
-                .onAppear {
-                    MoonshotProgressStore(context: modelContext)
-                        .markCoachSeen(.worldMechanic(world))
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-                        withAnimation { pendingWorldBanner = nil }
-                    }
-                }
             }
             if pendingIntroCards.isEmpty, showGoalLine {
                 Text("Pop every gloom to relight the sky")

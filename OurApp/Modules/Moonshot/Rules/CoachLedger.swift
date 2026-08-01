@@ -8,6 +8,7 @@ enum CoachMoment: Equatable {
     case abilityTap
     case meetCharacter(CharacterID)
     case worldMechanic(Int)
+    case meetGloom(GloomKind)
 
     var storageKey: String {
         switch self {
@@ -16,6 +17,7 @@ enum CoachMoment: Equatable {
         case .abilityTap: "ability"
         case .meetCharacter(let character): "meet-\(character.rawValue)"
         case .worldMechanic(let world): "world-\(world)"
+        case .meetGloom(let kind): "gloom-\(kind.rawValue)"
         }
     }
 }
@@ -45,6 +47,16 @@ enum CoachLedger {
             if !seen.contains(CoachMoment.meetCharacter(character).storageKey) {
                 moments.append(.meetCharacter(character))
                 introduced.insert(character)
+            }
+        }
+        // One banner per unmet gloom kind (M29) — classic glooms need no
+        // introduction.
+        var metKinds = Set<GloomKind>()
+        for gloom in level.glooms {
+            guard let kind = gloom.kind, !metKinds.contains(kind) else { continue }
+            if !seen.contains(CoachMoment.meetGloom(kind).storageKey) {
+                moments.append(.meetGloom(kind))
+                metKinds.insert(kind)
             }
         }
         return moments
