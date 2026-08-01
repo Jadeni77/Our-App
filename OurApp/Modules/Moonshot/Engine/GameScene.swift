@@ -362,7 +362,9 @@ final class GameScene: SKScene {
     }
 
     /// With no side walls, a gloom can be shoved clean off the map —
-    /// off the map is gone (the genre's ruling): count it popped.
+    /// off the map is gone (the genre's ruling): count it popped. Applies
+    /// kind-blind on purpose: an escaped shieldling pops shell and all, and
+    /// the Great Gloom's density makes escaping it a non-event.
     private func sweepEscapedGlooms() {
         let margin = MoonshotTuning.gloomRadius * 2
         for case let gloom as GloomNode in worldNode.children where gloom.physicsBody != nil {
@@ -375,7 +377,9 @@ final class GameScene: SKScene {
     private func pop(_ gloom: GloomNode) {
         gloom.physicsBody = nil
         gloom.run(.sequence([
-            .group([.scale(to: 1.5, duration: 0.15), .fadeOut(withDuration: 0.15)]),
+            // Relative, not absolute: the Great Gloom lives at scale 3 and
+            // must SWELL on death, not implode (review finding).
+            .group([.scale(by: 1.5, duration: 0.15), .fadeOut(withDuration: 0.15)]),
             .removeFromParent(),
         ]))
         session.gloomPopped()
