@@ -1998,6 +1998,29 @@
         }
       }
     },
+    "Pop every gloom to relight the sky" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pop every gloom to relight the sky"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打走所有阴影，点亮我们的星空"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打走所有陰影，點亮我們的星空"
+          }
+        }
+      }
+    },
     "Re-roll" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2316,6 +2339,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "跟隨系統"
+          }
+        }
+      }
+    },
+    "Tap — %@'s power!" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap — %@'s power!"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点一下——%@的技能！"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "點一下——%@的技能！"
           }
         }
       }

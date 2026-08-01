@@ -165,6 +165,12 @@ struct LocalizationTests {
         #expect(localizedValue("No ability", language: "zh-Hant") == "未用技能")
         #expect(localizedValue("Clean sweep", language: "zh-Hans") == "全部拆光")
         #expect(localizedValue("Clean sweep", language: "zh-Hant") == "全部拆光")
+        #expect(localizedValue("Pop every gloom to relight the sky", language: "zh-Hans")
+                == "打走所有阴影，点亮我们的星空")
+        #expect(localizedValue("Pop every gloom to relight the sky", language: "zh-Hant")
+                == "打走所有陰影，點亮我們的星空")
+        #expect(localizedValue("Tap — %@'s power!", language: "zh-Hans") == "点一下——%@的技能！")
+        #expect(localizedValue("Tap — %@'s power!", language: "zh-Hant") == "點一下——%@的技能！")
     }
 
     @Test func springboardStringsAreTranslated() {

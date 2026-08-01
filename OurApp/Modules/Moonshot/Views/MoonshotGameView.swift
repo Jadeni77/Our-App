@@ -28,6 +28,11 @@ struct MoonshotGameView: View {
     /// the earned set lights the win overlay's badges.
     @State private var destroyedPieces = 0
     @State private var earnedFeats: Set<Feat> = []
+    /// Coach moments (M25) owed at this level open; goal/drag/cue handled
+    /// here, cards and banners in their own views.
+    @State private var coachMoments: [CoachMoment] = []
+    @State private var showGoalLine = false
+    @State private var showAbilityCue = false
 
     private let catalog = CampaignCatalog.bundled
     #if DEBUG
@@ -48,6 +53,7 @@ struct MoonshotGameView: View {
                 DreamyBackground()
             }
             hud
+            coachOverlay
             outcomeOverlay
         }
         .onAppear {
@@ -58,6 +64,7 @@ struct MoonshotGameView: View {
             MoonshotAudio.shared.stopAmbience()
         }
         .onChange(of: session?.phase) { _, phase in
+            coachOnPhaseChange(phase)
             guard case .won(let stars) = phase, !recordedOutcome, let session else { return }
             recordedOutcome = true
             let store = MoonshotProgressStore(context: modelContext)
@@ -135,6 +142,7 @@ struct MoonshotGameView: View {
         }
         session = newSession
         scene = newScene
+        startCoaching(for: level, scene: newScene, store: store)
         #if DEBUG
         // One-shot per app run: the auto-fling exists to drive the FIRST
         // build of a verification run. Without the latch it re-fired on
@@ -155,6 +163,75 @@ struct MoonshotGameView: View {
             }
         }
         #endif
+    }
+
+    // MARK: Coach moments (M25)
+
+    private func startCoaching(for level: MoonshotLevel, scene: GameScene, store: MoonshotProgressStore) {
+        coachMoments = CoachLedger.momentsAtLevelOpen(level: level, seen: store.seenCoachKeys())
+        showGoalLine = false
+        showAbilityCue = false
+        if coachMoments.contains(.goal) {
+            showGoalLine = true
+            store.markCoachSeen(.goal)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+                withAnimation { showGoalLine = false }
+            }
+        }
+        if coachMoments.contains(.dragToFling) {
+            scene.showDragHint(reduceMotion: reduceMotion)
+            scene.onDragHintDismissed = { [modelContext] in
+                MoonshotProgressStore(context: modelContext).markCoachSeen(.dragToFling)
+            }
+        }
+    }
+
+    private func coachOnPhaseChange(_ phase: LevelSession.Phase?) {
+        guard case .inFlight = phase else {
+            showAbilityCue = false
+            return
+        }
+        showGoalLine = false
+        let store = MoonshotProgressStore(context: modelContext)
+        guard CoachLedger.momentInFlight(seen: store.seenCoachKeys()) == .abilityTap else { return }
+        // Seen means "the cue fired", not "the tap was obeyed" — it must
+        // never nag a player who chose to save the ability.
+        store.markCoachSeen(.abilityTap)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+            if case .inFlight = session?.phase, session?.abilityUsedThisFlight == false {
+                withAnimation { showAbilityCue = true }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var coachOverlay: some View {
+        VStack(spacing: 10) {
+            if showGoalLine {
+                Text("Pop every gloom to relight the sky")
+                    .font(Theme.display(15))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .glassCard(cornerRadius: 16)
+                    .transition(.opacity)
+            }
+            if showAbilityCue, let session,
+               session.phase == .inFlight, !session.abilityUsedThisFlight,
+               let character = session.currentCharacter {
+                Text("Tap — \(String(localized: String.LocalizationValue(character.displayNameKey)))'s power!")
+                    .font(Theme.display(15))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .glassCard(cornerRadius: 16)
+                    .modifier(NudgePulse(active: !reduceMotion))
+                    .transition(.opacity)
+            }
+            Spacer()
+        }
+        .padding(.top, 58)
+        .allowsHitTesting(false)
     }
 
     // MARK: HUD
@@ -345,6 +422,20 @@ extension CharacterID {
         case .nox: Color(red: 0.45, green: 0.42, blue: 0.72)
         default: Color(bodyUIColor)
         }
+    }
+}
+
+/// A gentle breathing scale for the ability cue; static under Reduce Motion.
+private struct NudgePulse: ViewModifier {
+    let active: Bool
+    @State private var pulsing = false
+
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(active && pulsing ? 1.08 : 1)
+            .animation(active ? .easeInOut(duration: 0.55).repeatForever(autoreverses: true) : .default,
+                       value: pulsing)
+            .onAppear { pulsing = true }
     }
 }
 
