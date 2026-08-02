@@ -99,8 +99,11 @@ struct MoonshotGameView: View {
         }
         // In-level, the pause menu is the ONE door out (owner ruling): no
         // shell X, no system back — Home and Exit game live in the menu.
-        .preference(key: ModuleChromeHiddenKey.self, value: true)
-        .navigationBarBackButtonHidden(true)
+        // Conditional on a scene existing: a failed build (DEBUG
+        // out-of-range level) has no gear, and hiding the chrome there
+        // would leave no door at all (review finding).
+        .preference(key: ModuleChromeHiddenKey.self, value: scene != nil)
+        .navigationBarBackButtonHidden(scene != nil)
         .onAppear {
             if scene == nil { buildLevel(currentIndex) }
             MoonshotAudio.shared.startAmbience()
@@ -224,11 +227,15 @@ struct MoonshotGameView: View {
             pickerBalance = store.moondustBalance()
             showFlingPicker = true
         }
-        // `-moonshotPauseMenu` opens the menu once the scene is mounted —
-        // simctl can't tap the gear.
-        if arguments.contains("-moonshotPauseMenu") {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                scene?.pauseGameplay()
+        // `-moonshotPauseMenu [delay]` opens the menu once the scene is
+        // mounted (default 1.5 s) — simctl can't tap the gear. A delay
+        // past the autofling launch pauses MID-FLIGHT, which is how the
+        // freeze itself gets verified with something moving.
+        if let flag = arguments.firstIndex(of: "-moonshotPauseMenu") {
+            let delay = arguments.indices.contains(flag + 1)
+                ? Double(arguments[flag + 1]) ?? 1.5 : 1.5
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak newScene] in
+                newScene?.pauseGameplay()
                 showPauseMenu = true
             }
         }
