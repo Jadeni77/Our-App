@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 
 /// The shared couple reward track (M6): one pool, unlocks are OURS. Shows
-/// the four slice-(a) milestones and lets an unlocked trail be equipped.
+/// every milestone on the track and lets unlocked cosmetics be equipped.
 struct RewardTrackView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var results: [MoonshotLevelResult]

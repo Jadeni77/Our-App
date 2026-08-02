@@ -807,15 +807,34 @@ struct MoonshotGameView: View {
                         .fill(character.chipColor)
                         .frame(width: 54, height: 54)
                         .overlay(Circle().stroke(.white.opacity(0.85), lineWidth: 2))
-                case .theme:
+                case .theme(let theme):
+                    let veil: LinearGradient = switch theme {
+                    case .dawn: LinearGradient(colors: [Theme.rose, Theme.peach],
+                                               startPoint: .top, endPoint: .bottom)
+                    case .midnight: LinearGradient(colors: [Color(red: 0.10, green: 0.08, blue: 0.22), Theme.indigo],
+                                                   startPoint: .top, endPoint: .bottom)
+                    }
                     RoundedRectangle(cornerRadius: 10)
-                        .fill(LinearGradient(colors: [Theme.rose, Theme.peach],
-                                             startPoint: .top, endPoint: .bottom))
+                        .fill(veil)
                         .frame(width: 54, height: 40)
-                case .skin:
-                    SlingshotGlyph()
-                        .stroke(Color(red: 0.85, green: 0.68, blue: 0.28), lineWidth: 4)
+                case .skin(let skin):
+                    // Obsidian gets the same glow edge the in-scene node
+                    // needed (review finding: near-black stroke on the
+                    // dark W4 win card read as a faint halo, not a fork).
+                    switch skin {
+                    case .golden:
+                        SlingshotGlyph()
+                            .stroke(Color(red: 0.85, green: 0.68, blue: 0.28), lineWidth: 4)
+                            .frame(width: 34, height: 46)
+                    case .obsidian:
+                        ZStack {
+                            SlingshotGlyph()
+                                .stroke(Theme.glow, lineWidth: 6)
+                            SlingshotGlyph()
+                                .stroke(Color(red: 0.12, green: 0.10, blue: 0.18), lineWidth: 4)
+                        }
                         .frame(width: 34, height: 46)
+                    }
                 }
             }
             .frame(height: 56)
@@ -834,6 +853,7 @@ struct MoonshotGameView: View {
         case .petals: Theme.rose
         case .aurora: Color(red: 0.45, green: 0.85, blue: 0.75)
         case .nebula: Color(red: 0.62, green: 0.5, blue: 0.95)
+        case .comet: Color(red: 1, green: 0.9, blue: 0.6)
         }
     }
 

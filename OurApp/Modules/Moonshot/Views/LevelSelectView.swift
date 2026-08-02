@@ -22,21 +22,26 @@ struct LevelSelectView: View {
         forcedWorld = initialWorld
     }
 
-    private var dawnVeil: Bool {
-        cosmetics.first { $0.partnerID == partnerID }?.theme == .dawn
+    private var equippedTheme: ConstellationTheme? {
+        cosmetics.first { $0.partnerID == partnerID }?.theme
     }
 
     var body: some View {
         ZStack {
             DreamyBackground()
-            if dawnVeil {
-                // The 78★ dawn veil (M6 track): a rose-gold wash over every
-                // world; nodes warm their glow to match.
+            // The equipped veil (M6 track): dawn washes rose-gold at 78★,
+            // midnight washes deep indigo at 125★; nodes tune their glow.
+            switch equippedTheme {
+            case .dawn:
                 Theme.rose.opacity(0.15).ignoresSafeArea()
+            case .midnight:
+                Color(red: 0.10, green: 0.08, blue: 0.22).opacity(0.35).ignoresSafeArea()
+            case nil:
+                EmptyView()
             }
             TabView(selection: $world) {
                 ForEach(1...max(catalog.worldCount, 1), id: \.self) { number in
-                    WorldConstellationView(world: number, results: results, dawnVeil: dawnVeil)
+                    WorldConstellationView(world: number, results: results, theme: equippedTheme)
                         .tag(number)
                 }
             }
@@ -147,11 +152,15 @@ private struct WorldStyle {
 private struct WorldConstellationView: View {
     let world: Int
     let results: [MoonshotLevelResult]
-    let dawnVeil: Bool
+    let theme: ConstellationTheme?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var glow: Color {
-        dawnVeil ? Color(red: 1.0, green: 0.72, blue: 0.5) : Theme.glow
+        switch theme {
+        case .dawn: Color(red: 1.0, green: 0.72, blue: 0.5)
+        case .midnight: Color(red: 0.62, green: 0.66, blue: 1.0)
+        case nil: Theme.glow
+        }
     }
     private let catalog = CampaignCatalog.bundled
     private let partnerID = MoonshotProgressStore.devicePartnerID

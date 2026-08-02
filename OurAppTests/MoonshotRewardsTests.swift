@@ -43,7 +43,7 @@ struct MoonshotRewardsTests {
         #expect(MoonshotRewards.nextMilestone(pool: 0)?.threshold == 8)
         #expect(MoonshotRewards.nextMilestone(pool: 8)?.threshold == 16)
         #expect(MoonshotRewards.nextMilestone(pool: 95)?.threshold == 96)
-        #expect(MoonshotRewards.nextMilestone(pool: 96) == nil)
+        #expect(MoonshotRewards.nextMilestone(pool: 140) == nil)
     }
 
     @Test func previousThresholdFloorsTheProgressBar() {
@@ -60,5 +60,13 @@ struct MoonshotRewardsTests {
         #expect(!MoonshotRewards.isUnlocked(.misty, pool: 59))
         #expect(MoonshotRewards.isUnlocked(.misty, pool: 60))
         #expect(MoonshotRewards.isUnlocked(.nox, pool: 24))          // unchanged by the append
+    }
+
+    @Test func deepTrackAppendsWithoutRepricing() {
+        #expect(MoonshotRewards.track.map(\.threshold) == [8, 16, 24, 32, 45, 60, 78, 96, 110, 125, 140])
+        #expect(MoonshotRewards.grants(pool: 140).contains(.trail(.comet)))
+        #expect(MoonshotRewards.grants(pool: 140).contains(.theme(.midnight)))
+        #expect(MoonshotRewards.grants(pool: 140).contains(.skin(.obsidian)))
+        #expect(MoonshotRewards.nextMilestone(pool: 96)?.threshold == 110)
     }
 }

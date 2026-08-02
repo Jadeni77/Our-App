@@ -871,6 +871,29 @@
         }
       }
     },
+    "Comet" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comet"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "彗星尾迹"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "彗星尾跡"
+          }
+        }
+      }
+    },
     "Comet Dash — a burst of speed, ×2 vs crystal and wood" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1837,6 +1860,29 @@
         }
       }
     },
+    "Midnight" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Midnight"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "午夜"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "午夜"
+          }
+        }
+      }
+    },
     "Milestones unlock characters, trails, and looks." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2201,6 +2247,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "洞洞"
+          }
+        }
+      }
+    },
+    "Obsidian slingshot" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obsidian slingshot"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "曜石弹弓"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "曜石彈弓"
           }
         }
       }
