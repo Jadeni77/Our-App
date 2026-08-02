@@ -48,6 +48,9 @@ struct MoonshotGameView: View {
     /// The pause menu (M32, owner ruling: one door out). Opening it
     /// freezes the scene's simulation and wall-clock bookkeeping.
     @State private var showPauseMenu = false
+    /// A just-unlocked character's ability card, shown over the win card
+    /// until explicitly confirmed (owner request).
+    @State private var unlockCardCharacter: CharacterID?
     @State private var starsRevealed = false
     /// Moondust minted by this run (wreckage + first-clear bonus), for
     /// the win overlay's dust tick (M31).
@@ -92,6 +95,20 @@ struct MoonshotGameView: View {
                     withAnimation {
                         if !pendingIntroCards.isEmpty { pendingIntroCards.removeFirst() }
                     }
+                }
+                .id(character)
+                .transition(.opacity)
+            }
+            // The unlock moment teaches ON THE SPOT (owner request: "show
+            // the ability inside the gameplay until the user manually
+            // confirms"): a character grant blocks the win card with its
+            // ability card — read it, confirm it, then celebrate. Marked
+            // seen so the level-open intro card won't repeat it.
+            if let character = unlockCardCharacter {
+                CoachCardView(character: character, unlocked: true) {
+                    MoonshotProgressStore(context: modelContext)
+                        .markCoachSeen(.meetCharacter(character))
+                    withAnimation { unlockCardCharacter = nil }
                 }
                 .id(character)
                 .transition(.opacity)
@@ -142,6 +159,13 @@ struct MoonshotGameView: View {
             poolDelta = poolNow - poolBefore
             let grantsAfter = MoonshotRewards.grants(pool: poolNow)
             newGrants = grantsAfter.filter { !grantsBefore.contains($0) }
+            // A newly earned STAR gets its lesson right now, not next
+            // level: the ability card blocks until confirmed.
+            if case .character(let unlocked)? = newGrants.first(where: {
+                if case .character = $0 { true } else { false }
+            }) {
+                unlockCardCharacter = unlocked
+            }
             Haptics.success()
             #if DEBUG
             // `-moonshotAutoReplay`: after a win, drive the exact rebuild
@@ -170,6 +194,7 @@ struct MoonshotGameView: View {
         dustEarned = 0
         showFlingPicker = false
         showPauseMenu = false
+        unlockCardCharacter = nil
         sceneGeneration += 1
         let store = MoonshotProgressStore(context: modelContext)
         let pool = store.starPool
