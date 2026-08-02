@@ -110,4 +110,17 @@ import Testing
         #expect(store.equippedTheme == nil)
         #expect(store.equippedSkin == .golden)
     }
+
+    @Test func moondustIsACoupleWalletAndNeverGoesNegative() throws {
+        let fixture = try makeStore()
+        let store = fixture.store
+        store.addMoondust(30, reason: "wreckage")
+        let other = MoonshotProgressStore(context: fixture.container.mainContext, partnerID: "two")
+        other.addMoondust(20, reason: "first-clear")
+        #expect(store.moondustBalance() == 50)             // both partners pool
+        #expect(store.spendMoondust(25, reason: "swap"))
+        #expect(store.moondustBalance() == 25)
+        #expect(!store.spendMoondust(26, reason: "swap"))  // guarded
+        #expect(store.moondustBalance() == 25)
+    }
 }

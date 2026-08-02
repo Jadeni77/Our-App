@@ -97,6 +97,29 @@
         }
       }
     },
+    "+%lld moondust" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "+%lld moondust"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月尘 +%lld"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月塵 +%lld"
+          }
+        }
+      }
+    },
     "+%lld★" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -614,6 +637,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "選擇照片"
+          }
+        }
+      }
+    },
+    "Choose your star" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose your star"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选一颗星上场"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選一顆星上場"
           }
         }
       }
@@ -1235,6 +1281,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "第 %lld 發"
+          }
+        }
+      }
+    },
+    "Free" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Free"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "免费"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "免費"
           }
         }
       }
@@ -2500,29 +2569,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "霧化——化作薄霧，穿過一塊積木"
-          }
-        }
-      }
-    },
-    "Play as %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Play as %@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "让 %@ 上场"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "讓 %@ 上場"
           }
         }
       }

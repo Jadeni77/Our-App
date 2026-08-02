@@ -66,13 +66,18 @@ struct LevelSessionTests {
         #expect(s.flingsUsed == 0)
     }
 
-    @Test func characterSwapOnlyInReadyOnlyOnce() {
+    @Test func swapsRepeatWhileReadyAndCount() {
         let s = makeSession(queue: [.mochi, .mochi], glooms: 2)
-        s.swapCurrentCharacter(to: .nox)
+        #expect(s.swapCurrentCharacter(to: .zip))
+        #expect(s.swapCurrentCharacter(to: .nox))
+        #expect(s.swapsUsed == 2)
+        #expect(!s.swapCurrentCharacter(to: .nox))   // same character no-ops
         #expect(s.currentCharacter == .nox)
-        s.beginAim(); s.fling(); s.flightEnded(); s.settled()
-        s.swapCurrentCharacter(to: .nox)                 // second swap ignored
-        #expect(s.currentCharacter == .mochi)
+        // The ready-only veto is the picker's anti-charge mechanism — a
+        // refused swap must never report success (review pin).
+        s.beginAim(); s.fling()
+        #expect(!s.swapCurrentCharacter(to: .mochi))
+        #expect(s.swapsUsed == 2)
     }
 
     @Test func abilityUseIsRememberedAcrossFlings() {

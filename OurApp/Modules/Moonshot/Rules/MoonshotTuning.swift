@@ -120,6 +120,13 @@ enum MoonshotTuning {
     /// leaping across the escape sweep.
     static let hopperHopCarry: CGFloat = 330
 
+    // MARK: Moondust (M31)
+    /// Dust per point of wreckage cost, the first-clear bonus, and the
+    /// price of a repeat fling swap (the first pick each level is free).
+    static let moondustPerCost = 1
+    static let moondustFirstClear = 20
+    static let moondustSwapPrice = 25
+
     // MARK: Impulse calibration
     /// SpriteKit's collisionImpulse is kg·m/s (150 pt = 1 m), so real hits
     /// measure ~0.05–0.5. The damage model speaks in abstract units — this

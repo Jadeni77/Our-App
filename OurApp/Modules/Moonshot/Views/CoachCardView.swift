@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// One character's card (M25): the coach shows it once when a character is
-/// first met — in a queue or at the swap chip — and the home dashboard
+/// first met — in a queue or in the fling picker — and the home dashboard
 /// (owner amendment 2026-07-31) opens it any time as a reference.
 struct CoachCardView: View {
     let character: CharacterID

@@ -142,7 +142,6 @@ struct LocalizationTests {
         #expect(localizedValue("New unlock!", language: "zh-Hans") == "新解锁！")
         #expect(localizedValue("Stardust", language: "zh-Hant") == "星塵")
         #expect(localizedValue("Aurora", language: "zh-Hans") == "极光")
-        #expect(localizedValue("Play as %@", language: "zh-Hant") == "讓 %@ 上場")
         #expect(localizedValue("Level %lld, locked", language: "zh-Hans") == "第 %lld 关，未解锁")
         #expect(localizedValue("Music", language: "zh-Hans") == "音乐")
         #expect(localizedValue("Music", language: "zh-Hant") == "音樂")
@@ -185,6 +184,12 @@ struct LocalizationTests {
         #expect(localizedValue("Tap mid-flight to use it", language: "zh-Hant") == "飛行途中點一下就能用")
         #expect(localizedValue("Let's go", language: "zh-Hans") == "出发！")
         #expect(localizedValue("Unlocks at %lld★", language: "zh-Hant") == "集滿 %lld★ 解鎖")
+        #expect(localizedValue("+%lld moondust", language: "zh-Hans") == "月尘 +%lld")
+        #expect(localizedValue("+%lld moondust", language: "zh-Hant") == "月塵 +%lld")
+        #expect(localizedValue("Choose your star", language: "zh-Hans") == "选一颗星上场")
+        #expect(localizedValue("Choose your star", language: "zh-Hant") == "選一顆星上場")
+        #expect(localizedValue("Free", language: "zh-Hans") == "免费")
+        #expect(localizedValue("Free", language: "zh-Hant") == "免費")
         #expect(localizedValue("Cloudfoam bounces you — aim off the pads",
                                language: "zh-Hans") == "云绵会把你弹起来——借垫子瞄准")
         #expect(localizedValue("Wind bends every arc — trust your read, not the dots",

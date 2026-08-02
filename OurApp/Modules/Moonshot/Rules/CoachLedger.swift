@@ -29,7 +29,7 @@ enum CoachLedger {
     /// world's mechanic banner (worlds 2+, first entry), then one intro
     /// card per unmet character — queue members in queue order, then
     /// swap-available ones (owner amendment 2026-07-31: a player who
-    /// unlocks Nox at 24★ mid-W2 meets him at the chip, not in W3).
+    /// unlocks Nox at 24★ mid-W2 meets him in the fling picker, not in W3).
     /// Mochi never gets a card — goal + drag introduce him.
     static func momentsAtLevelOpen(level: MoonshotLevel,
                                    swapCharacters: [CharacterID] = [],

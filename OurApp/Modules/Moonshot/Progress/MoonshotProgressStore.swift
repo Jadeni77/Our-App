@@ -94,6 +94,29 @@ final class MoonshotProgressStore {
         try? context.save()
     }
 
+    // MARK: Moondust wallet (M31)
+
+    /// The couple's balance: every partner's rows summed — one wallet.
+    func moondustBalance() -> Int {
+        let rows = (try? context.fetch(FetchDescriptor<MoonshotMoondustEntry>())) ?? []
+        return rows.reduce(0) { $0 + $1.amount }
+    }
+
+    func addMoondust(_ amount: Int, reason: String) {
+        context.insert(MoonshotMoondustEntry(partnerID: partnerID, amount: amount, reason: reason))
+        try? context.save()
+    }
+
+    /// A spend is a negative row AFTER the guard — this device's ledger
+    /// never goes below zero (cross-device reconciliation is slice (d)'s).
+    @discardableResult
+    func spendMoondust(_ amount: Int, reason: String) -> Bool {
+        guard moondustBalance() >= amount else { return false }
+        context.insert(MoonshotMoondustEntry(partnerID: partnerID, amount: -amount, reason: reason))
+        try? context.save()
+        return true
+    }
+
     // MARK: Coach ledger (M25)
 
     /// Storage keys of every coach moment this partner has seen.
