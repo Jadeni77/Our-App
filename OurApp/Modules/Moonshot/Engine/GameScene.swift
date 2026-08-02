@@ -235,6 +235,7 @@ final class GameScene: SKScene {
             }) else { return }
             aimingTouch = touch
             session.beginAim()
+            lastCreakBand = 0
             slingshot.beginPull()
             run(SoundBank.stretch)
         case .inFlight:
@@ -277,10 +278,25 @@ final class GameScene: SKScene {
         activeSprites.removeAll { $0 === sprite }
     }
 
+    /// The last creak band the pull crossed (0 = none). Creaks fire only
+    /// while the stretch GROWS — relaxing back is silent, like rubber.
+    private var lastCreakBand = 0
+
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard session.phase == .aiming,
               let touch = aimingTouch, touches.contains(touch) else { return }
-        slingshot.movePull(to: touch.location(in: self))
+        let location = touch.location(in: self)
+        slingshot.movePull(to: location)
+        // Rubber creaks (owner request): rising ticks as the pull deepens.
+        let seat = slingshot.seatPosition
+        let pull = hypot(location.x - seat.x, location.y - seat.y)
+        let band = MoonshotTuning.creakBandFractions.lastIndex {
+            pull >= $0 * MoonshotTuning.maxPullDistance
+        }.map { $0 + 1 } ?? 0
+        if band > lastCreakBand {
+            run(SoundBank.creaks[band - 1])
+        }
+        lastCreakBand = max(lastCreakBand, band)
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {

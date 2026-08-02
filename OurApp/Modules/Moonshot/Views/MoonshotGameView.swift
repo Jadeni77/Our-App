@@ -195,6 +195,7 @@ struct MoonshotGameView: View {
         showFlingPicker = false
         showPauseMenu = false
         unlockCardCharacter = nil
+        freeSwitchSpent = false
         sceneGeneration += 1
         let store = MoonshotProgressStore(context: modelContext)
         let pool = store.starPool
@@ -251,6 +252,7 @@ struct MoonshotGameView: View {
         }
         if arguments.contains("-moonshotFlingPicker") {
             pickerBalance = store.moondustBalance()
+            pickerPool = store.starPool   // matches the real door's snapshot
             showFlingPicker = true
         }
         // `-moonshotPauseMenu [delay]` opens the menu once the scene is
@@ -654,28 +656,46 @@ struct MoonshotGameView: View {
         }
     }
 
+    /// True once this level's FREE switch is spent. Tracked apart from
+    /// the session's swapsUsed: a paid Nox summon must not burn the free
+    /// tier — the player would be double-charged 40 + 25 while the card
+    /// still promises a free first switch (review finding).
+    @State private var freeSwitchSpent = false
+
+    /// What picking this character costs right now. Nil = free. Nox is
+    /// summoned, never owned (M34): every pick costs, even the level's
+    /// first switch — the well is too strong to hand out with the track.
+    private func pickPrice(_ character: CharacterID) -> Int? {
+        if character == .nox { return MoonshotTuning.noxSummonPrice }
+        return freeSwitchSpent ? MoonshotTuning.moondustSwapPrice : nil
+    }
+
     private func pickerChoice(_ character: CharacterID, session: LevelSession) -> some View {
         let unlocked = MoonshotRewards.isUnlocked(character, pool: pickerPool)
         let current = session.currentCharacter == character
-        let priced = session.swapsUsed > 0
-        let affordable = !priced || pickerBalance >= MoonshotTuning.moondustSwapPrice
+        let price = pickPrice(character)
+        let affordable = price.map { pickerBalance >= $0 } ?? true
         return Button {
             Haptics.tap()
             let store = MoonshotProgressStore(context: modelContext)
             // Affordability re-checked against the store, not the snapshot:
             // a swap must never be granted on a spend that would fail
             // (review finding — future dust sinks could stale the snapshot).
-            if priced {
-                guard store.moondustBalance() >= MoonshotTuning.moondustSwapPrice else {
+            if let price {
+                guard store.moondustBalance() >= price else {
                     pickerBalance = store.moondustBalance()
                     return
                 }
             }
             let before = session.swapsUsed
             scene?.swapSeatedCharacter(to: character)
-            if session.swapsUsed > before, priced {
-                store.spendMoondust(MoonshotTuning.moondustSwapPrice, reason: "swap")
-                pickerBalance = store.moondustBalance()
+            if session.swapsUsed > before {
+                if let price {
+                    store.spendMoondust(price, reason: character == .nox ? "nox-summon" : "swap")
+                    pickerBalance = store.moondustBalance()
+                } else {
+                    freeSwitchSpent = true
+                }
             }
             showFlingPicker = false
         } label: {
@@ -702,12 +722,12 @@ struct MoonshotGameView: View {
                     Text("—")
                         .font(.caption2)
                         .foregroundStyle(.white.opacity(0.5))
-                } else if priced {
+                } else if let price {
                     HStack(spacing: 3) {
                         MoondustGem()
                             .fill(Theme.glow)
                             .frame(width: 8, height: 8)
-                        Text("\(MoonshotTuning.moondustSwapPrice)")
+                        Text("\(price)")
                             .font(.caption2)
                             .foregroundStyle(Theme.glow.opacity(affordable ? 1 : 0.5))
                     }
@@ -720,20 +740,22 @@ struct MoonshotGameView: View {
         }
         .disabled(!unlocked || current || !affordable)
         .accessibilityValue(pickerChoiceValue(
-            unlocked: unlocked, current: current, priced: priced, character: character))
+            unlocked: unlocked, current: current, price: price, character: character))
     }
 
     /// What VoiceOver says after the character's name — the price line.
-    private func pickerChoiceValue(unlocked: Bool, current: Bool, priced: Bool,
+    private func pickerChoiceValue(unlocked: Bool, current: Bool, price: Int?,
                                    character: CharacterID) -> Text {
         if !unlocked, let threshold = MoonshotRewards.track.first(where: {
             $0.grant == .character(character)
         })?.threshold {
             Text("Unlocks at \(threshold)★")
-        } else if current || !priced {
-            current ? Text("") : Text("Free")
+        } else if current {
+            Text("")
+        } else if let price {
+            Text("\(price)")
         } else {
-            Text("\(MoonshotTuning.moondustSwapPrice)")
+            Text("Free")
         }
     }
 

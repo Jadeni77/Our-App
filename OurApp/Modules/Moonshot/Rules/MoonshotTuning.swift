@@ -126,6 +126,15 @@ enum MoonshotTuning {
     static let moondustPerCost = 1
     static let moondustFirstClear = 20
     static let moondustSwapPrice = 25
+    /// Nox is summoned, never owned (M34, owner: "too OP"): every pick
+    /// costs this — no free first, no permanent access. Levels that
+    /// author him into their queue still hand him over for free.
+    static let noxSummonPrice = 40
+
+    // MARK: Rubber creaks (M34)
+    /// Pull-distance fractions where the stretch ticks — derived from
+    /// maxPullDistance so retuning the pull keeps all three bands alive.
+    static let creakBandFractions: [CGFloat] = [1.0 / 3.0, 0.61, 0.87]
 
     // MARK: Impulse calibration
     /// SpriteKit's collisionImpulse is kg·m/s (150 pt = 1 m), so real hits

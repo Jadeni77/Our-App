@@ -74,6 +74,7 @@ struct RewardTrackView: View {
                         }
                         Text("Smashing pieces earns moondust — tougher pieces pay more. First clears add +20.")
                         Text("Spend it mid-level: tap your star's name chip to switch who flies. The first switch is free; repeats cost 25.")
+                        Text("Nox is different — summoning him costs 40 every time.")
                     }
                     .font(.footnote)
                     .foregroundStyle(.white.opacity(0.85))

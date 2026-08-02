@@ -59,11 +59,19 @@ enum SoundBank {
 
     static let stretch = SKAction.playSoundFileNamed("stretch.caf", waitForCompletion: false)
 
+    /// The rubber creaks (owner request): three ticks at rising pitch,
+    /// fired as the pull crosses its distance bands — the band tells the
+    /// hand how loaded the shot is before the eyes check the arc.
+    static let creaks: [SKAction] = (1...3).map {
+        SKAction.playSoundFileNamed("creak-\($0).caf", waitForCompletion: false)
+    }
+
     /// Build every action up front (scene load), because
     /// `playSoundFileNamed` reads its file at construction — the first
     /// mid-flight impact must never pay that cost.
     static func prewarm() {
         _ = stretch
+        _ = creaks
         for material in Material.allCases { _ = action(for: .impact(material)) }
         _ = action(for: .flung)
         _ = action(for: .gloomPopped)

@@ -204,6 +204,14 @@ struct LocalizationTests {
         #expect(localizedValue("Moondust", language: "zh-Hant") == "月塵")
         #expect(localizedValue("What moondust does", language: "zh-Hans") == "月尘是干什么的")
         #expect(localizedValue("What moondust does", language: "zh-Hant") == "月塵是做什麼的")
+        #expect(localizedValue("Nox is different — summoning him costs 40 every time.",
+                               language: "zh-Hans") == "洞洞不一样——每次召唤都要 40 月尘。")
+        #expect(localizedValue("Nox is different — summoning him costs 40 every time.",
+                               language: "zh-Hant") == "洞洞不一樣——每次召喚都要 40 月塵。")
+        #expect(localizedValue("Summon him from the star picker — 40 moondust a visit",
+                               language: "zh-Hans") == "在选星面板召唤他——每次 40 月尘")
+        #expect(localizedValue("Summon him from the star picker — 40 moondust a visit",
+                               language: "zh-Hant") == "在選星面板召喚他——每次 40 月塵")
         #expect(localizedValue("Buys star switches mid-level", language: "zh-Hans") == "用来在关卡里换星星上场")
         #expect(localizedValue("Buys star switches mid-level", language: "zh-Hant") == "用來在關卡裡換星星上場")
         #expect(localizedValue("Smashing pieces earns moondust — tougher pieces pay more. First clears add +20.",
