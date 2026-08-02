@@ -2357,6 +2357,29 @@
         }
       }
     },
+    "Nox is different — summoning him costs 40 every time." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nox is different — summoning him costs 40 every time."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "洞洞不一样——每次召唤都要 40 月尘。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "洞洞不一樣——每次召喚都要 40 月塵。"
+          }
+        }
+      }
+    },
     "Obsidian slingshot" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3296,6 +3319,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "重新開始"
+          }
+        }
+      }
+    },
+    "Summon him from the star picker — 40 moondust a visit" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Summon him from the star picker — 40 moondust a visit"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在选星面板召唤他——每次 40 月尘"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在選星面板召喚他——每次 40 月塵"
           }
         }
       }

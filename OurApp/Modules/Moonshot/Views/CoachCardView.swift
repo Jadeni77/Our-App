@@ -37,6 +37,15 @@ struct CoachCardView: View {
                     Text("Tap mid-flight to use it")
                         .font(.footnote)
                         .foregroundStyle(.white.opacity(0.7))
+                    if character == .nox {
+                        // The celebration must not over-promise (review
+                        // finding): 24★ grants summonability, not a
+                        // roster slot.
+                        Text("Summon him from the star picker — 40 moondust a visit")
+                            .font(.footnote)
+                            .foregroundStyle(Theme.glow)
+                            .multilineTextAlignment(.center)
+                    }
                     Button {
                         Haptics.tap()
                         onDismiss()
