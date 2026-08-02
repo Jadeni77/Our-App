@@ -204,6 +204,29 @@
         }
       }
     },
+    "A sparkle your star wears in flight" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A sparkle your star wears in flight"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "飞行时跟随星星的光尾"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "飛行時跟隨星星的光尾"
+          }
+        }
+      }
+    },
     "Abilities" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1166,6 +1189,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "抽一個菜系，或者輸入你想吃的。"
+          }
+        }
+      }
+    },
+    "Dresses the slingshot" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dresses the slingshot"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "给弹弓换个模样"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "給彈弓換個模樣"
           }
         }
       }
@@ -2343,6 +2389,29 @@
         }
       }
     },
+    "On the roadmap" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On the roadmap"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在路上"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在路上"
+          }
+        }
+      }
+    },
     "One fling" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2776,6 +2845,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "換一個"
+          }
+        }
+      }
+    },
+    "Re-tints the campaign map" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Re-tints the campaign map"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "给闯关星图换个色调"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "給闖關星圖換個色調"
           }
         }
       }

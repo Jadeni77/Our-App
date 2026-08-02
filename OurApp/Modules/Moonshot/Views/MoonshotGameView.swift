@@ -97,8 +97,9 @@ struct MoonshotGameView: View {
                 .transition(.opacity)
             }
         }
-        // In-level, the pause menu is the ONE door out (owner ruling): no
-        // shell X, no system back — Home and Exit game live in the menu.
+        // MID-level, the pause menu is the one door out (owner ruling): no
+        // shell X, no system back. Finished levels are the exception —
+        // the outcome card offers its own Back to home.
         // Conditional on a scene existing: a failed build (DEBUG
         // out-of-range level) has no gear, and hiding the chrome there
         // would leave no door at all (review finding).
@@ -489,8 +490,10 @@ struct MoonshotGameView: View {
 
     // MARK: Pause menu (M32)
 
-    /// One door out (owner ruling): every way to leave or restart a level
-    /// lives here, behind the gear — the world stays frozen underneath.
+    /// The mid-level door out (owner ruling): while a level is live, every
+    /// way to leave or restart lives here, behind the gear — the world
+    /// stays frozen underneath. Outcome cards add their own Back to home
+    /// once the level is decided.
     @ViewBuilder
     private var pauseMenuOverlay: some View {
         if showPauseMenu {
@@ -747,6 +750,15 @@ struct MoonshotGameView: View {
                             .buttonStyle(MoonshotOverlayButton(prominent: true))
                     }
                 }
+                // The quiet way out (owner request): a finished level can
+                // hand you straight back instead of forcing another run.
+                Button {
+                    dismiss()
+                } label: {
+                    Text("Back to home")
+                        .font(.footnote)
+                        .foregroundStyle(.white.opacity(0.75))
+                }
             }
         case .failed:
             outcomeCard {
@@ -757,6 +769,13 @@ struct MoonshotGameView: View {
                     .foregroundStyle(.white.opacity(0.85))
                 Button { buildLevel(currentIndex) } label: { Text("Try again") }
                     .buttonStyle(MoonshotOverlayButton(prominent: true))
+                Button {
+                    dismiss()
+                } label: {
+                    Text("Back to home")
+                        .font(.footnote)
+                        .foregroundStyle(.white.opacity(0.75))
+                }
             }
         default:
             EmptyView()
