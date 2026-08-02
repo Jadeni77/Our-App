@@ -1,0 +1,49 @@
+{
+  "buildZone": {
+    "height": 340,
+    "width": 370,
+    "x": 470,
+    "y": 0
+  },
+  "createdAt": "2026-08-02T18:20:00Z",
+  "glooms": [
+    {
+      "kind": "shield",
+      "x": 620,
+      "y": 16
+    },
+    {
+      "kind": "helmet",
+      "x": 720,
+      "y": 16
+    }
+  ],
+  "id": "AA000000-0000-4000-8000-000000000054",
+  "kind": "campaign",
+  "par": 3,
+  "pieces": [
+    {
+      "material": "crystal",
+      "rotation": 0,
+      "shape": "column",
+      "x": 670,
+      "y": 45
+    },
+    {
+      "material": "crystal",
+      "rotation": 0,
+      "shape": "square",
+      "x": 670,
+      "y": 113
+    }
+  ],
+  "queue": [
+    "mochi",
+    "pogo",
+    "zip",
+    "twinkle"
+  ],
+  "schemaVersion": 1,
+  "updatedAt": "2026-08-02T18:20:00Z",
+  "world": 5
+}

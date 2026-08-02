@@ -273,8 +273,20 @@ struct MoonshotGameView: View {
         // simulator after a debug launch with ghost flings.
         if arguments.contains("-moonshotAutoFling"), !Self.autoFlingFired {
             Self.autoFlingFired = true
+            // `-moonshotPull dx,dy` overrides the stock pull — W5's perch
+            // and roof windows only open near max pull, and the ballistic
+            // audit must aim where the level demands, not where -53,-53
+            // happens to land.
+            var pull = CGVector(dx: -53, dy: -53)
+            if let flag = arguments.firstIndex(of: "-moonshotPull"),
+               arguments.indices.contains(flag + 1) {
+                let parts = arguments[flag + 1].split(separator: ",").compactMap { Double($0) }
+                if parts.count == 2, parts.allSatisfy(\.isFinite) {
+                    pull = CGVector(dx: parts[0], dy: parts[1])
+                }
+            }
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak newScene] in
-                newScene?.demoFling(pull: CGVector(dx: -53, dy: -53))
+                newScene?.demoFling(pull: pull)
             }
             // `-moonshotAbilityDelay 0.5` taps the ability that long after release.
             if let flag = arguments.firstIndex(of: "-moonshotAbilityDelay"),

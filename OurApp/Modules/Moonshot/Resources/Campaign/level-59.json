@@ -1,0 +1,46 @@
+{
+  "buildZone": {
+    "height": 340,
+    "width": 370,
+    "x": 470,
+    "y": 0
+  },
+  "createdAt": "2026-08-02T18:20:00Z",
+  "glooms": [
+    {
+      "x": 640,
+      "y": 16
+    },
+    {
+      "x": 740,
+      "y": 16
+    }
+  ],
+  "id": "AA000000-0000-4000-8000-000000000059",
+  "kind": "campaign",
+  "par": 2,
+  "pieces": [
+    {
+      "material": "frame",
+      "rotation": 0,
+      "shape": "column",
+      "x": 560,
+      "y": 45
+    },
+    {
+      "material": "frame",
+      "rotation": 0,
+      "shape": "column",
+      "x": 800,
+      "y": 45
+    }
+  ],
+  "queue": [
+    "pogo",
+    "pogo",
+    "mochi"
+  ],
+  "schemaVersion": 1,
+  "updatedAt": "2026-08-02T18:20:00Z",
+  "world": 5
+}

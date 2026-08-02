@@ -1,0 +1,48 @@
+{
+  "buildZone": {
+    "height": 340,
+    "width": 370,
+    "x": 470,
+    "y": 0
+  },
+  "createdAt": "2026-08-02T18:20:00Z",
+  "glooms": [
+    {
+      "kind": "helmet",
+      "x": 560,
+      "y": 16
+    },
+    {
+      "kind": "shield",
+      "x": 730,
+      "y": 16
+    },
+    {
+      "kind": "hopper",
+      "x": 780,
+      "y": 16
+    }
+  ],
+  "id": "AA000000-0000-4000-8000-000000000057",
+  "kind": "campaign",
+  "par": 4,
+  "pieces": [
+    {
+      "material": "meteorstone",
+      "rotation": 0,
+      "shape": "block",
+      "x": 640,
+      "y": 45
+    }
+  ],
+  "queue": [
+    "pogo",
+    "zip",
+    "mochi",
+    "twinkle",
+    "mochi"
+  ],
+  "schemaVersion": 1,
+  "updatedAt": "2026-08-02T18:20:00Z",
+  "world": 5
+}
