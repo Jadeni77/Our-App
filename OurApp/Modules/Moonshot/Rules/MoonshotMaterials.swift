@@ -79,9 +79,13 @@ enum GloomDamage {
     /// Kind-aware hits (M29). Mist gates on a live ability and IGNORES the
     /// impulse — pass-through contacts carry ~zero collision impulse by
     /// design, so its pop is a contact rule, not a force rule. Great
-    /// converts the tiers to 1/2 HP chips (no one-shot). Everyone else
-    /// keeps the classic tiers; shield's absorb is engine state.
-    static func hits(forImpulse impulse: Double, kind: GloomKind?, abilityActive: Bool) -> Int {
+    /// converts the tiers to 1/2 HP chips (no one-shot). The helmet (M36)
+    /// shrugs off ANY contact from above — the Engine computes the
+    /// direction, the ruling lives here. Everyone else keeps the classic
+    /// tiers; shield's absorb is engine state. `fromAbove` defaults false
+    /// so every shipped call site keeps meaning what it meant.
+    static func hits(forImpulse impulse: Double, kind: GloomKind?, abilityActive: Bool,
+                     fromAbove: Bool = false) -> Int {
         switch kind {
         case .mist:
             abilityActive ? MoonshotTuning.gloomHP : 0
@@ -89,6 +93,8 @@ enum GloomDamage {
             if impulse >= MoonshotTuning.gloomInstantPopImpulse { 2 }
             else if impulse >= MoonshotTuning.gloomBruiseImpulse { 1 }
             else { 0 }
+        case .helmet:
+            fromAbove ? 0 : hits(forImpulse: impulse)
         case .shield, .hopper, nil:
             hits(forImpulse: impulse)
         }
@@ -104,7 +110,7 @@ enum AbilityEffects {
         switch character {
         case .mochi: return 2.5
         case .zip: return (material == .crystal || material == .moonwood) ? 2.0 : 1
-        case .twinkle, .nox, .misty: return 1
+        case .twinkle, .nox, .misty, .pogo: return 1
         }
     }
 }

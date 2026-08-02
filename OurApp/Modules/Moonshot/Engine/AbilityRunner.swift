@@ -12,7 +12,17 @@ enum AbilityRunner {
         case .twinkle: split(sprite, in: scene)
         case .nox: gravityWell(sprite, in: scene)
         case .misty: phase(sprite, in: scene)
+        case .pogo: bounce(sprite, in: scene)
         }
+    }
+
+    /// Bounce (M35): Pogo turns rubbery — the NEXT solid contact reflects
+    /// him at full incoming speed, one perfect ricochet. This PR opens the
+    /// live-ability window and shows the flash; the reflect itself lands
+    /// with the Engine PR (`StarSpriteNode.bouncePrimed` + didBegin).
+    private static func bounce(_ sprite: StarSpriteNode, in scene: GameScene) {
+        sprite.abilityActive = true
+        flashRing(at: sprite.position, in: scene, color: CharacterID.pogo.bodyUIColor)
     }
 
     /// Phase: Misty turns to mist — through one piece, then flesh and

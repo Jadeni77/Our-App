@@ -10,7 +10,7 @@ struct MoonshotCharactersTests {
     }
 
     @Test func displayNameKeysAreTheCatalogKeys() {
-        #expect(CharacterID.allCases.map(\.displayNameKey) == ["Mochi", "Zip", "Twinkle", "Nox", "Misty"])
+        #expect(CharacterID.allCases.map(\.displayNameKey) == ["Mochi", "Zip", "Twinkle", "Nox", "Misty", "Pogo"])
     }
 
     @Test func mochiIsTheHeavyOneZipTheNimbleOne() {

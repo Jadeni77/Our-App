@@ -22,6 +22,9 @@ struct MoonshotLevelTests {
         let json = #"{"x": 600, "y": 16, "kind": "shield"}"#.data(using: .utf8)!
         let gloom = try MoonshotLevel.decoder().decode(MoonshotLevel.GloomPlacement.self, from: json)
         #expect(gloom.kind == .shield)
+        let helmetJSON = #"{"x": 600, "y": 16, "kind": "helmet"}"#.data(using: .utf8)!
+        let helmet = try MoonshotLevel.decoder().decode(MoonshotLevel.GloomPlacement.self, from: helmetJSON)
+        #expect(helmet.kind == .helmet)
     }
 
     @Test func windAndWorldRoundTrip() throws {

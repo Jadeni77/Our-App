@@ -105,6 +105,7 @@ extension CharacterID {
         case .twinkle: Text("Split — one star becomes two")
         case .nox: Text("Gravity Well — freeze and pull the world in")
         case .misty: Text("Phase — turn to mist, slip through one piece")
+        case .pogo: Text("Bounce — turn rubbery and ricochet at full speed")
         }
     }
 }

@@ -36,6 +36,10 @@ struct LevelSelectView: View {
                 Theme.rose.opacity(0.15).ignoresSafeArea()
             case .midnight:
                 Color(red: 0.10, green: 0.08, blue: 0.22).opacity(0.35).ignoresSafeArea()
+            case .cavern:
+                // The cavern-looks PR wears the real geode dark — this arm
+                // reuses midnight so the enum can land first.
+                Color(red: 0.10, green: 0.08, blue: 0.22).opacity(0.35).ignoresSafeArea()
             case nil:
                 EmptyView()
             }
@@ -159,6 +163,7 @@ private struct WorldConstellationView: View {
         switch theme {
         case .dawn: Color(red: 1.0, green: 0.72, blue: 0.5)
         case .midnight: Color(red: 0.62, green: 0.66, blue: 1.0)
+        case .cavern: Color(red: 0.62, green: 0.66, blue: 1.0)  // real glow lands with the looks PR
         case nil: Theme.glow
         }
     }

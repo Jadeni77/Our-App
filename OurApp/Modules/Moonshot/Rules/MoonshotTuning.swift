@@ -30,6 +30,10 @@ enum MoonshotTuning {
     static let gloomHP = 2
     static let gloomBruiseImpulse: Double = 1.5
     static let gloomInstantPopImpulse: Double = 5.0
+    /// Helmet (M36): a contact point higher than the gloom's center plus
+    /// this brim counts as "from above" and deals nothing — roughly the
+    /// top third of a radius-16 face, so grazing side hits stay lethal.
+    static let helmetBrimY: CGFloat = 5
 
     // MARK: Scene (design canvas — every phone sees this world via aspectFit)
     static let sceneSize = CGSize(width: 840, height: 390)

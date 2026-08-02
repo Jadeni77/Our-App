@@ -88,4 +88,22 @@ struct MoonshotMaterialsTests {
         #expect(GloomDamage.hits(forImpulse: MoonshotTuning.gloomBruiseImpulse) * 2
                 >= MoonshotTuning.gloomHP)
     }
+
+    @Test func helmetsShrugSkyHitsAndDieFromTheSide() {
+        // From above: nothing gets through — not even a slam (M36).
+        #expect(GloomDamage.hits(forImpulse: 17, kind: .helmet, abilityActive: true, fromAbove: true) == 0)
+        #expect(GloomDamage.hits(forImpulse: 2, kind: .helmet, abilityActive: false, fromAbove: true) == 0)
+        // From the side: the classic tiers, untouched.
+        #expect(GloomDamage.hits(forImpulse: 8.6, kind: .helmet, abilityActive: false, fromAbove: false) == 2)
+        #expect(GloomDamage.hits(forImpulse: 2, kind: .helmet, abilityActive: false, fromAbove: false) == 1)
+        #expect(GloomDamage.hits(forImpulse: 1, kind: .helmet, abilityActive: false, fromAbove: false) == 0)
+    }
+
+    @Test func fromAboveChangesNothingForOtherKinds() {
+        // The default argument keeps every shipped call site meaning what
+        // it meant — only the helmet consults the direction.
+        #expect(GloomDamage.hits(forImpulse: 8.6, kind: nil, abilityActive: false, fromAbove: true) == 2)
+        #expect(GloomDamage.hits(forImpulse: 8.6, kind: .shield, abilityActive: false, fromAbove: true) == 2)
+        #expect(GloomDamage.hits(forImpulse: 0, kind: .mist, abilityActive: true, fromAbove: true) == 2)
+    }
 }
