@@ -202,6 +202,14 @@ struct LocalizationTests {
         #expect(localizedValue("+%lld moondust", language: "zh-Hant") == "月塵 +%lld")
         #expect(localizedValue("Moondust", language: "zh-Hans") == "月尘")
         #expect(localizedValue("Moondust", language: "zh-Hant") == "月塵")
+        #expect(localizedValue("What moondust does", language: "zh-Hans") == "月尘是干什么的")
+        #expect(localizedValue("What moondust does", language: "zh-Hant") == "月塵是做什麼的")
+        #expect(localizedValue("Buys star switches mid-level", language: "zh-Hans") == "用来在关卡里换星星上场")
+        #expect(localizedValue("Buys star switches mid-level", language: "zh-Hant") == "用來在關卡裡換星星上場")
+        #expect(localizedValue("Smashing pieces earns moondust — tougher pieces pay more. First clears add +20.",
+                               language: "zh-Hans") == "通关时，拆掉的部件都会换成月尘——越硬的部件给得越多。首次通关再加 20。")
+        #expect(localizedValue("Spend it mid-level: tap your star's name chip to switch who flies. The first switch is free; repeats cost 25.",
+                               language: "zh-Hant") == "在關卡裡花掉它：點星星名字的小牌子換人上場。每關第一次免費，之後每次 25。")
         #expect(localizedValue("Choose your star", language: "zh-Hans") == "选一颗星上场")
         #expect(localizedValue("Choose your star", language: "zh-Hant") == "選一顆星上場")
         #expect(localizedValue("Free", language: "zh-Hans") == "免费")

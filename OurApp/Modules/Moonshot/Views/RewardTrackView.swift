@@ -7,10 +7,12 @@ struct RewardTrackView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var results: [MoonshotLevelResult]
     @Query private var cosmetics: [MoonshotCosmeticSetting]
+    @Query private var moondust: [MoonshotMoondustEntry]
 
     private let partnerID = MoonshotProgressStore.devicePartnerID
 
     private var pool: Int { MoonshotRewards.starPool(results.map(\.snapshot)) }
+    private var moondustBalance: Int { moondust.reduce(0) { $0 + $1.amount } }
     private var equippedTrail: TrailID? {
         cosmetics.first { $0.partnerID == partnerID }?.trail
     }
@@ -48,6 +50,30 @@ struct RewardTrackView: View {
                         Text("Milestones unlock characters, trails, and looks.")
                         NextUnlockStrip(pool: pool)
                             .padding(.top, 2)
+                    }
+                    .font(.footnote)
+                    .foregroundStyle(.white.opacity(0.85))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(16)
+                    .glassCard(cornerRadius: 22)
+
+                    // Moondust in plain words too (owner: "it seems just
+                    // like numbers" — a currency must say where it's spent).
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 6) {
+                            Text("What moondust does")
+                                .font(Theme.display(16))
+                                .foregroundStyle(.white)
+                            Spacer()
+                            MoondustGem()
+                                .fill(Theme.glow)
+                                .frame(width: 12, height: 12)
+                            Text("\(moondustBalance)")
+                                .font(Theme.display(14))
+                                .foregroundStyle(Theme.glow)
+                        }
+                        Text("Smashing pieces earns moondust — tougher pieces pay more. First clears add +20.")
+                        Text("Spend it mid-level: tap your star's name chip to switch who flies. The first switch is free; repeats cost 25.")
                     }
                     .font(.footnote)
                     .foregroundStyle(.white.opacity(0.85))

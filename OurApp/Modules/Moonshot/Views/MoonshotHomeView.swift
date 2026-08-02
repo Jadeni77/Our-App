@@ -75,16 +75,27 @@ struct MoonshotHomeView: View {
                             .font(.caption)
                             .foregroundStyle(.white.opacity(0.75))
                             .multilineTextAlignment(.center)
-                        HStack(spacing: 5) {
-                            MoondustGem()
-                                .fill(Theme.glow)
-                                .frame(width: 12, height: 12)
-                            Text("\(moondustBalance)")
-                                .font(Theme.display(16))
-                                .foregroundStyle(Theme.glow)
+                        VStack(spacing: 2) {
+                            HStack(spacing: 5) {
+                                MoondustGem()
+                                    .fill(Theme.glow)
+                                    .frame(width: 12, height: 12)
+                                Text("\(moondustBalance)")
+                                    .font(Theme.display(16))
+                                    .foregroundStyle(Theme.glow)
+                            }
+                            // A currency must say where it's spent (owner:
+                            // "it seems just like numbers").
+                            Text("Buys star switches mid-level")
+                                .font(.caption2)
+                                .foregroundStyle(.white.opacity(0.6))
                         }
+                        .accessibilityElement(children: .ignore)
                         .accessibilityLabel(Text("Moondust"))
                         .accessibilityValue(Text("\(moondustBalance)"))
+                        // The caption must reach VoiceOver too (review
+                        // finding) — same "just numbers" fix, spoken.
+                        .accessibilityHint(Text("Buys star switches mid-level"))
                         NextUnlockStrip(pool: pool)
                         Spacer()
                         modesColumn
