@@ -42,15 +42,15 @@
     "twinkle"
   ],
   "schemaVersion": 1,
-  "updatedAt": "2026-08-01T00:00:00Z",
+  "updatedAt": "2026-08-02T03:39:58Z",
   "wind": [
     {
-      "forceX": -3,
+      "forceX": -2.5,
       "forceY": 0,
-      "height": 280,
-      "width": 320,
-      "x": 280,
-      "y": 60
+      "height": 260,
+      "width": 220,
+      "x": 300,
+      "y": 80
     }
   ],
   "world": 4
