@@ -13,7 +13,7 @@
       "y": 16
     },
     {
-      "x": 820,
+      "x": 790,
       "y": 16
     }
   ],
@@ -53,9 +53,9 @@
   "queue": [
     "mochi",
     "zip",
-    "mochi"
+    "zip"
   ],
   "schemaVersion": 1,
-  "updatedAt": "2026-08-01T00:00:00Z",
+  "updatedAt": "2026-08-02T00:00:00Z",
   "world": 4
 }
