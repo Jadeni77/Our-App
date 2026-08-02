@@ -452,6 +452,37 @@ final class GameScene: SKScene {
         }
     }
 
+    // MARK: Pause (M32)
+
+    private var pauseBegan: TimeInterval?
+
+    /// Freeze the simulation AND the wall-clock bookkeeping. The a3 lesson,
+    /// fixed at the root: flight/settle stamps are CACurrentMediaTime, so a
+    /// paused scene that isn't compensated fast-forwards its timers and a
+    /// resumed shot dies to a timeout it never lived.
+    func pauseGameplay() {
+        guard pauseBegan == nil else { return }
+        pauseBegan = CACurrentMediaTime()
+        isPaused = true
+    }
+
+    /// Shift every stamp by the paused span, then let the world breathe.
+    func resumeGameplay() {
+        guard let began = pauseBegan else { return }
+        let span = CACurrentMediaTime() - began
+        pauseBegan = nil
+        for sprite in activeSprites {
+            if let t = sprite.launchedAt { sprite.launchedAt = t + span }
+            if let t = sprite.slowSince { sprite.slowSince = t + span }
+        }
+        for case let gloom as GloomNode in worldNode.children where gloom.lastHop > 0 {
+            gloom.lastHop += span   // a pause must not expire a hop cooldown
+        }
+        if let t = settlingSince { settlingSince = t + span }
+        if let t = calmSince { calmSince = t + span }
+        isPaused = false
+    }
+
     /// Internal so AbilityRunner can retire Nox when the well collapses.
     func spend(_ sprite: StarSpriteNode) {
         activeSprites.removeAll { $0 === sprite }
