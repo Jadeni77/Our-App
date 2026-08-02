@@ -25,18 +25,24 @@ final class SlingshotNode: SKNode {
         name = "slingshot"
         zPosition = 5
 
-        let wood = skin == .golden
-            ? UIColor(red: 0.85, green: 0.68, blue: 0.28, alpha: 1)
-            : UIColor(red: 0.45, green: 0.32, blue: 0.24, alpha: 1)
+        let wood: UIColor = switch skin {
+        case .golden: UIColor(red: 0.85, green: 0.68, blue: 0.28, alpha: 1)
+        case .obsidian: UIColor(red: 0.12, green: 0.10, blue: 0.18, alpha: 1)
+        case nil: UIColor(red: 0.45, green: 0.32, blue: 0.24, alpha: 1)
+        }
+        // Obsidian reads as black glass, not shadow: a thin glow edge (M33).
+        let edge: UIColor = skin == .obsidian ? UIColor(Theme.glow) : .clear
         let trunk = SKShapeNode(rectOf: CGSize(width: 8, height: MoonshotTuning.slingshotHeight - 18), cornerRadius: 3)
         trunk.fillColor = wood
-        trunk.strokeColor = .clear
+        trunk.strokeColor = edge
+        trunk.lineWidth = skin == .obsidian ? 1.5 : 0
         trunk.position = CGPoint(x: 0, y: (MoonshotTuning.slingshotHeight - 18) / 2)
         addChild(trunk)
         for side in [-1.0, 1.0] {
             let arm = SKShapeNode(rectOf: CGSize(width: 6, height: 26), cornerRadius: 3)
             arm.fillColor = wood
-            arm.strokeColor = .clear
+            arm.strokeColor = edge
+            arm.lineWidth = skin == .obsidian ? 1.5 : 0
             arm.zRotation = side * 0.35
             arm.position = CGPoint(x: side * 7, y: MoonshotTuning.slingshotHeight - 22)
             addChild(arm)

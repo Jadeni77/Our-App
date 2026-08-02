@@ -9,9 +9,12 @@ extension RewardGrant {
         case .trail(.petals): Text("Petals")
         case .trail(.aurora): Text("Aurora")
         case .trail(.nebula): Text("Nebula")
+        case .trail(.comet): Text("Comet")
         case .character(let character): Text(LocalizedStringKey(character.displayNameKey))
         case .theme(.dawn): Text("Dawn veil")
+        case .theme(.midnight): Text("Midnight")
         case .skin(.golden): Text("Golden slingshot")
+        case .skin(.obsidian): Text("Obsidian slingshot")
         }
     }
 }

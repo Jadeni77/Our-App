@@ -807,14 +807,19 @@ struct MoonshotGameView: View {
                         .fill(character.chipColor)
                         .frame(width: 54, height: 54)
                         .overlay(Circle().stroke(.white.opacity(0.85), lineWidth: 2))
-                case .theme:
+                case .theme(let theme):
                     RoundedRectangle(cornerRadius: 10)
-                        .fill(LinearGradient(colors: [Theme.rose, Theme.peach],
-                                             startPoint: .top, endPoint: .bottom))
+                        .fill(theme == .midnight
+                              ? LinearGradient(colors: [Color(red: 0.10, green: 0.08, blue: 0.22), Theme.indigo],
+                                               startPoint: .top, endPoint: .bottom)
+                              : LinearGradient(colors: [Theme.rose, Theme.peach],
+                                               startPoint: .top, endPoint: .bottom))
                         .frame(width: 54, height: 40)
-                case .skin:
+                case .skin(let skin):
                     SlingshotGlyph()
-                        .stroke(Color(red: 0.85, green: 0.68, blue: 0.28), lineWidth: 4)
+                        .stroke(skin == .obsidian
+                                ? Color(red: 0.25, green: 0.22, blue: 0.38)
+                                : Color(red: 0.85, green: 0.68, blue: 0.28), lineWidth: 4)
                         .frame(width: 34, height: 46)
                 }
             }
@@ -834,6 +839,7 @@ struct MoonshotGameView: View {
         case .petals: Theme.rose
         case .aurora: Color(red: 0.45, green: 0.85, blue: 0.75)
         case .nebula: Color(red: 0.62, green: 0.5, blue: 0.95)
+        case .comet: Color(red: 1, green: 0.9, blue: 0.6)
         }
     }
 

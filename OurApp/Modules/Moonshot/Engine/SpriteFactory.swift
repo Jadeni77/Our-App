@@ -623,6 +623,13 @@ enum SpriteFactory {
             emitter.particleLifetime = 1.1
             emitter.particleScale = 0.75
             emitter.particleRotationSpeed = 1.5
+        case .comet:
+            // The 110★ trail (M33): a tight white-gold streak — fast,
+            // short-lived, unmistakably a comet's tail.
+            emitter.particleColor = UIColor(red: 1, green: 0.9, blue: 0.6, alpha: 1)
+            emitter.particleSpeed = 26
+            emitter.particleLifetime = 0.5
+            emitter.particleBirthRate = 60
         }
         return emitter
     }
