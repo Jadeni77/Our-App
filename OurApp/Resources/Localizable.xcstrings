@@ -3553,6 +3553,29 @@
         }
       }
     },
+    "The caverns echo — bank your shots off the walls" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The caverns echo — bank your shots off the walls"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "洞窟有回声——借墙壁反弹你的星星"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "洞窟有回聲——借牆壁反彈你的星星"
+          }
+        }
+      }
+    },
     "The Cloudfoam Skies" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3572,6 +3595,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "雲綿天空"
+          }
+        }
+      }
+    },
+    "The Crystal Caverns" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Crystal Caverns"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "水晶洞窟"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "水晶洞窟"
           }
         }
       }

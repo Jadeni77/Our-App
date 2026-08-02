@@ -302,6 +302,7 @@ struct MoonshotHomeView: View {
         case 2: Text("The Cloudfoam Skies")
         case 3: Text("The Storm Heights")
         case 4: Text("The Deep Gloom")
+        case 5: Text("The Crystal Caverns")
         default: Text("The Moonlit Fields")
         }
     }

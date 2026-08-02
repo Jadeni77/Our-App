@@ -337,6 +337,8 @@ struct MoonshotGameView: View {
             Text("Cloudfoam bounces you — aim off the pads")
         case .worldMechanic(4):
             Text("The deep glooms fight back — watch their tricks")
+        case .worldMechanic(5):
+            Text("The caverns echo — bank your shots off the walls")
         case .worldMechanic:
             Text("Wind bends every arc — trust your read, not the dots")
         case .meetGloom(.shield):
