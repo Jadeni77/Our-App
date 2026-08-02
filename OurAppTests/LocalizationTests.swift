@@ -190,6 +190,18 @@ struct LocalizationTests {
         #expect(localizedValue("Choose your star", language: "zh-Hant") == "選一顆星上場")
         #expect(localizedValue("Free", language: "zh-Hans") == "免费")
         #expect(localizedValue("Free", language: "zh-Hant") == "免費")
+        #expect(localizedValue("Paused", language: "zh-Hans") == "已暂停")
+        #expect(localizedValue("Paused", language: "zh-Hant") == "已暫停")
+        #expect(localizedValue("Resume", language: "zh-Hans") == "继续游戏")
+        #expect(localizedValue("Resume", language: "zh-Hant") == "繼續遊戲")
+        #expect(localizedValue("Replay level", language: "zh-Hans") == "重玩本关")
+        #expect(localizedValue("Replay level", language: "zh-Hant") == "重玩本關")
+        #expect(localizedValue("Back to home", language: "zh-Hans") == "回到主页")
+        #expect(localizedValue("Back to home", language: "zh-Hant") == "回到主頁")
+        #expect(localizedValue("Exit game", language: "zh-Hans") == "退出游戏")
+        #expect(localizedValue("Exit game", language: "zh-Hant") == "退出遊戲")
+        #expect(localizedValue("Menu", language: "zh-Hans") == "菜单")
+        #expect(localizedValue("Menu", language: "zh-Hant") == "選單")
         #expect(localizedValue("Cloudfoam bounces you — aim off the pads",
                                language: "zh-Hans") == "云绵会把你弹起来——借垫子瞄准")
         #expect(localizedValue("Wind bends every arc — trust your read, not the dots",
