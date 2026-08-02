@@ -37,9 +37,9 @@ struct LevelSelectView: View {
             case .midnight:
                 Color(red: 0.10, green: 0.08, blue: 0.22).opacity(0.35).ignoresSafeArea()
             case .cavern:
-                // The cavern-looks PR wears the real geode dark — this arm
-                // reuses midnight so the enum can land first.
-                Color(red: 0.10, green: 0.08, blue: 0.22).opacity(0.35).ignoresSafeArea()
+                // The 178★ veil (M35): geode dark — deeper than midnight,
+                // the map lit only by its own crystal.
+                Color(red: 0.05, green: 0.04, blue: 0.10).opacity(0.4).ignoresSafeArea()
             case nil:
                 EmptyView()
             }
@@ -172,7 +172,7 @@ private struct WorldConstellationView: View {
         switch theme {
         case .dawn: Color(red: 1.0, green: 0.72, blue: 0.5)
         case .midnight: Color(red: 0.62, green: 0.66, blue: 1.0)
-        case .cavern: Color(red: 0.62, green: 0.66, blue: 1.0)  // real glow lands with the looks PR
+        case .cavern: Color(red: 0.70, green: 0.85, blue: 1.0)  // crystal-ice node glow
         case nil: Theme.glow
         }
     }
