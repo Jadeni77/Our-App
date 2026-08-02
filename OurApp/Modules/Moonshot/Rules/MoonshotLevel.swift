@@ -6,7 +6,7 @@ import Foundation
 /// updatedAt, authorID, tombstone) are here from day one.
 
 enum CharacterID: String, Codable, CaseIterable {
-    case mochi, zip, twinkle, nox, misty
+    case mochi, zip, twinkle, nox, misty, pogo
 }
 
 enum Material: String, Codable, CaseIterable {
@@ -79,9 +79,10 @@ struct MoonshotLevel: Codable, Equatable, Identifiable {
 }
 
 /// A gloom variant (M29): shield wears a crackable shell, hopper dodges,
-/// mist answers only to powers, great is the boss.
+/// mist answers only to powers, great is the boss, helmet (M36) shrugs
+/// off anything that lands from above.
 enum GloomKind: String, Codable {
-    case shield, hopper, mist, great
+    case shield, hopper, mist, great, helmet
 }
 
 /// A constant-force region (M21): rect in level coordinates (y up from the

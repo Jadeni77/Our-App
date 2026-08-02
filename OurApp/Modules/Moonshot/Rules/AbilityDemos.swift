@@ -60,6 +60,16 @@ enum AbilityDemos {
                                      ],
                                      glooms: [(700, 16)]),
                         pull: (dx: -64, dy: -30), abilityDelay: 0.5)
+        case .pogo:
+            // Primed before the ground, he springs OVER the wall onto the
+            // perch — the ricochet keeps every bit of his speed (M35).
+            AbilityDemo(level: stage(character,
+                                     pieces: [
+                                         piece(.column, .moonwood, 660, 45),
+                                         piece(.column, .moonwood, 760, 45),
+                                     ],
+                                     glooms: [(760, 106)]),
+                        pull: (dx: -50, dy: -40), abilityDelay: 0.8)
         }
     }
 

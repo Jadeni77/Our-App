@@ -12,6 +12,7 @@ extension CharacterID {
         case .twinkle: 16
         case .nox: 15
         case .misty: 15
+        case .pogo: 16
         }
     }
 
@@ -23,11 +24,12 @@ extension CharacterID {
         case .twinkle: 1.0
         case .nox: 1.2
         case .misty: 0.9   // she's made of mist
+        case .pogo: 1.0    // springy, not heavy — the ricochet is his weight
         }
     }
 
     /// String Catalog key for the user-facing name (Mochi 团团 · Zip 嗖嗖 ·
-    /// Twinkle 双双 · Nox 洞洞).
+    /// Twinkle 双双 · Nox 洞洞 · Pogo 蹦蹦).
     var displayNameKey: String {
         switch self {
         case .mochi: "Mochi"
@@ -35,6 +37,7 @@ extension CharacterID {
         case .twinkle: "Twinkle"
         case .nox: "Nox"
         case .misty: "Misty"
+        case .pogo: "Pogo"
         }
     }
 }

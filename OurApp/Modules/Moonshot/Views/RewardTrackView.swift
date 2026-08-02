@@ -140,7 +140,7 @@ struct RewardTrackView: View {
                 }
             }
             if case .character(let character) = grant, reached {
-                Text(character == .nox ? "🕳️" : "🌫️").font(.system(size: 24))
+                Text(verbatim: characterEmoji(character)).font(.system(size: 24))
             }
         }
         .padding(16)
@@ -165,6 +165,17 @@ struct RewardTrackView: View {
 
     private func grantTitle(_ grant: RewardGrant) -> Text {
         grant.titleText
+    }
+
+    /// The face a reached character row wears. Verbatim on purpose — emoji
+    /// aren't translated, so they should never enter the String Catalog.
+    private func characterEmoji(_ character: CharacterID) -> String {
+        switch character {
+        case .nox: "🕳️"
+        case .misty: "🌫️"
+        case .pogo: "🦘"
+        case .mochi, .zip, .twinkle: "⭐️"   // never on the track today
+        }
     }
 }
 

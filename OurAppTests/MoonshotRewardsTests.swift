@@ -43,7 +43,8 @@ struct MoonshotRewardsTests {
         #expect(MoonshotRewards.nextMilestone(pool: 0)?.threshold == 8)
         #expect(MoonshotRewards.nextMilestone(pool: 8)?.threshold == 16)
         #expect(MoonshotRewards.nextMilestone(pool: 95)?.threshold == 96)
-        #expect(MoonshotRewards.nextMilestone(pool: 140) == nil)
+        #expect(MoonshotRewards.nextMilestone(pool: 140)?.threshold == 150)
+        #expect(MoonshotRewards.nextMilestone(pool: 178) == nil)
     }
 
     @Test func previousThresholdFloorsTheProgressBar() {
@@ -63,10 +64,22 @@ struct MoonshotRewardsTests {
     }
 
     @Test func deepTrackAppendsWithoutRepricing() {
-        #expect(MoonshotRewards.track.map(\.threshold) == [8, 16, 24, 32, 45, 60, 78, 96, 110, 125, 140])
+        #expect(MoonshotRewards.track.prefix(11).map(\.threshold) == [8, 16, 24, 32, 45, 60, 78, 96, 110, 125, 140])
         #expect(MoonshotRewards.grants(pool: 140).contains(.trail(.comet)))
         #expect(MoonshotRewards.grants(pool: 140).contains(.theme(.midnight)))
         #expect(MoonshotRewards.grants(pool: 140).contains(.skin(.obsidian)))
         #expect(MoonshotRewards.nextMilestone(pool: 96)?.threshold == 110)
+    }
+
+    @Test func cavernTrackAppendsWithoutRepricing() {
+        #expect(MoonshotRewards.track.map(\.threshold) ==
+                [8, 16, 24, 32, 45, 60, 78, 96, 110, 125, 140, 150, 164, 178])
+        #expect(MoonshotRewards.grants(pool: 178).contains(.character(.pogo)))
+        #expect(MoonshotRewards.grants(pool: 178).contains(.trail(.prism)))
+        #expect(MoonshotRewards.grants(pool: 178).contains(.theme(.cavern)))
+        // Pogo is EARNED (150★) but then OWNED — free-switch rules, not
+        // Nox's per-visit summon.
+        #expect(!MoonshotRewards.isUnlocked(.pogo, pool: 149))
+        #expect(MoonshotRewards.isUnlocked(.pogo, pool: 150))
     }
 }

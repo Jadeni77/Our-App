@@ -106,6 +106,7 @@ enum SoundBank {
         case .twinkle: action(named: "split")
         case .nox: action(named: "well")
         case .misty: action(named: "phase")
+        case .pogo: action(named: "boing")   // the cloudfoam spring IS his voice
         }
     }
 }

@@ -6,11 +6,11 @@ import Foundation
 /// can't produce pool conflicts.
 
 enum TrailID: String, Codable, CaseIterable {
-    case stardust, petals, aurora, nebula, comet
+    case stardust, petals, aurora, nebula, comet, prism
 }
 
 enum ConstellationTheme: String, Codable, CaseIterable {
-    case dawn, midnight
+    case dawn, midnight, cavern
 }
 
 enum SlingshotSkin: String, Codable, CaseIterable {
@@ -35,8 +35,9 @@ struct LevelResultSnapshot: Equatable {
 
 enum MoonshotRewards {
     /// Rows only ever append, never reprice (M6). Slice (a) opened 8–32;
-    /// slice (a2) extended to 96; slice (a4) reaches into the deep — the
-    /// 48-level solo ceiling is 144★, so 140 is earnable but not cheap.
+    /// slice (a2) extended to 96; slice (a4) reached 140; slice (a5) digs
+    /// to 178 — the 60-level solo ceiling is 180★, so the Cavern theme is
+    /// the near-perfect-run prize.
     static let track: [(threshold: Int, grant: RewardGrant)] = [
         (8, .trail(.stardust)),
         (16, .trail(.petals)),
@@ -49,6 +50,9 @@ enum MoonshotRewards {
         (110, .trail(.comet)),
         (125, .theme(.midnight)),
         (140, .skin(.obsidian)),
+        (150, .character(.pogo)),
+        (164, .trail(.prism)),
+        (178, .theme(.cavern)),
     ]
 
     /// Best solo stars per (partner, level) + best co-op stars per level.
@@ -89,7 +93,7 @@ enum MoonshotRewards {
 
     static func isUnlocked(_ character: CharacterID, pool: Int) -> Bool {
         switch character {
-        case .nox, .misty:
+        case .nox, .misty, .pogo:
             grants(pool: pool).contains(.character(character))
         case .mochi, .zip, .twinkle:
             // Exhaustive on purpose: a future earned character must make a

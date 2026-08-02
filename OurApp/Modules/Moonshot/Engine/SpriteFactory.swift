@@ -289,6 +289,7 @@ extension CharacterID {
         case .twinkle: UIColor(Theme.rose)
         case .nox: UIColor(red: 0.16, green: 0.14, blue: 0.30, alpha: 1)
         case .misty: UIColor(red: 0.72, green: 0.66, blue: 0.88, alpha: 1)
+        case .pogo: UIColor(red: 0.55, green: 0.88, blue: 0.55, alpha: 1)
         }
     }
 }
@@ -434,6 +435,25 @@ final class StarSpriteNode: SKShapeNode {
             wisp.lineCap = .round
             addChild(wisp)
             addDotEyes(color: UIColor(white: 0.35, alpha: 1))
+        case .pogo:
+            // The spring: fresh green with two coil bands under his chin —
+            // he's wound up and everyone can see it.
+            fillColor = character.bodyUIColor
+            strokeColor = UIColor.white.withAlphaComponent(0.85)
+            for (index, y) in [-radius * 0.45, -radius * 0.7].enumerated() {
+                let coil = SKShapeNode()
+                let band = CGMutablePath()
+                let half = radius * (index == 0 ? 0.72 : 0.5)
+                band.move(to: CGPoint(x: -half, y: y))
+                band.addQuadCurve(to: CGPoint(x: half, y: y),
+                                  control: CGPoint(x: 0, y: y - 3.5))
+                coil.path = band
+                coil.strokeColor = UIColor.white.withAlphaComponent(0.7)
+                coil.lineWidth = 1.5
+                coil.lineCap = .round
+                addChild(coil)
+            }
+            addDotEyes(color: UIColor(white: 0.2, alpha: 1))
         }
     }
 
@@ -630,6 +650,10 @@ enum SpriteFactory {
             emitter.particleSpeed = 26
             emitter.particleLifetime = 0.5
             emitter.particleBirthRate = 60
+        case .prism:
+            // The 164★ trail (M35) — the cavern-looks PR wears the real
+            // ice-white-to-violet refraction; this arm just compiles.
+            emitter.particleColor = UIColor(red: 0.78, green: 0.9, blue: 1.0, alpha: 1)
         }
         return emitter
     }

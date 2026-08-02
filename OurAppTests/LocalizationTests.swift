@@ -134,6 +134,20 @@ struct LocalizationTests {
         #expect(localizedValue("Nox", language: "zh-Hans") == "洞洞")
         #expect(localizedValue("Misty", language: "zh-Hans") == "雾雾")
         #expect(localizedValue("Misty", language: "zh-Hant") == "霧霧")
+        #expect(localizedValue("Pogo", language: "zh-Hans") == "蹦蹦")
+        #expect(localizedValue("Pogo", language: "zh-Hant") == "蹦蹦")
+        #expect(localizedValue("Bounce — turn rubbery and ricochet at full speed",
+                               language: "zh-Hans") == "弹跳——变得像橡皮，全速反弹")
+        #expect(localizedValue("Bounce — turn rubbery and ricochet at full speed",
+                               language: "zh-Hant") == "彈跳——變得像橡皮，全速反彈")
+        #expect(localizedValue("Prism", language: "zh-Hans") == "棱镜")
+        #expect(localizedValue("Prism", language: "zh-Hant") == "稜鏡")
+        #expect(localizedValue("Cavern veil", language: "zh-Hans") == "洞窟夜幕")
+        #expect(localizedValue("Cavern veil", language: "zh-Hant") == "洞窟夜幕")
+        #expect(localizedValue("The helmet shrugs off sky-hits — strike from the side",
+                               language: "zh-Hans") == "头盔挡得住天上来的——从侧面打")
+        #expect(localizedValue("The helmet shrugs off sky-hits — strike from the side",
+                               language: "zh-Hant") == "頭盔擋得住天上來的——從側面打")
         #expect(localizedValue("Nebula", language: "zh-Hant") == "星雲")
         #expect(localizedValue("Dawn veil", language: "zh-Hans") == "拂晓纱")
         #expect(localizedValue("Golden slingshot", language: "zh-Hant") == "金彈弓")

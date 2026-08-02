@@ -335,6 +335,10 @@ struct MoonshotGameView: View {
             Text("Only a power can touch the mist")
         case .meetGloom(.great):
             Text("The Great Gloom shrugs — chip away")
+        case .meetGloom(.helmet):
+            // Landed with the rules PR (review finding: the default arm
+            // would burn the one-time moment on a blank banner).
+            Text("The helmet shrugs off sky-hits — strike from the side")
         default:
             Text("")
         }
@@ -893,6 +897,8 @@ struct MoonshotGameView: View {
                                                startPoint: .top, endPoint: .bottom)
                     case .midnight: LinearGradient(colors: [Color(red: 0.10, green: 0.08, blue: 0.22), Theme.indigo],
                                                    startPoint: .top, endPoint: .bottom)
+                    case .cavern: LinearGradient(colors: [Color(red: 0.06, green: 0.05, blue: 0.12), Theme.violet],
+                                                 startPoint: .top, endPoint: .bottom)
                     }
                     RoundedRectangle(cornerRadius: 10)
                         .fill(veil)
@@ -934,6 +940,7 @@ struct MoonshotGameView: View {
         case .aurora: Color(red: 0.45, green: 0.85, blue: 0.75)
         case .nebula: Color(red: 0.62, green: 0.5, blue: 0.95)
         case .comet: Color(red: 1, green: 0.9, blue: 0.6)
+        case .prism: Color(red: 0.78, green: 0.9, blue: 1.0)
         }
     }
 

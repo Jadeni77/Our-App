@@ -610,6 +610,29 @@
         }
       }
     },
+    "Bounce — turn rubbery and ricochet at full speed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bounce — turn rubbery and ricochet at full speed"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "弹跳——变得像橡皮，全速反弹"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "彈跳——變得像橡皮，全速反彈"
+          }
+        }
+      }
+    },
     "Buys star switches mid-level" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -675,6 +698,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "取消"
+          }
+        }
+      }
+    },
+    "Cavern veil" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cavern veil"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "洞窟夜幕"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "洞窟夜幕"
           }
         }
       }
@@ -2886,6 +2932,29 @@
         }
       }
     },
+    "Pogo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pogo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "蹦蹦"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "蹦蹦"
+          }
+        }
+      }
+    },
     "Pop every gloom to relight the sky" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2905,6 +2974,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "打走所有陰影，點亮我們的星空"
+          }
+        }
+      }
+    },
+    "Prism" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prism"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "棱镜"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "稜鏡"
           }
         }
       }
@@ -3572,6 +3664,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "巨影不怕撞——慢慢磨"
+          }
+        }
+      }
+    },
+    "The helmet shrugs off sky-hits — strike from the side" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The helmet shrugs off sky-hits — strike from the side"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "头盔挡得住天上来的——从侧面打"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "頭盔擋得住天上來的——從側面打"
           }
         }
       }
