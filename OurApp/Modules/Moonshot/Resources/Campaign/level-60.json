@@ -1,0 +1,76 @@
+{
+  "buildZone": {
+    "height": 340,
+    "width": 370,
+    "x": 470,
+    "y": 0
+  },
+  "createdAt": "2026-08-02T18:20:00Z",
+  "glooms": [
+    {
+      "kind": "helmet",
+      "x": 550,
+      "y": 16
+    },
+    {
+      "kind": "great",
+      "x": 690,
+      "y": 48
+    },
+    {
+      "kind": "helmet",
+      "x": 820,
+      "y": 16
+    }
+  ],
+  "id": "AA000000-0000-4000-8000-000000000060",
+  "kind": "campaign",
+  "par": 4,
+  "pieces": [
+    {
+      "material": "crystal",
+      "rotation": 0,
+      "shape": "column",
+      "x": 624,
+      "y": 45
+    },
+    {
+      "material": "crystal",
+      "rotation": 0,
+      "shape": "column",
+      "x": 624,
+      "y": 134
+    },
+    {
+      "material": "crystal",
+      "rotation": 0,
+      "shape": "column",
+      "x": 756,
+      "y": 45
+    },
+    {
+      "material": "crystal",
+      "rotation": 0,
+      "shape": "column",
+      "x": 756,
+      "y": 134
+    },
+    {
+      "material": "moonwood",
+      "rotation": 0,
+      "shape": "plank",
+      "x": 690,
+      "y": 191
+    }
+  ],
+  "queue": [
+    "mochi",
+    "pogo",
+    "zip",
+    "twinkle",
+    "pogo"
+  ],
+  "schemaVersion": 1,
+  "updatedAt": "2026-08-02T18:20:00Z",
+  "world": 5
+}
