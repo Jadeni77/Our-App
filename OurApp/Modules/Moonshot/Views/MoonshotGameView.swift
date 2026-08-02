@@ -421,9 +421,11 @@ struct MoonshotGameView: View {
                     HStack(spacing: 10) {
                         Text("W\(session.level.worldNumber) · L\(currentIndex + 1)")
                             .foregroundStyle(.white.opacity(0.7))
-                        // The dots are the door to the picker (M31): tap
-                        // to choose who flies — only while ready, the same
-                        // gate the old swap chips had.
+                        // The door to the picker (M31) must LOOK like a
+                        // door (owner: bare dots read as decoration, and
+                        // moondust "seems just like numbers" when its one
+                        // spend is invisible): current star's name + a
+                        // swap glyph + the queue dots, one visible chip.
                         Button {
                             Haptics.tap()
                             let store = MoonshotProgressStore(context: modelContext)
@@ -431,9 +433,21 @@ struct MoonshotGameView: View {
                             pickerPool = store.starPool
                             showFlingPicker = true
                         } label: {
-                            queueDots(session)
-                                .padding(6)
-                                .contentShape(Rectangle())
+                            HStack(spacing: 6) {
+                                if let current = session.currentCharacter {
+                                    Text(LocalizedStringKey(current.displayNameKey))
+                                        .font(Theme.display(13))
+                                        .foregroundStyle(.white)
+                                }
+                                Image(systemName: "arrow.triangle.2.circlepath")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundStyle(Theme.glow)
+                                queueDots(session)
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 5)
+                            .background(Capsule().fill(Color.white.opacity(0.14)))
+                            .contentShape(Capsule())
                         }
                         .disabled(session.phase != .ready)
                         .accessibilityLabel(Text("Choose your star"))

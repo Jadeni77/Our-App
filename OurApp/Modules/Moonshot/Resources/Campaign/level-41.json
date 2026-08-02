@@ -36,14 +36,14 @@
       "y": 134
     },
     {
-      "material": "frame",
+      "material": "moonwood",
       "rotation": 0,
       "shape": "column",
       "x": 760,
       "y": 45
     },
     {
-      "material": "frame",
+      "material": "moonwood",
       "rotation": 0,
       "shape": "column",
       "x": 760,
@@ -56,6 +56,6 @@
     "zip"
   ],
   "schemaVersion": 1,
-  "updatedAt": "2026-08-02T00:00:00Z",
+  "updatedAt": "2026-08-02T03:55:48Z",
   "world": 4
 }

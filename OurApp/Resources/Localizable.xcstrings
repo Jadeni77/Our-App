@@ -610,6 +610,29 @@
         }
       }
     },
+    "Buys star switches mid-level" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buys star switches mid-level"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用来在关卡里换星星上场"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用來在關卡裡換星星上場"
+          }
+        }
+      }
+    },
     "Campaign" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3162,6 +3185,52 @@
         }
       }
     },
+    "Smashing pieces earns moondust — tougher pieces pay more. First clears add +20." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Smashing pieces earns moondust, banked when you clear — tougher pieces pay more. First clears add +20."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通关时，拆掉的部件都会换成月尘——越硬的部件给得越多。首次通关再加 20。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通關時，拆掉的部件都會換成月塵——越硬的部件給得越多。首次通關再加 20。"
+          }
+        }
+      }
+    },
+    "Spend it mid-level: tap your star's name chip to switch who flies. The first switch is free; repeats cost 25." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spend it mid-level: tap your star's name chip to switch who flies. The first switch each level is free; repeats cost 25."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在关卡里花掉它：点星星名字的小牌子换人上场。每关第一次免费，之后每次 25。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在關卡裡花掉它：點星星名字的小牌子換人上場。每關第一次免費，之後每次 25。"
+          }
+        }
+      }
+    },
     "Split — one star becomes two" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3745,6 +3814,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "我們在一起已經"
+          }
+        }
+      }
+    },
+    "What moondust does" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What moondust does"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月尘是干什么的"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月塵是做什麼的"
           }
         }
       }
