@@ -30,10 +30,22 @@ enum MoonshotTuning {
     static let gloomHP = 2
     static let gloomBruiseImpulse: Double = 1.5
     static let gloomInstantPopImpulse: Double = 5.0
-    /// Helmet (M36): a contact point higher than the gloom's center plus
-    /// this brim counts as "from above" and deals nothing — roughly the
-    /// top third of a radius-16 face, so grazing side hits stay lethal.
-    static let helmetBrimY: CGFloat = 5
+    /// Helmet (M36), sprite strikers: DESCENDING steeper than this
+    /// |vy|/|vx| slope counts as "from above" and deals nothing. Full-pull
+    /// arcs cross gloom height at ~43° descent (v=(477,−444), slope 0.93,
+    /// at the L43 evidence contact) — the canonical sky-hit must sit
+    /// clearly inside the gate, so the line is 0.8 (≈39°). Slams drop
+    /// near-vertical (shrug); rolls, dashes, and shallow banks descend
+    /// well under 39° (kill). Geometry at flight speed can't be trusted
+    /// (tunneling), so sprites are judged by captured velocity.
+    static let helmetSkySlope: CGFloat = 0.8
+    /// Helmet, debris strikers: the solver has already arrested a slow
+    /// faller's velocity by contact time, but slow movers never tunnel —
+    /// so debris is judged by geometry instead: a striker whose center
+    /// sits more than this above the gloom's center came from the sky.
+    /// Half the gloom radius keeps ground-level shoves (square center
+    /// rides ~5pt over a gloom's) on the lethal side.
+    static let helmetBrimY: CGFloat = 8
 
     // MARK: Scene (design canvas — every phone sees this world via aspectFit)
     static let sceneSize = CGSize(width: 840, height: 390)

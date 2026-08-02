@@ -101,6 +101,27 @@ enum GloomDamage {
     }
 }
 
+/// The helmet's sky-hit classifier (M36), kept in Rules so it's testable
+/// without SpriteKit. Two signal classes because the Engine can trust
+/// neither one universally: sprites move fast enough to tunnel (geometry
+/// at contact time is garbage) but their velocity is captured pre-physics;
+/// debris never tunnels (geometry is sound) but the solver has already
+/// arrested its velocity by contact time.
+enum HelmetRuling {
+    /// `spriteVelocity`: the striker's pre-physics captured velocity, when
+    /// the striker is a flung star. `strikerY`/`gloomY`: world-space
+    /// centers, used for everything else. No striker = no shrug.
+    static func fromAbove(spriteVelocity: CGVector?, strikerY: CGFloat?, gloomY: CGFloat) -> Bool {
+        if let v = spriteVelocity {
+            return v.dy < 0 && abs(v.dy) >= abs(v.dx) * MoonshotTuning.helmetSkySlope
+        }
+        if let strikerY {
+            return strikerY > gloomY + MoonshotTuning.helmetBrimY
+        }
+        return false
+    }
+}
+
 /// What a tapped ability does to damage, kept in Rules so it's testable
 /// without SpriteKit: Zip's dash punches through the brittle tiers, Mochi's
 /// slam hits everything harder.

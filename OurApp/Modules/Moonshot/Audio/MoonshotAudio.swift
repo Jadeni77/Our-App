@@ -90,6 +90,8 @@ enum SoundBank {
             case .cloudfoam: action(named: "boing")
             case .meteorstone, .frame: action(named: "impact-stone")
             }
+        case .helmetShrug:
+            action(named: "impact-crystal")   // the clink — bright, undamaging
         case .gloomPopped:
             action(named: "gloom-pop")
         case .levelWon:
