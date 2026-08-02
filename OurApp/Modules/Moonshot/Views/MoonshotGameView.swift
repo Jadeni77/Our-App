@@ -9,6 +9,10 @@ import SpriteKit
 struct MoonshotGameView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// The shell's close capability (M32): "Exit game" leaves the module
+    /// entirely; "Home" only pops this level.
+    @Environment(\.moduleClose) private var moduleClose
+    @Environment(\.dismiss) private var dismiss
 
     @State private var currentIndex: Int
     @State private var scene: GameScene?
@@ -41,6 +45,9 @@ struct MoonshotGameView: View {
     /// the cards clear.
     @State private var pendingBanners: [CoachMoment] = []
     @State private var showAbilities = false
+    /// The pause menu (M32, owner ruling: one door out). Opening it
+    /// freezes the scene's simulation and wall-clock bookkeeping.
+    @State private var showPauseMenu = false
     @State private var starsRevealed = false
     /// Moondust minted by this run (wreckage + first-clear bonus), for
     /// the win overlay's dust tick (M31).
@@ -75,6 +82,7 @@ struct MoonshotGameView: View {
             coachOverlay
             flingPickerOverlay
             outcomeOverlay
+            pauseMenuOverlay
             if let character = pendingIntroCards.first {
                 CoachCardView(character: character, unlocked: true) {
                     MoonshotProgressStore(context: modelContext)
@@ -89,6 +97,13 @@ struct MoonshotGameView: View {
                 .transition(.opacity)
             }
         }
+        // In-level, the pause menu is the ONE door out (owner ruling): no
+        // shell X, no system back — Home and Exit game live in the menu.
+        // Conditional on a scene existing: a failed build (DEBUG
+        // out-of-range level) has no gear, and hiding the chrome there
+        // would leave no door at all (review finding).
+        .preference(key: ModuleChromeHiddenKey.self, value: scene != nil)
+        .navigationBarBackButtonHidden(scene != nil)
         .onAppear {
             if scene == nil { buildLevel(currentIndex) }
             MoonshotAudio.shared.startAmbience()
@@ -153,6 +168,7 @@ struct MoonshotGameView: View {
         starsRevealed = false
         dustEarned = 0
         showFlingPicker = false
+        showPauseMenu = false
         sceneGeneration += 1
         let store = MoonshotProgressStore(context: modelContext)
         let pool = store.starPool
@@ -210,6 +226,18 @@ struct MoonshotGameView: View {
         if arguments.contains("-moonshotFlingPicker") {
             pickerBalance = store.moondustBalance()
             showFlingPicker = true
+        }
+        // `-moonshotPauseMenu [delay]` opens the menu once the scene is
+        // mounted (default 1.5 s) — simctl can't tap the gear. A delay
+        // past the autofling launch pauses MID-FLIGHT, which is how the
+        // freeze itself gets verified with something moving.
+        if let flag = arguments.firstIndex(of: "-moonshotPauseMenu") {
+            let delay = arguments.indices.contains(flag + 1)
+                ? Double(arguments[flag + 1]) ?? 1.5 : 1.5
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak newScene] in
+                newScene?.pauseGameplay()
+                showPauseMenu = true
+            }
         }
         // One-shot per app run: the auto-fling exists to drive the FIRST
         // build of a verification run. Without the latch it re-fired on
@@ -399,34 +427,24 @@ struct MoonshotGameView: View {
                     .padding(.vertical, 8)
                     .glassCard(cornerRadius: 18)
 
+                    // Replay, abilities, home, and exit all live behind ONE
+                    // system button now (owner amendment 2026-08-01): the
+                    // gear pauses the world and opens the menu.
                     Button {
                         Haptics.tap()
-                        buildLevel(currentIndex)
+                        scene?.pauseGameplay()
+                        showPauseMenu = true
                     } label: {
-                        Image(systemName: "arrow.counterclockwise")
+                        Image(systemName: "gearshape.fill")
                             .font(.system(size: 14, weight: .bold))
                             .foregroundStyle(.white)
                             .frame(width: 36, height: 36)
                     }
                     .glassCard(cornerRadius: 18)
-                    .accessibilityLabel(Text("Replay"))
-
-                    // The reference, reachable where the question arises
-                    // (owner amendment #3). A SHEET, deliberately: a push
-                    // unmounts the SKView and the flight/settle timers are
-                    // wall-clock — browsing demos mid-flight would fast-
-                    // forward the shot into a timeout fail (review C1).
-                    Button {
-                        Haptics.tap()
-                        showAbilities = true
-                    } label: {
-                        Image(systemName: "questionmark.circle")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundStyle(.white)
-                            .frame(width: 36, height: 36)
-                    }
-                    .glassCard(cornerRadius: 18)
-                    .accessibilityLabel(Text("Abilities"))
+                    .accessibilityLabel(Text("Menu"))
+                    // A SHEET, deliberately (review C1): a push unmounts
+                    // the SKView. The game stays paused beneath it and the
+                    // menu waits behind for the "‹".
                     .sheet(isPresented: $showAbilities) {
                         NavigationStack {
                             AbilityDashboardView(initial: session.currentCharacter ?? .mochi)
@@ -447,7 +465,6 @@ struct MoonshotGameView: View {
                                 }
                         }
                     }
-
                 }
                 Spacer()
             }
@@ -468,6 +485,71 @@ struct MoonshotGameView: View {
             }
         }
         .accessibilityHidden(true)
+    }
+
+    // MARK: Pause menu (M32)
+
+    /// One door out (owner ruling): every way to leave or restart a level
+    /// lives here, behind the gear — the world stays frozen underneath.
+    @ViewBuilder
+    private var pauseMenuOverlay: some View {
+        if showPauseMenu {
+            ZStack {
+                Color.black.opacity(0.45)
+                    .ignoresSafeArea()
+                    .onTapGesture { resumeFromMenu() }
+                VStack(spacing: 12) {
+                    Text("Paused")
+                        .font(Theme.display(20))
+                        .foregroundStyle(.white)
+                    Button { resumeFromMenu() } label: {
+                        Text("Resume").frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(MoonshotOverlayButton(prominent: true))
+                    Button {
+                        Haptics.tap()
+                        showPauseMenu = false
+                        buildLevel(currentIndex)   // a fresh scene needs no resume
+                    } label: {
+                        Text("Replay level").frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(MoonshotOverlayButton(prominent: false))
+                    Button {
+                        Haptics.tap()
+                        showAbilities = true       // menu waits behind the sheet
+                    } label: {
+                        Text("Abilities").frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(MoonshotOverlayButton(prominent: false))
+                    Button {
+                        Haptics.tap()
+                        dismiss()                   // pop to the constellation/hub
+                    } label: {
+                        Text("Back to home").frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(MoonshotOverlayButton(prominent: false))
+                    Button {
+                        Haptics.tap()
+                        moduleClose?()              // leave Moonshot entirely
+                    } label: {
+                        Text("Exit game").frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(MoonshotOverlayButton(prominent: false))
+                }
+                .frame(maxWidth: 300)
+                .padding(24)
+                .glassCard(cornerRadius: 26)
+                .accessibilityAddTraits(.isModal)
+                .accessibilityAction(.escape) { resumeFromMenu() }
+            }
+            .transition(reduceMotion ? .opacity : .scale.combined(with: .opacity))
+        }
+    }
+
+    private func resumeFromMenu() {
+        Haptics.tap()
+        scene?.resumeGameplay()
+        showPauseMenu = false
     }
 
     // MARK: Fling picker (M31)
