@@ -87,9 +87,7 @@ struct MoonshotHomeView: View {
                         .accessibilityValue(Text("\(moondustBalance)"))
                         NextUnlockStrip(pool: pool)
                         Spacer()
-                        Text("Co-op & 1v1 — on the roadmap")
-                            .font(.caption)
-                            .foregroundStyle(.white.opacity(0.5))
+                        modesColumn
                     }
                     .frame(maxWidth: 250)
 
@@ -202,6 +200,48 @@ struct MoonshotHomeView: View {
             }
             .buttonStyle(.plain)
             .accessibilityElement(children: .combine)
+        }
+    }
+
+    /// The three modes, back on the front door (owner request: "the page
+    /// with three modes" must stay reachable). Campaign opens the
+    /// constellation; the other two wait visibly on the roadmap.
+    private var modesColumn: some View {
+        VStack(spacing: 8) {
+            NavigationLink {
+                LevelSelectView()
+            } label: {
+                HStack(spacing: 8) {
+                    Text("🌌").font(.system(size: 15))
+                    Text("Campaign")
+                        .font(Theme.display(14))
+                        .foregroundStyle(.white)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.7))
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
+            }
+            .buttonStyle(.plain)
+            .glassCard(cornerRadius: 14)
+            ForEach([("🤝", Text("Co-op")), ("⚔️", Text("1v1"))], id: \.0) { icon, name in
+                HStack(spacing: 8) {
+                    Text(icon).font(.system(size: 15)).grayscale(1)
+                    name
+                        .font(Theme.display(14))
+                        .foregroundStyle(.white.opacity(0.55))
+                    Spacer()
+                    Text("On the roadmap")
+                        .font(.caption2)
+                        .foregroundStyle(.white.opacity(0.45))
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
+                .glassCard(cornerRadius: 14)
+                .accessibilityElement(children: .combine)
+            }
         }
     }
 

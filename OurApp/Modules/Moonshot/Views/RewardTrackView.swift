@@ -82,6 +82,10 @@ struct RewardTrackView: View {
                 grantTitle(grant)
                     .font(Theme.display(18))
                     .foregroundStyle(.white)
+                grant.purposeText
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.75))
+                    .fixedSize(horizontal: false, vertical: true)
                 if !reached {
                     Text("Locked")
                         .font(.caption)

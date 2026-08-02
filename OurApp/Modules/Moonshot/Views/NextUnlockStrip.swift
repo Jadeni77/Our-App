@@ -17,6 +17,17 @@ extension RewardGrant {
         case .skin(.obsidian): Text("Obsidian slingshot")
         }
     }
+
+    /// The one line that says what a grant DOES (owner: "what do these
+    /// rewards even do?") — every track row wears it under the name.
+    var purposeText: Text {
+        switch self {
+        case .trail: Text("A sparkle your star wears in flight")
+        case .character(let character): character.powerLineText
+        case .theme: Text("Re-tints the campaign map")
+        case .skin: Text("Dresses the slingshot")
+        }
+    }
 }
 
 /// "[gift] Nox · 3★ to go ▬▬▬░░" — the next unlock, always visible (M26).
