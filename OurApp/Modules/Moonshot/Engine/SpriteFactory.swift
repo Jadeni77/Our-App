@@ -675,9 +675,18 @@ enum SpriteFactory {
             emitter.particleLifetime = 0.5
             emitter.particleBirthRate = 60
         case .prism:
-            // The 164★ trail (M35) — the cavern-looks PR wears the real
-            // ice-white-to-violet refraction; this arm just compiles.
+            // The 164★ trail (M35): refraction — ice-white light splits
+            // through cavern crystal into violet, slowly spinning shards.
             emitter.particleColor = UIColor(red: 0.78, green: 0.9, blue: 1.0, alpha: 1)
+            emitter.particleColorSequence = SKKeyframeSequence(
+                keyframeValues: [UIColor.white,
+                                 UIColor(red: 0.78, green: 0.9, blue: 1.0, alpha: 1),
+                                 UIColor(Theme.violet)],
+                times: [0, 0.4, 1])
+            emitter.particleBirthRate = 65
+            emitter.particleLifetime = 0.8
+            emitter.particleScale = 0.6
+            emitter.particleRotationSpeed = 2
         }
         return emitter
     }
