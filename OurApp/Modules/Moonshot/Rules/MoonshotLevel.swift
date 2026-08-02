@@ -81,7 +81,7 @@ struct MoonshotLevel: Codable, Equatable, Identifiable {
 /// A gloom variant (M29): shield wears a crackable shell, hopper dodges,
 /// mist answers only to powers, great is the boss, helmet (M36) shrugs
 /// off anything that lands from above.
-enum GloomKind: String, Codable {
+enum GloomKind: String, Codable, CaseIterable {
     case shield, hopper, mist, great, helmet
 }
 
