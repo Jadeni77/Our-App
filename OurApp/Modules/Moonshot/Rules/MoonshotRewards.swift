@@ -6,15 +6,15 @@ import Foundation
 /// can't produce pool conflicts.
 
 enum TrailID: String, Codable, CaseIterable {
-    case stardust, petals, aurora, nebula
+    case stardust, petals, aurora, nebula, comet
 }
 
 enum ConstellationTheme: String, Codable, CaseIterable {
-    case dawn
+    case dawn, midnight
 }
 
 enum SlingshotSkin: String, Codable, CaseIterable {
-    case golden
+    case golden, obsidian
 }
 
 enum RewardGrant: Equatable {
@@ -35,7 +35,8 @@ struct LevelResultSnapshot: Equatable {
 
 enum MoonshotRewards {
     /// Rows only ever append, never reprice (M6). Slice (a) opened 8–32;
-    /// slice (a2) extends to 96 — the 36-level solo ceiling is 108★.
+    /// slice (a2) extended to 96; slice (a4) reaches into the deep — the
+    /// 48-level solo ceiling is 144★, so 140 is earnable but not cheap.
     static let track: [(threshold: Int, grant: RewardGrant)] = [
         (8, .trail(.stardust)),
         (16, .trail(.petals)),
@@ -45,6 +46,9 @@ enum MoonshotRewards {
         (60, .character(.misty)),
         (78, .theme(.dawn)),
         (96, .skin(.golden)),
+        (110, .trail(.comet)),
+        (125, .theme(.midnight)),
+        (140, .skin(.obsidian)),
     ]
 
     /// Best solo stars per (partner, level) + best co-op stars per level.
