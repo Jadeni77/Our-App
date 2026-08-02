@@ -240,6 +240,23 @@ final class GloomNode: SKShapeNode {
             curl.lineCap = .round
             addChild(curl)
         }
+        if kind == .helmet {
+            // The visor (M36): a bright cap over the crown — the art IS
+            // the tell that sky-hits clink off.
+            let visor = SKShapeNode()
+            let arc = CGMutablePath()
+            // clockwise:true — CGPath sweep flags read inverted in
+            // SpriteKit's y-up node space; false drew a chin strap
+            // (found in the L43 evidence screenshot).
+            arc.addArc(center: .zero, radius: radius + 1,
+                       startAngle: .pi * 0.15, endAngle: .pi * 0.85, clockwise: true)
+            visor.path = arc
+            visor.strokeColor = UIColor(white: 0.85, alpha: 0.95)
+            visor.lineWidth = 4
+            visor.lineCap = .round
+            visor.zPosition = 1
+            addChild(visor)
+        }
         if kind == .great {
             setScale(MoonshotTuning.greatGloomScale)
         }
@@ -315,6 +332,13 @@ final class StarSpriteNode: SKShapeNode {
     /// Flight bookkeeping for spent detection (scene time).
     var launchedAt: TimeInterval?
     var slowSince: TimeInterval?
+    /// Pogo mid-prime (M35): the NEXT solid contact reflects him at full
+    /// incoming speed — one perfect ricochet, then ordinary physics.
+    var bouncePrimed = false
+    /// The solver has already answered by the time didBegin fires, so the
+    /// ricochet reflects LAST frame's velocity — captured in trackFlight
+    /// each update while the prime is live.
+    var preContactVelocity = CGVector.zero
 
     init(character: CharacterID) {
         self.character = character

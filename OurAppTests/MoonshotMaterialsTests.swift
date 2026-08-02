@@ -99,6 +99,20 @@ struct MoonshotMaterialsTests {
         #expect(GloomDamage.hits(forImpulse: 1, kind: .helmet, abilityActive: false, fromAbove: false) == 0)
     }
 
+    @Test func helmetRulingClassifiesStrikersByTheRightSignal() {
+        // Sprites: judged by incoming slope (vectors from the L37/L43
+        // dev-sim evidence runs). Geometry lies at flight speed.
+        #expect(HelmetRuling.fromAbove(spriteVelocity: .init(dx: 477, dy: -444), strikerY: nil, gloomY: 56))   // full-pull arc
+        #expect(HelmetRuling.fromAbove(spriteVelocity: .init(dx: 0, dy: -1200), strikerY: nil, gloomY: 56))    // slam drop
+        #expect(HelmetRuling.fromAbove(spriteVelocity: .init(dx: 313, dy: 94), strikerY: nil, gloomY: 56) == false)    // ground slide
+        #expect(HelmetRuling.fromAbove(spriteVelocity: .init(dx: 550, dy: -200), strikerY: nil, gloomY: 56) == false)  // flat dash
+        // Debris: judged by geometry (the solver arrests its velocity by
+        // contact time, but slow movers never tunnel).
+        #expect(HelmetRuling.fromAbove(spriteVelocity: nil, strikerY: 83, gloomY: 56))    // plank onto the crown
+        #expect(!HelmetRuling.fromAbove(spriteVelocity: nil, strikerY: 61, gloomY: 56))   // ground-level shove
+        #expect(!HelmetRuling.fromAbove(spriteVelocity: nil, strikerY: nil, gloomY: 56))  // no striker at all
+    }
+
     @Test func fromAboveChangesNothingForOtherKinds() {
         // The default argument keeps every shipped call site meaning what
         // it meant — only the helmet consults the direction.

@@ -235,7 +235,7 @@ struct MoonshotGameView: View {
             case .pieceDestroyed:
                 destroyedPieces += 1   // CLEAN SWEEP's ledger (M23)
                 Haptics.thud()
-            case .impact, .levelWon, .levelFailed: break   // won/failed haptics ride onChange
+            case .impact, .helmetShrug, .levelWon, .levelFailed: break   // won/failed haptics ride onChange
             }
         }
         session = newSession

@@ -16,11 +16,14 @@ enum AbilityRunner {
         }
     }
 
-    /// Bounce (M35): Pogo turns rubbery — the NEXT solid contact reflects
-    /// him at full incoming speed, one perfect ricochet. This PR opens the
-    /// live-ability window and shows the flash; the reflect itself lands
-    /// with the Engine PR (`StarSpriteNode.bouncePrimed` + didBegin).
+    /// Bounce (M35): Pogo turns rubbery — the NEXT solid contact (piece or
+    /// ground, never gloom or mist) reflects him at full incoming speed,
+    /// one perfect ricochet. The reflect itself lives in GameScene.didBegin.
     private static func bounce(_ sprite: StarSpriteNode, in scene: GameScene) {
+        sprite.bouncePrimed = true
+        // Seed the pre-contact capture NOW — a contact in this same frame
+        // slice must not reflect a stale zero vector.
+        sprite.preContactVelocity = sprite.physicsBody?.velocity ?? .zero
         sprite.abilityActive = true
         flashRing(at: sprite.position, in: scene, color: CharacterID.pogo.bodyUIColor)
     }

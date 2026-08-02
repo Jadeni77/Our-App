@@ -7,6 +7,9 @@ enum GameEvent: Equatable {
     case impact(Material)
     case pieceDestroyed(Material)
     case gloomPopped
+    /// A helmet shrugged a real hit (M36) — zero damage BY RULE, so it
+    /// must not masquerade as .impact (that contract means "damaging").
+    case helmetShrug
     case levelWon(stars: Int)
     case levelFailed
 }
@@ -436,6 +439,17 @@ final class GameScene: SKScene {
                 AbilityRunner.flashRing(at: sprite.position, in: self,
                                         color: CharacterID.misty.bodyUIColor)
             }
+            // update() runs before the physics step, so this is genuinely
+            // the pre-contact velocity for any contact this frame produces.
+            // Pogo's reflect needs it — and so does the helmet's sky-hit
+            // ruling, which reads the striker's INCOMING direction (post-
+            // solve velocity is already deflected by contact time). Above
+            // the holdsFlight skip on purpose: a well-frozen Nox's live
+            // velocity is zero, and a stale descent vector would let a
+            // gloom shoved into him read as a sky-hit (review finding).
+            if let body = sprite.physicsBody {
+                sprite.preContactVelocity = body.velocity
+            }
             if sprite.holdsFlight { continue }   // Nox's well: motionless but not spent
             if sprite.launchedAt == nil { sprite.launchedAt = now }
             let speed = sprite.physicsBody.map {
@@ -587,17 +601,52 @@ extension GameScene: SKPhysicsContactDelegate {
             }
         }
 
+        // Pogo's ricochet (M35): a primed Bounce reflects off SOLID
+        // surfaces — pieces and the ground — at full incoming speed.
+        // Glooms and mist stay ordinary contacts (the ricochet is a travel
+        // tool, not a weapon buff). It must run before the landing rule
+        // below: the one perfect bounce is the exception to "contact ends
+        // the flight", so this contact alone skips the damping restore and
+        // the hopper bait — he's still flying, not landing.
+        var bounced = false
+        let solidContact = nodes.contains {
+            $0 is PieceNode || $0?.physicsBody?.categoryBitMask == PhysicsCategory.ground
+        }
+        for case let sprite as StarSpriteNode in nodes.compactMap({ $0 })
+        where sprite.bouncePrimed && sprite.launched && !sprite.phasing && solidContact {
+            guard let body = sprite.physicsBody else { continue }
+            // The solver already answered — reflect LAST frame's velocity
+            // (captured in trackFlight), not the post-collision one.
+            let v = sprite.preContactVelocity
+            let speed = (v.dx * v.dx + v.dy * v.dy).squareRoot()
+            guard speed > 1 else { continue }
+            let n = contact.contactNormal
+            let dot = v.dx * n.dx + v.dy * n.dy
+            var reflected = CGVector(dx: v.dx - 2 * dot * n.dx,
+                                     dy: v.dy - 2 * dot * n.dy)
+            let magnitude = max((reflected.dx * reflected.dx + reflected.dy * reflected.dy).squareRoot(), 0.001)
+            reflected = CGVector(dx: reflected.dx / magnitude * speed,
+                                 dy: reflected.dy / magnitude * speed)
+            body.velocity = reflected
+            body.linearDamping = 0        // fly free until the NEXT contact re-damps
+            sprite.bouncePrimed = false
+            bounced = true
+            run(SoundBank.abilityAction(for: .pogo))
+            AbilityRunner.flashRing(at: contact.contactPoint, in: self,
+                                    color: CharacterID.pogo.bodyUIColor)
+        }
+
         // Contact ends the trajectory-hint promise: restore damping so the
         // sprite settles instead of skating (device-pass fix). Runs on every
         // contact, idempotently — which also re-damps after an ability
         // zeroed it for a post-bounce boost. Above the impulse guard on
         // purpose: a zero-impulse skim must still end the free slide.
-        // A brush with vapor is the one exception (review finding): the
+        // A brush with vapor is one exception (review finding): the
         // intangible mist must not brake a flight in open air — or count
-        // as a landing that baits hoppers.
+        // as a landing that baits hoppers. Pogo's ricochet is the other.
         let brushesMist = nodes.contains { ($0 as? GloomNode)?.kind == .mist }
         for case let sprite as StarSpriteNode in nodes.compactMap({ $0 })
-        where sprite.launched && !brushesMist {
+        where sprite.launched && !brushesMist && !bounced {
             sprite.physicsBody?.linearDamping = MoonshotTuning.spriteLandedLinearDamping
             sprite.physicsBody?.angularDamping = MoonshotTuning.spriteLandedAngularDamping
             hopGloomsNear(sprite.position)
@@ -657,9 +706,35 @@ extension GameScene: SKPhysicsContactDelegate {
                 gloom.hopping = false
                 continue
             }
+            // The helmet's ruling (M36), split by striker speed class.
+            // Sprites: the INCOMING direction decides — geometry at report
+            // time is unusable because a full-pull arc tunnels half a body
+            // deep in one step (contactPoint AND striker position both
+            // collapsed to center height in the L37 evidence runs), so the
+            // gate reads the pre-physics capture: descents steeper than
+            // the sky slope shrug, rolls/dashes/shallow banks kill.
+            // Debris: the mirror problem — the solver has already arrested
+            // its velocity by didBegin (a square dropped dead-vertical can
+            // read dy≈0, review finding), but slow movers never tunnel, so
+            // for them GEOMETRY is the trustworthy signal: a striker whose
+            // center rides above the brim fell from the sky.
+            let striker = nodes.compactMap { $0 }.first { $0 !== gloom }
+            let fromAbove = gloom.kind == .helmet && HelmetRuling.fromAbove(
+                spriteVelocity: (striker as? StarSpriteNode)?.preContactVelocity,
+                strikerY: striker?.position.y,
+                gloomY: gloom.position.y)
+            if fromAbove, impulse >= MoonshotTuning.gloomBruiseImpulse,
+               nodes.contains(where: { $0 is StarSpriteNode }) {
+                // A shrugged REAL hit must be seen and heard, or the
+                // helmet reads as a bug instead of a rule.
+                emit(.helmetShrug)
+                AbilityRunner.flashRing(at: contact.contactPoint, in: self,
+                                        color: UIColor(white: 0.9, alpha: 0.8))
+            }
             let hits = GloomDamage.hits(forImpulse: impulse,
                                         kind: gloom.kind,
-                                        abilityActive: abilityContact)
+                                        abilityActive: abilityContact,
+                                        fromAbove: fromAbove)
             switch gloom.applyHits(hits) {
             case .none, .bruised:
                 continue                                     // face updates internally
