@@ -124,14 +124,19 @@ private struct WorldStyle {
             .init(x: 0.56, y: 0.50), .init(x: 0.52, y: 0.72), .init(x: 0.68, y: 0.58),
             .init(x: 0.66, y: 0.80), .init(x: 0.82, y: 0.62), .init(x: 0.90, y: 0.82),
         ]),
-        // A tightening spiral: the path itself descends into the deep.
-        // The inner coil keeps ~0.14 between nodes — cleared nodes grow
-        // mini-stars and feat pips, and a tighter core made them collide.
+        // A rectangular coil into the deep: sweep right, curl down the
+        // edge, sweep back, and hook inward to end at the center. Chosen
+        // by arithmetic, not taste (owner report: nodes piled up): the
+        // constellation's real landscape frame is ~620×200pt on the
+        // smallest phones, and NO ellipse spiral seats 12 nodes there
+        // with node-plus-star-row clearance (best 0.63 of required) —
+        // the staggered rows clear every pair at 1.22 including the
+        // next-level pulse and the star rows cleared nodes grow.
         WorldStyle(name: "The Deep Gloom", tint: Color.black.opacity(0.35), points: [
-            .init(x: 0.50, y: 0.28), .init(x: 0.64, y: 0.34), .init(x: 0.68, y: 0.50),
-            .init(x: 0.60, y: 0.64), .init(x: 0.44, y: 0.68), .init(x: 0.30, y: 0.60),
-            .init(x: 0.28, y: 0.44), .init(x: 0.38, y: 0.32), .init(x: 0.52, y: 0.40),
-            .init(x: 0.60, y: 0.50), .init(x: 0.50, y: 0.60), .init(x: 0.40, y: 0.50),
+            .init(x: 0.10, y: 0.20), .init(x: 0.33, y: 0.20), .init(x: 0.56, y: 0.20),
+            .init(x: 0.79, y: 0.20), .init(x: 0.90, y: 0.47), .init(x: 0.79, y: 0.74),
+            .init(x: 0.56, y: 0.74), .init(x: 0.33, y: 0.74), .init(x: 0.10, y: 0.74),
+            .init(x: 0.21, y: 0.47), .init(x: 0.44, y: 0.47), .init(x: 0.67, y: 0.47),
         ]),
     ]
 }
