@@ -808,19 +808,33 @@ struct MoonshotGameView: View {
                         .frame(width: 54, height: 54)
                         .overlay(Circle().stroke(.white.opacity(0.85), lineWidth: 2))
                 case .theme(let theme):
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(theme == .midnight
-                              ? LinearGradient(colors: [Color(red: 0.10, green: 0.08, blue: 0.22), Theme.indigo],
+                    let veil: LinearGradient = switch theme {
+                    case .dawn: LinearGradient(colors: [Theme.rose, Theme.peach],
                                                startPoint: .top, endPoint: .bottom)
-                              : LinearGradient(colors: [Theme.rose, Theme.peach],
-                                               startPoint: .top, endPoint: .bottom))
+                    case .midnight: LinearGradient(colors: [Color(red: 0.10, green: 0.08, blue: 0.22), Theme.indigo],
+                                                   startPoint: .top, endPoint: .bottom)
+                    }
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(veil)
                         .frame(width: 54, height: 40)
                 case .skin(let skin):
-                    SlingshotGlyph()
-                        .stroke(skin == .obsidian
-                                ? Color(red: 0.25, green: 0.22, blue: 0.38)
-                                : Color(red: 0.85, green: 0.68, blue: 0.28), lineWidth: 4)
+                    // Obsidian gets the same glow edge the in-scene node
+                    // needed (review finding: near-black stroke on the
+                    // dark W4 win card read as a faint halo, not a fork).
+                    switch skin {
+                    case .golden:
+                        SlingshotGlyph()
+                            .stroke(Color(red: 0.85, green: 0.68, blue: 0.28), lineWidth: 4)
+                            .frame(width: 34, height: 46)
+                    case .obsidian:
+                        ZStack {
+                            SlingshotGlyph()
+                                .stroke(Theme.glow, lineWidth: 6)
+                            SlingshotGlyph()
+                                .stroke(Color(red: 0.12, green: 0.10, blue: 0.18), lineWidth: 4)
+                        }
                         .frame(width: 34, height: 46)
+                    }
                 }
             }
             .frame(height: 56)
