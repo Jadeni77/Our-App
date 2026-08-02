@@ -2037,7 +2037,26 @@
       }
     },
     "Moondust" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moondust"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月尘"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月塵"
+          }
+        }
+      }
     },
     "Moonshot" : {
       "extractionState" : "manual",

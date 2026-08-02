@@ -200,6 +200,8 @@ struct LocalizationTests {
         #expect(localizedValue("Unlocks at %lld★", language: "zh-Hant") == "集滿 %lld★ 解鎖")
         #expect(localizedValue("+%lld moondust", language: "zh-Hans") == "月尘 +%lld")
         #expect(localizedValue("+%lld moondust", language: "zh-Hant") == "月塵 +%lld")
+        #expect(localizedValue("Moondust", language: "zh-Hans") == "月尘")
+        #expect(localizedValue("Moondust", language: "zh-Hant") == "月塵")
         #expect(localizedValue("Choose your star", language: "zh-Hans") == "选一颗星上场")
         #expect(localizedValue("Choose your star", language: "zh-Hant") == "選一顆星上場")
         #expect(localizedValue("Free", language: "zh-Hans") == "免费")
