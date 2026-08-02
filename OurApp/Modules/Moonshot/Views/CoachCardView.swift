@@ -1,8 +1,10 @@
 import SwiftUI
 
-/// One character's card (M25): the coach shows it once when a character is
-/// first met — in a queue or in the fling picker — and the home dashboard
-/// (owner amendment 2026-07-31) opens it any time as a reference.
+/// One character's card (M25, rebuilt 2026-08-02): the coach shows it once
+/// when a character is first met or unlocked, and it now DEMONSTRATES —
+/// the same live physics loop as the abilities dashboard, not a page of
+/// docs (owner amendment). The X is the only door out; the loop runs
+/// until the player closes it themselves.
 struct CoachCardView: View {
     let character: CharacterID
     let unlocked: Bool
@@ -15,21 +17,24 @@ struct CoachCardView: View {
             Color.black.opacity(0.45)
                 .ignoresSafeArea()
                 .onTapGesture {}
-            VStack(spacing: 14) {
-                ZStack {
+            VStack(spacing: 10) {
+                HStack(spacing: 10) {
                     Circle()
                         .fill(character.chipColor)
-                        .frame(width: 72, height: 72)
-                        .shadow(color: character.chipColor.opacity(0.7), radius: 14)
-                    Circle()
-                        .stroke(.white.opacity(0.85), lineWidth: 2)
-                        .frame(width: 72, height: 72)
+                        .frame(width: 26, height: 26)
+                        .overlay(Circle().stroke(.white.opacity(0.85), lineWidth: 1.5))
+                        .shadow(color: character.chipColor.opacity(0.7), radius: 8)
+                    Text(LocalizedStringKey(character.displayNameKey))
+                        .font(Theme.display(24))
+                        .foregroundStyle(.white)
                 }
-                Text(LocalizedStringKey(character.displayNameKey))
-                    .font(Theme.display(26))
-                    .foregroundStyle(.white)
+                AbilityDemoView(character: character)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .overlay(RoundedRectangle(cornerRadius: 14)
+                        .stroke(.white.opacity(0.3), lineWidth: 1))
+                    .frame(width: 360, height: 165)
                 powerLine
-                    .font(Theme.display(15))
+                    .font(Theme.display(14))
                     .foregroundStyle(.white.opacity(0.9))
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
@@ -46,39 +51,20 @@ struct CoachCardView: View {
                             .foregroundStyle(Theme.glow)
                             .multilineTextAlignment(.center)
                     }
-                    Button {
-                        Haptics.tap()
-                        onDismiss()
-                    } label: {
-                        Text("Let's go")
-                            .font(Theme.display(16))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 26)
-                            .padding(.vertical, 10)
-                            .background(Capsule().fill(Theme.indigo))
-                    }
-                } else {
-                    if let threshold = unlockThreshold {
-                        Text("Unlocks at \(threshold)★")
-                            .font(.footnote)
-                            .foregroundStyle(Theme.glow)
-                    }
-                    Button {
-                        Haptics.tap()
-                        onDismiss()
-                    } label: {
-                        Text("Close")
-                            .font(Theme.display(16))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 26)
-                            .padding(.vertical, 10)
-                            .background(Capsule().fill(Color.white.opacity(0.2)))
-                    }
+                } else if let threshold = unlockThreshold {
+                    Text("Unlocks at \(threshold)★")
+                        .font(.footnote)
+                        .foregroundStyle(Theme.glow)
                 }
             }
-            .padding(30)
+            .padding(.horizontal, 24)
+            .padding(.top, 14)
+            .padding(.bottom, 16)
             .glassCard(cornerRadius: 28)
-            .frame(maxWidth: 420)
+            .overlay(alignment: .topTrailing) {
+                CardCloseButton(onDismiss: onDismiss)
+            }
+            .frame(maxWidth: 440)
             .accessibilityElement(children: .combine)
             .accessibilityAddTraits(.isModal)
             // .combine may not forward the child button's action reliably —
@@ -93,6 +79,78 @@ struct CoachCardView: View {
     }
 
     private var powerLine: Text { character.powerLineText }
+}
+
+/// A gloom kind's card (owner amendment 2026-08-02): the first meeting
+/// blocks mid-level with the most natural attack FAILING on loop; the
+/// caption names the counter-move, the X is the only door out. Replaces
+/// the one-line fading banner those kinds used to get.
+struct GloomIntroCardView: View {
+    let kind: GloomKind
+    let onDismiss: () -> Void
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.45)
+                .ignoresSafeArea()
+                .onTapGesture {}
+            VStack(spacing: 10) {
+                GloomDemoView(kind: kind)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .overlay(RoundedRectangle(cornerRadius: 14)
+                        .stroke(.white.opacity(0.3), lineWidth: 1))
+                    .frame(width: 360, height: 165)
+                counterLine
+                    .font(Theme.display(15))
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.horizontal, 24)
+            .padding(.top, 18)
+            .padding(.bottom, 16)
+            .glassCard(cornerRadius: 28)
+            .overlay(alignment: .topTrailing) {
+                CardCloseButton(onDismiss: onDismiss)
+            }
+            .frame(maxWidth: 440)
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isModal)
+            .accessibilityAction { onDismiss() }
+            .accessibilityAction(.escape) { onDismiss() }
+        }
+    }
+
+    /// The lesson the demo can't say out loud — same copy the old banners
+    /// taught, one line per kind.
+    private var counterLine: Text {
+        switch kind {
+        case .shield: Text("Its shell breaks first — hit it twice")
+        case .hopper: Text("It jumps when you land close — bait it")
+        case .mist: Text("Only a power can touch the mist")
+        case .great: Text("The Great Gloom shrugs — chip away")
+        case .helmet: Text("The helmet shrugs off sky-hits — strike from the side")
+        }
+    }
+}
+
+/// The one door out of a teaching card (owner: "until the user manually
+/// presses X") — shared by both card kinds.
+private struct CardCloseButton: View {
+    let onDismiss: () -> Void
+
+    var body: some View {
+        Button {
+            Haptics.tap()
+            onDismiss()
+        } label: {
+            Image(systemName: "xmark.circle.fill")
+                .font(.system(size: 26))
+                .foregroundStyle(.white.opacity(0.85), .white.opacity(0.25))
+                .padding(10)
+        }
+        .accessibilityLabel(Text("Close"))
+    }
 }
 
 extension CharacterID {
@@ -110,6 +168,10 @@ extension CharacterID {
     }
 }
 
-#Preview {
+#Preview("Character") {
     CoachCardView(character: .nox, unlocked: true) {}
+}
+
+#Preview("Gloom") {
+    GloomIntroCardView(kind: .helmet) {}
 }

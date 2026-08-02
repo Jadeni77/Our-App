@@ -41,6 +41,9 @@ struct MoonshotGameView: View {
     @State private var showGoalLine = false
     @State private var showAbilityCue = false
     @State private var pendingIntroCards: [CharacterID] = []
+    /// Unmet gloom kinds queue as blocking demo cards (owner amendment
+    /// 2026-08-02) — after the character cards, before the banners.
+    @State private var pendingGloomIntros: [GloomKind] = []
     /// World-mechanic and gloom-kind banners, shown one at a time after
     /// the cards clear.
     @State private var pendingBanners: [CoachMoment] = []
@@ -97,6 +100,21 @@ struct MoonshotGameView: View {
                     }
                 }
                 .id(character)
+                .transition(.opacity)
+            }
+            // A first-met gloom kind blocks with its fail-demo card (owner
+            // amendment 2026-08-02) — the wrong move plays on loop until
+            // the X. Marked seen on dismissal, like the character cards:
+            // a burned moment must mean the lesson was actually on screen.
+            if pendingIntroCards.isEmpty, let kind = pendingGloomIntros.first {
+                GloomIntroCardView(kind: kind) {
+                    MoonshotProgressStore(context: modelContext)
+                        .markCoachSeen(.meetGloom(kind))
+                    withAnimation {
+                        if !pendingGloomIntros.isEmpty { pendingGloomIntros.removeFirst() }
+                    }
+                }
+                .id(kind)
                 .transition(.opacity)
             }
             // The unlock moment teaches ON THE SPOT (owner request: "show
@@ -311,12 +329,25 @@ struct MoonshotGameView: View {
         pendingIntroCards = coachMoments.compactMap {
             if case .meetCharacter(let character) = $0 { character } else { nil }
         }
+        pendingGloomIntros = coachMoments.compactMap {
+            if case .meetGloom(let kind) = $0 { kind } else { nil }
+        }
         pendingBanners = coachMoments.filter {
             switch $0 {
-            case .worldMechanic, .meetGloom: true
+            case .worldMechanic: true
             default: false
             }
         }
+        #if DEBUG
+        // A scripted verification fling must not play out behind a
+        // blocking card (review finding): auto-fling runs are about the
+        // geometry, never the coaching — suppress it wholesale.
+        if ProcessInfo.processInfo.arguments.contains("-moonshotAutoFling") {
+            pendingIntroCards = []
+            pendingGloomIntros = []
+            pendingBanners = []
+        }
+        #endif
         // Goal/banner mark seen and start their fade timers in .onAppear —
         // intro cards cover this layer, and a caption that fades behind a
         // card was never taught (found in PR-2 verification).
@@ -341,19 +372,10 @@ struct MoonshotGameView: View {
             Text("The caverns echo — bank your shots off the walls")
         case .worldMechanic:
             Text("Wind bends every arc — trust your read, not the dots")
-        case .meetGloom(.shield):
-            Text("Its shell breaks first — hit it twice")
-        case .meetGloom(.hopper):
-            Text("It jumps when you land close — bait it")
-        case .meetGloom(.mist):
-            Text("Only a power can touch the mist")
-        case .meetGloom(.great):
-            Text("The Great Gloom shrugs — chip away")
-        case .meetGloom(.helmet):
-            // Landed with the rules PR (review finding: the default arm
-            // would burn the one-time moment on a blank banner).
-            Text("The helmet shrugs off sky-hits — strike from the side")
         default:
+            // meetGloom left the banner system (owner amendment
+            // 2026-08-02): kinds introduce themselves as blocking
+            // fail-demo cards — see GloomIntroCardView.
             Text("")
         }
     }
@@ -379,7 +401,8 @@ struct MoonshotGameView: View {
     @ViewBuilder
     private var coachOverlay: some View {
         VStack(spacing: 10) {
-            if pendingIntroCards.isEmpty, let banner = pendingBanners.first {
+            if pendingIntroCards.isEmpty, pendingGloomIntros.isEmpty,
+               let banner = pendingBanners.first {
                 bannerText(banner)
                     .font(Theme.display(15))
                     .foregroundStyle(.white)
@@ -399,7 +422,7 @@ struct MoonshotGameView: View {
                         }
                     }
             }
-            if pendingIntroCards.isEmpty, showGoalLine {
+            if pendingIntroCards.isEmpty, pendingGloomIntros.isEmpty, showGoalLine {
                 Text("Pop every gloom to relight the sky")
                     .font(Theme.display(15))
                     .foregroundStyle(.white)

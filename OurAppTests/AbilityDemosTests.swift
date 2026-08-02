@@ -10,18 +10,36 @@ struct AbilityDemosTests {
             #expect(demo.level.queue.count >= 2)          // the loop refills
             #expect(!demo.level.glooms.isEmpty)
             #expect(demo.level.pieces.allSatisfy { $0.x > 310 })
-            #expect(demo.abilityDelay > 0)
+            #expect((demo.abilityDelay ?? 0) > 0)         // a power demo always taps
             #expect(demo.pull.dx < 0)                     // pulls back, flies right
         }
     }
 
+    @Test func everyGloomDemoStagesTheFailingAttack() {
+        // The introduction card's contract (owner amendment 2026-08-02):
+        // mochi throws the natural attack, no power fires, and the staged
+        // gloom IS the kind being introduced.
+        for kind in GloomKind.allCases {
+            let demo = GloomDemos.demo(for: kind)
+            #expect(demo.level.glooms.contains { $0.kind == kind })
+            #expect(demo.abilityDelay == nil)             // a fail demo never fires a power
+            #expect(demo.pull.dx < 0)
+            #expect(demo.level.queue.first == .mochi)     // the classic star throws the miss
+            for gloom in demo.level.glooms {
+                #expect(gloom.y == (kind == .great ? 48 : 16))
+            }
+        }
+    }
+
     @Test func demoStagesRoundTripTheLevelCodec() throws {
-        for character in CharacterID.allCases {
-            let demo = AbilityDemos.demo(for: character)
+        let demos = CharacterID.allCases.map { AbilityDemos.demo(for: $0) }
+            + GloomKind.allCases.map { GloomDemos.demo(for: $0) }
+        for demo in demos {
             let data = try MoonshotLevel.encoder().encode(demo.level)
             let decoded = try MoonshotLevel.decoder().decode(MoonshotLevel.self, from: data)
             #expect(decoded.pieces == demo.level.pieces)
             #expect(decoded.queue == demo.level.queue)
+            #expect(decoded.glooms == demo.level.glooms)
         }
     }
 
