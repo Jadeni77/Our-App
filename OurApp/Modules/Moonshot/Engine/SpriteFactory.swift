@@ -711,7 +711,8 @@ enum SpriteFactory {
     /// The dreamy sky, rendered once per scene size and world (M28) from
     /// the core gradient — W1 keeps the moonlit violet, W2 drifts pinker
     /// with soft cloud blobs, W3 darkens to storm indigo with faint
-    /// diagonal streaks, W4 goes near-black with watching eyes. Cached —
+    /// diagonal streaks, W4 goes near-black with watching eyes, W5 turns
+    /// to cave-dark with stalactites and crystal glints. Cached —
     /// retry and next-level rebuild the scene, not the texture.
     /// Code-drawn only (principle 9).
     static func skyTexture(size: CGSize, world: Int = 1) -> SKTexture {
@@ -723,6 +724,8 @@ enum SpriteFactory {
             case 3: [Color(red: 0.13, green: 0.11, blue: 0.28), Theme.indigo, Theme.violet, Theme.rose]
             case 4: [Color(red: 0.07, green: 0.06, blue: 0.16), Color(red: 0.13, green: 0.11, blue: 0.28),
                      Theme.indigo, Theme.violet]
+            case 5: [Color(red: 0.05, green: 0.04, blue: 0.10), Color(red: 0.10, green: 0.08, blue: 0.22),
+                     Theme.indigo, Color(red: 0.30, green: 0.22, blue: 0.45)]
             default: [Theme.indigo, Theme.violet, Theme.rose, Theme.peach]
             }
             let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
@@ -776,6 +779,44 @@ enum SpriteFactory {
                                           width: 6, height: 6)
                         context.cgContext.fillEllipse(in: rect)
                     }
+                }
+            }
+            if world == 5 {
+                // The cavern: stalactite silhouettes hang from the top edge,
+                // and eight crystal glints catch light that isn't there.
+                UIColor.black.withAlphaComponent(0.25).setFill()
+                let teeth: [(x: CGFloat, w: CGFloat, drop: CGFloat)] = [
+                    (0.08, 0.05, 0.16), (0.24, 0.08, 0.26), (0.45, 0.06, 0.19),
+                    (0.66, 0.09, 0.30), (0.88, 0.05, 0.14),
+                ]
+                for tooth in teeth {
+                    let path = CGMutablePath()
+                    path.move(to: CGPoint(x: size.width * (tooth.x - tooth.w / 2), y: 0))
+                    path.addLine(to: CGPoint(x: size.width * (tooth.x + tooth.w / 2), y: 0))
+                    path.addLine(to: CGPoint(x: size.width * tooth.x, y: size.height * tooth.drop))
+                    path.closeSubpath()
+                    context.cgContext.addPath(path)
+                    context.cgContext.fillPath()
+                }
+                UIColor.white.withAlphaComponent(0.10).setFill()
+                let glints: [(x: CGFloat, y: CGFloat)] = [
+                    (0.13, 0.42), (0.30, 0.18), (0.41, 0.56), (0.52, 0.30),
+                    (0.63, 0.62), (0.74, 0.22), (0.85, 0.48), (0.94, 0.68),
+                ]
+                for glint in glints {
+                    let center = CGPoint(x: size.width * glint.x, y: size.height * glint.y)
+                    let sparkle = CGMutablePath()
+                    sparkle.move(to: CGPoint(x: center.x, y: center.y - 5))
+                    sparkle.addLine(to: CGPoint(x: center.x + 1.4, y: center.y - 1.4))
+                    sparkle.addLine(to: CGPoint(x: center.x + 5, y: center.y))
+                    sparkle.addLine(to: CGPoint(x: center.x + 1.4, y: center.y + 1.4))
+                    sparkle.addLine(to: CGPoint(x: center.x, y: center.y + 5))
+                    sparkle.addLine(to: CGPoint(x: center.x - 1.4, y: center.y + 1.4))
+                    sparkle.addLine(to: CGPoint(x: center.x - 5, y: center.y))
+                    sparkle.addLine(to: CGPoint(x: center.x - 1.4, y: center.y - 1.4))
+                    sparkle.closeSubpath()
+                    context.cgContext.addPath(sparkle)
+                    context.cgContext.fillPath()
                 }
             }
         }

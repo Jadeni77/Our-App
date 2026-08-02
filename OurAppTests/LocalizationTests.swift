@@ -148,6 +148,12 @@ struct LocalizationTests {
                                language: "zh-Hans") == "头盔挡得住天上来的——从侧面打")
         #expect(localizedValue("The helmet shrugs off sky-hits — strike from the side",
                                language: "zh-Hant") == "頭盔擋得住天上來的——從側面打")
+        #expect(localizedValue("The Crystal Caverns", language: "zh-Hans") == "水晶洞窟")
+        #expect(localizedValue("The Crystal Caverns", language: "zh-Hant") == "水晶洞窟")
+        #expect(localizedValue("The caverns echo — bank your shots off the walls",
+                               language: "zh-Hans") == "洞窟有回声——借墙壁反弹你的星星")
+        #expect(localizedValue("The caverns echo — bank your shots off the walls",
+                               language: "zh-Hant") == "洞窟有回聲——借牆壁反彈你的星星")
         #expect(localizedValue("Nebula", language: "zh-Hant") == "星雲")
         #expect(localizedValue("Dawn veil", language: "zh-Hans") == "拂晓纱")
         #expect(localizedValue("Golden slingshot", language: "zh-Hant") == "金彈弓")

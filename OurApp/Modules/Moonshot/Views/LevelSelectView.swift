@@ -147,6 +147,15 @@ private struct WorldStyle {
             .init(x: 0.56, y: 0.74), .init(x: 0.33, y: 0.74), .init(x: 0.10, y: 0.74),
             .init(x: 0.21, y: 0.47), .init(x: 0.44, y: 0.47), .init(x: 0.67, y: 0.47),
         ]),
+        // The geode: W4's arithmetic row spacing (nothing else seats 12
+        // nodes in the ~620×200 frame) with facet jitter on y — every
+        // pair still clears 56px dx or 84px dy including star rows.
+        WorldStyle(name: "The Crystal Caverns", tint: Color(red: 0.05, green: 0.04, blue: 0.10).opacity(0.4), points: [
+            .init(x: 0.10, y: 0.16), .init(x: 0.32, y: 0.24), .init(x: 0.54, y: 0.16),
+            .init(x: 0.76, y: 0.24), .init(x: 0.87, y: 0.50), .init(x: 0.65, y: 0.44),
+            .init(x: 0.43, y: 0.52), .init(x: 0.21, y: 0.46), .init(x: 0.10, y: 0.78),
+            .init(x: 0.32, y: 0.72), .init(x: 0.54, y: 0.80), .init(x: 0.76, y: 0.74),
+        ]),
     ]
 }
 
