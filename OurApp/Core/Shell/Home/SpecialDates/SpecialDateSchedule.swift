@@ -78,4 +78,26 @@ enum SpecialDateSchedule {
         return (comingUp.sorted { $0.key < $1.key }.map(\.date),
                 passed.sorted { $0.key < $1.key }.map(\.date))
     }
+
+    /// What Home's tile should show: nil unless the nearest date is today or
+    /// at most `nearDays` away. A number that's almost always far off becomes
+    /// wallpaper — the tile stays clean until something is actually close.
+    @MainActor
+    static func badge(for dates: [SpecialDate],
+                      nearDays: Int = 7,
+                      from now: Date = .now,
+                      calendar: Calendar = .current) -> Status? {
+        guard let next = ordered(dates, from: now, calendar: calendar).comingUp.first else {
+            return nil
+        }
+        switch status(of: next.date, repeatsYearly: next.repeatsYearly,
+                      from: now, calendar: calendar) {
+        case .today:
+            return .today
+        case .upcoming(let days) where days <= nearDays:
+            return .upcoming(days: days)
+        case .upcoming, .passed:
+            return nil
+        }
+    }
 }

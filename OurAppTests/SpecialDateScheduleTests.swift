@@ -137,4 +137,40 @@ struct SpecialDateScheduleTests {
         #expect(split.comingUp.map(\.title) == ["Live"])
         #expect(split.passed.isEmpty)
     }
+
+    // MARK: Home tile badge
+
+    @MainActor
+    @Test func badgeShowsWhenTheNextDateIsWithinAWeek() {
+        let soon = SpecialDate(title: "Soon", date: day(2026, 8, 14))
+        #expect(SpecialDateSchedule.badge(for: [soon],
+                                          from: day(2026, 8, 7),
+                                          calendar: calendar) == .upcoming(days: 7))
+    }
+
+    @MainActor
+    @Test func badgeShowsTodayOnTheDay() {
+        let now = SpecialDate(title: "Now", date: day(2026, 8, 7))
+        #expect(SpecialDateSchedule.badge(for: [now],
+                                          from: day(2026, 8, 7),
+                                          calendar: calendar) == .today)
+    }
+
+    @MainActor
+    @Test func badgeIsSilentBeyondAWeek() {
+        let far = SpecialDate(title: "Far", date: day(2026, 8, 15))
+        #expect(SpecialDateSchedule.badge(for: [far],
+                                          from: day(2026, 8, 7),
+                                          calendar: calendar) == nil)
+    }
+
+    @MainActor
+    @Test func badgeIgnoresPassedAndTombstonedDates() {
+        let passed = SpecialDate(title: "Passed", date: day(2026, 8, 1))
+        let deleted = SpecialDate(title: "Deleted", date: day(2026, 8, 8))
+        deleted.deletedAt = .now
+        #expect(SpecialDateSchedule.badge(for: [passed, deleted],
+                                          from: day(2026, 8, 7),
+                                          calendar: calendar) == nil)
+    }
 }
