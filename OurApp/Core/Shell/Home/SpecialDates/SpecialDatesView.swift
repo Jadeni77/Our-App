@@ -8,8 +8,7 @@ import SwiftUI
 struct SpecialDatesView: View {
     @Environment(\.modelContext) private var context
     /// Tombstoned rows never reach the UI.
-    @Query(filter: #Predicate<SpecialDate> { $0.deletedAt == nil })
-    private var dates: [SpecialDate]
+    @Query(filter: SpecialDate.visible) private var dates: [SpecialDate]
 
     @State private var editing: SpecialDate?
     @State private var addingNew = false
@@ -51,31 +50,32 @@ struct SpecialDatesView: View {
         }
     }
 
-    private func list(comingUp: [SpecialDate], passed: [SpecialDate]) -> some View {
+    private func list(comingUp: [SpecialDateSchedule.Entry],
+                      passed: [SpecialDateSchedule.Entry]) -> some View {
         List {
             // A section with nothing in it would render a bare header.
             if !comingUp.isEmpty {
-                section(header: "Coming up", dates: comingUp)
+                section(header: "Coming up", entries: comingUp)
             }
             if !passed.isEmpty {
-                section(header: "Passed", dates: passed)
+                section(header: "Passed", entries: passed)
             }
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
     }
 
-    private func section(header: LocalizedStringKey, dates: [SpecialDate]) -> some View {
+    private func section(header: LocalizedStringKey,
+                         entries: [SpecialDateSchedule.Entry]) -> some View {
         Section {
-            ForEach(dates) { date in
+            // The status came back from `ordered` — rows never recompute it.
+            ForEach(entries, id: \.date.id) { entry in
+                let date = entry.date
                 Button {
                     Haptics.tap()
                     editing = date
                 } label: {
-                    SpecialDateRow(
-                        date: date,
-                        status: SpecialDateSchedule.status(of: date.date,
-                                                           repeatsYearly: date.repeatsYearly))
+                    SpecialDateRow(date: date, status: entry.status)
                 }
                 .buttonStyle(.plain)
                 .listRowBackground(Color.clear)

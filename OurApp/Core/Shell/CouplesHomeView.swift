@@ -13,6 +13,7 @@ struct CouplesHomeView: View {
     @State private var showSettings = false
     @State private var pulse = false
     @State private var path = NavigationPath()
+    @State private var didHandleLaunchArguments = false
 
     /// The hero is hidden whenever something covers it — a pushed sub-page or
     /// the settings sheet. Pushing does NOT unmount Home, so without this the
@@ -101,9 +102,18 @@ struct CouplesHomeView: View {
         }
         .onAppear {
             pulse = true
-            tilt.start()
+            // Returning from the Apps tab while a sub-page is pushed would
+            // otherwise restart the accelerometer behind it — onChange can't
+            // catch that, because heroCovered never changed.
+            if !heroCovered { tilt.start() }
+
+            // One-shot, like AppShell's -moonshot latch: without it, every
+            // return to this tab would push the page again and Home would be
+            // unreachable for the rest of the run.
+            guard !didHandleLaunchArguments else { return }
+            didHandleLaunchArguments = true
             if launchArguments.contains("-openSettings") { showSettings = true }
-            if launchArguments.contains("-specialDates"), path.isEmpty {
+            if launchArguments.contains("-specialDates") {
                 path.append(HubRoute(entryID: "special-dates"))
             }
         }

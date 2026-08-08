@@ -19,8 +19,12 @@ enum SpecialDatesDebugSeed {
 
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: .now)
+        // Through `anchor`, like the editor — a raw local instant would be read
+        // back as the wrong civil day (see SpecialDateSchedule's anchor note).
         func offset(_ days: Int) -> Date {
-            calendar.date(byAdding: .day, value: days, to: today) ?? today
+            SpecialDateSchedule.anchor(
+                for: calendar.date(byAdding: .day, value: days, to: today) ?? today,
+                calendar: calendar)
         }
 
         context.insert(SpecialDate(title: "Her birthday", emoji: "🎂",

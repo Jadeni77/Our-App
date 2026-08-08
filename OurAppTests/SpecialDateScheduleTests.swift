@@ -120,8 +120,77 @@ struct SpecialDateScheduleTests {
             [later, longPassed, today, recentlyPassed, soon],
             from: day(2026, 8, 7), calendar: calendar)
 
-        #expect(split.comingUp.map(\.title) == ["Today", "Soon", "Later"])
-        #expect(split.passed.map(\.title) == ["Recent", "Old"])
+        #expect(split.comingUp.map(\.date.title) == ["Today", "Soon", "Later"])
+        #expect(split.passed.map(\.date.title) == ["Recent", "Old"])
+        // The status travels with the date so rows never recompute it.
+        #expect(split.comingUp.map(\.status) == [.today, .upcoming(days: 7), .upcoming(days: 88)])
+    }
+
+    @MainActor
+    @Test func datesOnTheSameDayBreakTheTieOnTitleRatherThanArbitrarily() {
+        let christmas = SpecialDate(title: "Christmas", date: day(2026, 12, 25))
+        let birthday = SpecialDate(title: "Anna's birthday", date: day(2026, 12, 25))
+
+        let forwards = SpecialDateSchedule.ordered([christmas, birthday],
+                                                   from: day(2026, 8, 7), calendar: calendar)
+        let backwards = SpecialDateSchedule.ordered([birthday, christmas],
+                                                    from: day(2026, 8, 7), calendar: calendar)
+
+        #expect(forwards.comingUp.map(\.date.title) == ["Anna's birthday", "Christmas"])
+        #expect(backwards.comingUp.map(\.date.title) == forwards.comingUp.map(\.date.title))
+    }
+
+    // MARK: Anchor normalization
+
+    private func calendar(_ identifier: String) -> Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: identifier)!
+        return calendar
+    }
+
+    /// The whole point of the anchor convention: a date picked in one timezone
+    /// reads as the same civil day in every other one, including the extremes
+    /// (UTC−11 through UTC+14, a 25-hour spread that no single instant spans).
+    @Test func aPickedDayReadsAsTheSameDayInEveryTimezone() {
+        let readers = ["Pacific/Kiritimati",   // UTC+14, the earliest
+                       "Asia/Shanghai",
+                       "Europe/London",
+                       "America/New_York",
+                       "Pacific/Midway"]       // UTC−11, the latest
+
+        // Pick from each timezone, at the two times of day that used to break it.
+        for picker in readers {
+            for hour in [0, 7, 23] {
+                let pickerCalendar = calendar(picker)
+                let picked = pickerCalendar.date(
+                    from: DateComponents(year: 2026, month: 8, day: 14, hour: hour))!
+                let stored = SpecialDateSchedule.anchor(for: picked, calendar: pickerCalendar)
+
+                for reader in readers {
+                    let readerCalendar = calendar(reader)
+                    let day = SpecialDateSchedule.localDay(of: stored, calendar: readerCalendar)
+                    let parts = readerCalendar.dateComponents([.year, .month, .day], from: day)
+                    #expect(parts.year == 2026 && parts.month == 8 && parts.day == 14,
+                            "picked \(hour):00 in \(picker), read in \(reader) as \(parts)")
+                }
+            }
+        }
+    }
+
+    @Test func countdownsAgreeAcrossTimezonesForTheSameStoredDate() {
+        let shanghai = calendar("Asia/Shanghai")
+        let picked = shanghai.date(from: DateComponents(year: 2026, month: 8, day: 14, hour: 7))!
+        let stored = SpecialDateSchedule.anchor(for: picked, calendar: shanghai)
+
+        // "Today" is the same civil day for both readers, so the count must match.
+        for reader in ["Asia/Shanghai", "America/New_York", "Pacific/Kiritimati"] {
+            let readerCalendar = calendar(reader)
+            let today = readerCalendar.date(
+                from: DateComponents(year: 2026, month: 8, day: 7, hour: 9))!
+            #expect(SpecialDateSchedule.status(of: stored, repeatsYearly: false,
+                                               from: today, calendar: readerCalendar)
+                    == .upcoming(days: 7), "disagreed in \(reader)")
+        }
     }
 
     @MainActor
@@ -134,7 +203,7 @@ struct SpecialDateScheduleTests {
                                                 from: day(2026, 8, 7),
                                                 calendar: calendar)
 
-        #expect(split.comingUp.map(\.title) == ["Live"])
+        #expect(split.comingUp.map(\.date.title) == ["Live"])
         #expect(split.passed.isEmpty)
     }
 

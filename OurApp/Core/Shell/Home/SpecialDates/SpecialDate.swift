@@ -35,3 +35,12 @@ final class SpecialDate {
         self.updatedAt = .now
     }
 }
+
+extension SpecialDate {
+    /// The one definition of "not deleted". Every query that shows dates to a
+    /// human filters on this — spelling it out per call site is how the
+    /// tombstone rule eventually gets missed in one of them.
+    static var visible: Predicate<SpecialDate> {
+        #Predicate<SpecialDate> { $0.deletedAt == nil }
+    }
+}

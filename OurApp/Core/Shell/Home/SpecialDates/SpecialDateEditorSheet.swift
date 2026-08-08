@@ -106,16 +106,20 @@ struct SpecialDateEditorSheet: View {
 
     private func save() {
         guard !trimmedTitle.isEmpty else { return }
+        // The picker hands back the day carrying whatever time-of-day it was
+        // seeded with; store it at local noon so the day can't drift when the
+        // phone changes timezone (see SpecialDateSchedule.anchor).
+        let anchor = SpecialDateSchedule.anchor(for: date)
         if let existing {
             existing.title = trimmedTitle
             existing.emoji = emoji
-            existing.date = date
+            existing.date = anchor
             existing.repeatsYearly = repeatsYearly
             existing.updatedAt = .now
             Haptics.tap()
         } else {
             context.insert(SpecialDate(title: trimmedTitle, emoji: emoji,
-                                       date: date, repeatsYearly: repeatsYearly))
+                                       date: anchor, repeatsYearly: repeatsYearly))
             Haptics.success()
         }
         try? context.save()

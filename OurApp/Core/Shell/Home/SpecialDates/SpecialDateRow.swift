@@ -47,12 +47,16 @@ struct SpecialDateRow: View {
     /// String Catalog, adding a junk key that needs translating. Only the
     /// words go through the catalog.
     @ViewBuilder private var subtitle: some View {
+        // Through localDay, never the raw instant: the anchor is a floating
+        // civil day pinned at noon UTC, so formatting it directly would show
+        // the wrong day anywhere past UTC+12.
+        let day = SpecialDateSchedule.localDay(of: date.date)
         if date.repeatsYearly {
-            Text(verbatim: date.date.formatted(.dateTime.month(.abbreviated).day()))
+            Text(verbatim: day.formatted(.dateTime.month(.abbreviated).day()))
                 + Text(verbatim: " · ")
                 + Text("every year")
         } else {
-            Text(verbatim: date.date.formatted(.dateTime.year().month(.abbreviated).day()))
+            Text(verbatim: day.formatted(.dateTime.year().month(.abbreviated).day()))
         }
     }
 
