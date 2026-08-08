@@ -10,8 +10,13 @@ struct HubEntryTile: View {
         VStack(spacing: 6) {
             TileSquare {
                 Text(entry.emoji)
-                    .font(.system(size: 28))
+                    .font(.system(size: 34))
             }
+            // Capped so a short row doesn't inflate the squares: three tiles
+            // sharing the full width would render far larger than the
+            // springboard's, and the two surfaces are meant to read as one
+            // family. The column stays wide; only the square is capped.
+            .frame(maxWidth: 78)
             .overlay(alignment: .topTrailing) {
                 if let makeBadge = entry.makeBadge {
                     makeBadge()
