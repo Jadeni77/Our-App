@@ -12,7 +12,7 @@ struct HubEntry: Identifiable {
     let id: String
     /// Localized via the String Catalog — the tile renders it directly.
     let name: LocalizedStringResource
-    let emoji: String
+    let icon: HubIcon
     let kind: Kind
     /// The entry supplies its own badge, so Home never learns a sub-page's
     /// data types.
@@ -27,12 +27,12 @@ struct HubEntry: Identifiable {
 
     init(id: String,
          name: LocalizedStringResource,
-         emoji: String,
+         icon: HubIcon,
          kind: Kind,
          makeBadge: (@MainActor () -> AnyView)? = nil) {
         self.id = id
         self.name = name
-        self.emoji = emoji
+        self.icon = icon
         self.kind = kind
         self.makeBadge = makeBadge
     }

@@ -100,7 +100,10 @@ struct SpecialDatesView: View {
 
     private var emptyState: some View {
         VStack(spacing: 16) {
-            Text("💗").font(.system(size: 40))
+            // Verbatim: it's decoration, not copy. A literal Text("💗") is a
+            // localizable key, so the build extracts it into the catalog as a
+            // string someone is expected to translate.
+            Text(verbatim: "💗").font(.system(size: 40))
             Text("No dates yet — add the ones we don't want to miss")
                 .font(.system(.callout, design: .rounded))
                 .foregroundStyle(.white.opacity(0.9))

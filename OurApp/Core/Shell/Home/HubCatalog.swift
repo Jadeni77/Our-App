@@ -7,16 +7,16 @@ enum HubCatalog {
     static let entries: [HubEntry] = [
         HubEntry(id: "special-dates",
                  name: "Special Dates",
-                 emoji: "📅",
+                 icon: .specialDates,
                  kind: .page { AnyView(SpecialDatesView()) },
                  makeBadge: { AnyView(SpecialDatesBadge()) }),
         HubEntry(id: "daily-question",
                  name: "Daily Question",
-                 emoji: "💬",
+                 icon: .dailyQuestion,
                  kind: .comingSoon("When our phones can talk to each other")),
         HubEntry(id: "memories",
                  name: "Memories",
-                 emoji: "📷",
+                 icon: .memories,
                  kind: .comingSoon("When our phones can talk to each other")),
     ]
 

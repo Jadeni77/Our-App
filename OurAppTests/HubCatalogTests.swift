@@ -27,7 +27,13 @@ struct HubCatalogTests {
     }
 
     @Test func lookupFindsKnownIDsAndRejectsUnknownOnes() {
-        #expect(HubCatalog.entry("special-dates")?.emoji == "📅")
+        #expect(HubCatalog.entry("special-dates")?.icon == .specialDates)
         #expect(HubCatalog.entry("nope") == nil)
+    }
+
+    @Test func everyEntryCarriesADistinctIcon() {
+        let icons = HubCatalog.entries.map(\.icon)
+        #expect(icons == [.specialDates, .dailyQuestion, .memories])
+        #expect(Set(HubCatalog.entries.map(\.id)).count == icons.count)
     }
 }

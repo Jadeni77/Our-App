@@ -1,35 +1,31 @@
 import SwiftUI
 
-/// One hub tile: the springboard's icon square with a label beneath, so Home
-/// and the Apps tab read as one family. Coming-soon entries dim and wear a
-/// small lock.
+/// One hub tile: a drawn icon with a label beneath. The coloured squircle *is*
+/// the tile — no glass square behind it, which would be two nested cards
+/// saying the same thing (H11). Coming-soon entries dim and wear a small lock.
 struct HubEntryTile: View {
     let entry: HubEntry
 
     var body: some View {
         VStack(spacing: 6) {
-            TileSquare {
-                Text(entry.emoji)
-                    .font(.system(size: 34))
-            }
-            // Capped so a short row doesn't inflate the squares: three tiles
-            // sharing the full width would render far larger than the
-            // springboard's, and the two surfaces are meant to read as one
-            // family. The column stays wide; only the square is capped.
-            .frame(maxWidth: 78)
-            .overlay(alignment: .topTrailing) {
-                if let makeBadge = entry.makeBadge {
-                    makeBadge()
+            HubIconView(icon: entry.icon)
+                // Capped so a short row doesn't inflate the icons: three tiles
+                // sharing the full width would render far larger than the
+                // springboard's. The column stays wide; only the icon is capped.
+                .frame(maxWidth: 78)
+                .overlay(alignment: .topTrailing) {
+                    if let makeBadge = entry.makeBadge {
+                        makeBadge()
+                    }
                 }
-            }
-            .overlay(alignment: .bottomTrailing) {
-                if !entry.isReady {
-                    Image(systemName: "lock.fill")
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(.white.opacity(0.85))
-                        .padding(5)
+                .overlay(alignment: .bottomTrailing) {
+                    if !entry.isReady {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(.white.opacity(0.85))
+                            .padding(5)
+                    }
                 }
-            }
 
             Text(entry.name)
                 .font(.system(.caption2, design: .rounded).weight(.semibold))
