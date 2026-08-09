@@ -261,12 +261,40 @@ struct SpecialDateScheduleTests {
     }
 
     @MainActor
-    @Test func onlyTheAnniversaryIsUndeletable() {
+    @Test func theBadgeIgnoresAnAnniversaryOutsideTheWindow() {
+        // Without the `days <= nearDays` clamp the tile would carry a badge 365
+        // days a year — the anniversary must not get an exemption from it.
+        let anniversary = SpecialDate(title: "", date: day(2023, 3, 1),
+                                      repeatsYearly: true, isAnniversary: true)
+        #expect(SpecialDateSchedule.badge(for: [anniversary],
+                                          from: day(2026, 8, 7),
+                                          calendar: calendar) == nil)
+    }
+
+    @MainActor
+    @Test func aPassedAnniversaryDoesNotMaskARealUpcomingDate() {
+        // `distance` ranks "2 days ago" as near, so an un-repeating anniversary
+        // that has gone by would sort first and silence the badge entirely.
+        let stale = SpecialDate(title: "", date: day(2026, 8, 5), isAnniversary: true)
+        let soon = SpecialDate(title: "Soon", date: day(2026, 8, 12))
+        #expect(SpecialDateSchedule.badge(for: [stale, soon],
+                                          from: day(2026, 8, 7),
+                                          calendar: calendar) == .upcoming(days: 5))
+    }
+
+    @MainActor
+    @Test func aTombstonedAnniversaryLeavesTheCardSlotEmptyAndStaysOutOfBothSections() {
         let anniversary = SpecialDate(title: "", date: day(2023, 5, 21),
                                       repeatsYearly: true, isAnniversary: true)
+        anniversary.deletedAt = .now
         let normal = SpecialDate(title: "Kyoto", date: day(2026, 9, 2))
-        #expect(anniversary.canDelete == false)
-        #expect(normal.canDelete)
+
+        let split = SpecialDateSchedule.ordered([anniversary, normal],
+                                                from: day(2026, 8, 7), calendar: calendar)
+
+        #expect(split.anniversary == nil)
+        #expect(split.comingUp.map(\.date.title) == ["Kyoto"])
+        #expect(split.passed.isEmpty)
     }
 
     // MARK: Home tile badge

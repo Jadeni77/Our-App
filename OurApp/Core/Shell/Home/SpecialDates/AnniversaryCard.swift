@@ -32,6 +32,7 @@ struct AnniversaryCard: View {
             .glassCard(cornerRadius: 22)
         }
         .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
     }
 
     private func daysTogether(for date: SpecialDate) -> some View {
@@ -39,7 +40,9 @@ struct AnniversaryCard: View {
         return HStack(alignment: .firstTextBaseline, spacing: 6) {
             Text("\(days)")
                 .font(Theme.display(38))
-            Text(days == 1 ? "day" : "days")
+            // Ternary of two catalog keys — wrapped explicitly because only a
+            // literal Text("…") auto-keys into the String Catalog.
+            Text(days == 1 ? LocalizedStringKey("day") : LocalizedStringKey("days"))
                 .font(Theme.display(15))
                 .opacity(0.9)
         }

@@ -47,9 +47,16 @@ struct AnniversaryEditorSheet: View {
 
     private func save() {
         let anchor = SpecialDateSchedule.anchor(for: date)
-        if let existing {
-            existing.date = anchor
-            existing.updatedAt = .now
+        // Re-fetch rather than trusting `existing == nil`: a toolbar button
+        // stays hit-testable through the sheet's dismissal animation, so a
+        // double-tapped Save would otherwise insert a second flagged row — and
+        // a stray anniversary is exactly what we don't want to create.
+        let current = existing ?? (try? context.fetch(
+            FetchDescriptor<SpecialDate>(predicate: SpecialDate.anniversary)))?.first
+
+        if let current {
+            current.date = anchor
+            current.updatedAt = .now
             Haptics.tap()
         } else {
             context.insert(SpecialDate(title: "", date: anchor,

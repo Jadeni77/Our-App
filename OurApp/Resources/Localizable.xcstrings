@@ -449,29 +449,6 @@
         }
       }
     },
-    "Anniversary" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Anniversary"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "纪念日"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "紀念日"
-          }
-        }
-      }
-    },
     "Apps" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4366,29 +4343,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "新增日子"
-          }
-        }
-      }
-    },
-    "No dates yet — add the ones we don't want to miss" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No dates yet — add the ones we don't want to miss"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "还没有日子 —— 把我们不想错过的加进来"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "還沒有日子 —— 把我們不想錯過的加進來"
           }
         }
       }

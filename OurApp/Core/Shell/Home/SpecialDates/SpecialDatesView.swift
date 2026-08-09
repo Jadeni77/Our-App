@@ -50,9 +50,7 @@ struct SpecialDatesView: View {
         }
     }
 
-    private func list(_ split: (anniversary: SpecialDateSchedule.Entry?,
-                               comingUp: [SpecialDateSchedule.Entry],
-                               passed: [SpecialDateSchedule.Entry])) -> some View {
+    private func list(_ split: SpecialDateSchedule.Split) -> some View {
         List {
             Section {
                 AnniversaryCard(entry: split.anniversary) {
@@ -69,10 +67,12 @@ struct SpecialDatesView: View {
                 noOtherDates
             } else {
                 if !split.comingUp.isEmpty {
-                    section(header: "Coming up", entries: split.comingUp)
+                    section(header: "Coming up", entries: split.comingUp,
+                            anniversary: split.anniversary?.date)
                 }
                 if !split.passed.isEmpty {
-                    section(header: "Passed", entries: split.passed)
+                    section(header: "Passed", entries: split.passed,
+                            anniversary: split.anniversary?.date)
                 }
             }
         }
@@ -92,7 +92,8 @@ struct SpecialDatesView: View {
     }
 
     private func section(header: LocalizedStringKey,
-                         entries: [SpecialDateSchedule.Entry]) -> some View {
+                         entries: [SpecialDateSchedule.Entry],
+                         anniversary: SpecialDate?) -> some View {
         Section {
             // The status came back from `ordered` — rows never recompute it.
             ForEach(entries, id: \.date.id) { entry in
@@ -108,12 +109,15 @@ struct SpecialDatesView: View {
                 .listRowSeparator(.hidden)
                 .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
                 .swipeActions(edge: .trailing) {
-                    if date.canDelete {
-                        Button(role: .destructive) {
-                            softDelete(date)
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
+                    // Every row here is deletable by construction: `ordered`
+                    // hands the real anniversary back separately, so nothing in
+                    // these sections is the one Home depends on. Even a stray
+                    // second flagged row can be removed — which is the whole
+                    // point of it falling back to being an ordinary date.
+                    Button(role: .destructive) {
+                        softDelete(date, anniversary: anniversary)
+                    } label: {
+                        Label("Delete", systemImage: "trash")
                     }
                 }
             }
@@ -127,7 +131,13 @@ struct SpecialDatesView: View {
     }
 
     /// Delete is a tombstone, never a removal (DESIGN.md §7 record hygiene).
-    private func softDelete(_ date: SpecialDate) {
+    ///
+    /// The guard is on the mutation rather than on the button, so a future call
+    /// site inherits it instead of having to remember it. It compares identity,
+    /// not the `isAnniversary` flag: a stray second flagged row is an ordinary
+    /// date and must stay removable.
+    private func softDelete(_ date: SpecialDate, anniversary: SpecialDate?) {
+        guard date.id != anniversary?.id else { return }
         Haptics.tap()
         date.deletedAt = .now
         date.updatedAt = .now

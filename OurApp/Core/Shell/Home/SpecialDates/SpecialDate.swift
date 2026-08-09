@@ -48,11 +48,6 @@ extension SpecialDate {
         #Predicate<SpecialDate> { $0.deletedAt == nil }
     }
 
-    /// Home's day counter reads the anniversary, so it has to survive. The rule
-    /// lives on the record rather than in a view: a third delete path added
-    /// later would otherwise have to remember this on its own.
-    var canDelete: Bool { !isAnniversary }
-
     /// Home's single-row lookup.
     static var anniversary: Predicate<SpecialDate> {
         #Predicate<SpecialDate> { $0.isAnniversary && $0.deletedAt == nil }

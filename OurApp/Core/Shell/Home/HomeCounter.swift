@@ -6,8 +6,10 @@ import SwiftUI
 /// sends you to Special Dates to set one.
 ///
 /// Deliberately its own view: Home's body re-renders with every motion sample
-/// (~30/s), and keeping the query here means the fetch is the whole cost —
-/// nothing derived, nothing recomputed (the H9 lesson).
+/// (~30/s), so this keeps the work here small and bounded — a single-row fetch
+/// plus one `localDay` conversion. That is deliberately *not* the same as the
+/// badge (H9), which had to cache because it ran a `Calendar.nextDate` search
+/// per date per frame; two `dateComponents` calls do not need that machinery.
 struct HomeCounter: View {
     /// Sorted so that if a duplicate anniversary ever existed, this and the
     /// page's card would still agree on which row is *the* one — `ordered`

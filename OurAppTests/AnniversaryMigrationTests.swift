@@ -80,6 +80,24 @@ struct AnniversaryMigrationTests {
         #expect(defaults.object(forKey: AnniversaryMigration.legacyKey) != nil)
     }
 
+    @Test func aTombstonedAnniversaryIsNotFoundByTheLookup() throws {
+        // The `deletedAt == nil` half of `SpecialDate.anniversary` decides
+        // whether Home's counter survives a delete, and whether a new
+        // anniversary can be created afterwards. Nothing else pins it.
+        let container = try Persistence.makeContainer(inMemory: true)
+        let context = ModelContext(container)
+        let anniversary = SpecialDate(title: "", date: SpecialDateSchedule.anchor(for: .now),
+                                      repeatsYearly: true, isAnniversary: true)
+        context.insert(anniversary)
+        try context.save()
+        #expect(try anniversaryCount(context) == 1)
+
+        anniversary.deletedAt = .now
+        try context.save()
+
+        #expect(try anniversaryCount(context) == 0)
+    }
+
     @Test func doesNothingWhenNoAnniversaryWasEverSet() throws {
         let defaults = makeDefaults("migration.absent")
         let container = try Persistence.makeContainer(inMemory: true)

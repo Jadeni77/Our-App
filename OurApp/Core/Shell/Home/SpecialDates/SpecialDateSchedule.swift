@@ -17,6 +17,9 @@ enum SpecialDateSchedule {
     /// work it out a second time.
     typealias Entry = (date: SpecialDate, status: Status)
 
+    /// What the page renders: the anniversary's own card, then the two sections.
+    typealias Split = (anniversary: Entry?, comingUp: [Entry], passed: [Entry])
+
     /// A special date is a **floating civil day** — "Aug 14" is Aug 14 wherever
     /// we are, not an instant that happens to fall on it. SwiftData stores an
     /// absolute `Date`, so the convention is: the stored value is **noon UTC of
@@ -106,8 +109,7 @@ enum SpecialDateSchedule {
     @MainActor
     static func ordered(_ dates: [SpecialDate],
                         from now: Date = .now,
-                        calendar: Calendar = .current)
-        -> (anniversary: Entry?, comingUp: [Entry], passed: [Entry]) {
+                        calendar: Calendar = .current) -> Split {
         var flagged: [SpecialDate] = []
         var rest: [SpecialDate] = []
 
@@ -166,7 +168,11 @@ enum SpecialDateSchedule {
         // The anniversary has its own card on the page, but it is exactly the
         // date we most want warning about — so the tile weighs it against the
         // others rather than ignoring it.
+        // `.passed` is filtered, not just deprioritised: `distance` ranks a
+        // date that has gone by as *near*, so a passed anniversary would sort
+        // ahead of a real upcoming date and silence the badge entirely.
         let candidates = ([split.anniversary].compactMap { $0 } + split.comingUp)
+            .filter { if case .passed = $0.status { false } else { true } }
             .sorted(by: nearestFirst)
 
         guard let next = candidates.first else { return nil }
