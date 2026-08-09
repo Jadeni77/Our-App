@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// One row on the Special Dates page: emoji, title, when it falls, and the
+/// One row on the Special Dates page: drawn icon, title, when it falls, and the
 /// count. Passed rows dim and count up instead of down.
 struct SpecialDateRow: View {
     let date: SpecialDate
@@ -8,8 +8,7 @@ struct SpecialDateRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Text(date.emoji)
-                .font(.system(size: 26))
+            DateIconView(icon: date.icon)
 
             VStack(alignment: .leading, spacing: 2) {
                 // User data — rendered verbatim, never routed through the catalog.
@@ -89,14 +88,15 @@ struct SpecialDateRow: View {
 
 #Preview {
     VStack(spacing: 10) {
-        SpecialDateRow(date: SpecialDate(title: "Her birthday", emoji: "🎂",
+        SpecialDateRow(date: SpecialDate(title: "Her birthday",
                                          date: .now.addingTimeInterval(86_400 * 7),
-                                         repeatsYearly: true),
+                                         repeatsYearly: true, icon: .cake),
                        status: .upcoming(days: 7))
-        SpecialDateRow(date: SpecialDate(title: "Kyoto trip", emoji: "✈️", date: .now),
+        SpecialDateRow(date: SpecialDate(title: "Kyoto trip", date: .now, icon: .plane),
                        status: .today)
-        SpecialDateRow(date: SpecialDate(title: "First date", emoji: "🎡",
-                                         date: .now.addingTimeInterval(-86_400 * 1165)),
+        SpecialDateRow(date: SpecialDate(title: "First date",
+                                         date: .now.addingTimeInterval(-86_400 * 1165),
+                                         icon: .star),
                        status: .passed(daysAgo: 1165))
     }
     .padding(16)

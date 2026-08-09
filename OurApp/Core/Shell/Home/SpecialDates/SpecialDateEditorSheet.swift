@@ -12,18 +12,17 @@ struct SpecialDateEditorSheet: View {
     let existing: SpecialDate?
 
     @State private var title: String
-    @State private var emoji: String
+    @State private var icon: DateIcon
+
+    /// Shared by the tile and its selection ring, so the two can't drift.
+    private static let pickerIconSize: CGFloat = 38
     @State private var date: Date
     @State private var repeatsYearly: Bool
-
-    /// Curated so there's no emoji keyboard detour for the common cases.
-    private static let palette = ["🎂", "✈️", "🏠", "💍", "🎓", "🌸",
-                                  "🎁", "🍰", "⭐️", "💗", "🌊", "📍"]
 
     init(existing: SpecialDate?) {
         self.existing = existing
         _title = State(initialValue: existing?.title ?? "")
-        _emoji = State(initialValue: existing?.emoji ?? "🎂")
+        _icon = State(initialValue: existing?.icon ?? .heart)
         // Through `localDay`: the stored value is noon UTC, so seeding the
         // picker with it raw shows the following day anywhere past UTC+12 —
         // and then saving shifts the date by one.
@@ -50,30 +49,30 @@ struct SpecialDateEditorSheet: View {
 
                 Section {
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 6),
-                              spacing: 10) {
-                        ForEach(Self.palette, id: \.self) { candidate in
+                              spacing: 12) {
+                        ForEach(DateIcon.allCases, id: \.self) { candidate in
                             Button {
                                 Haptics.tap()
-                                emoji = candidate
+                                icon = candidate
                             } label: {
-                                Text(candidate)
-                                    .font(.system(size: 24))
-                                    .frame(width: 40, height: 40)
-                                    .background(
-                                        Circle().fill(
-                                            candidate == emoji
-                                                ? Theme.violet.opacity(0.35)
-                                                : Color.clear)
-                                    )
+                                DateIconView(icon: candidate, size: Self.pickerIconSize)
+                                    .overlay {
+                                        if candidate == icon {
+                                            RoundedRectangle(
+                                                cornerRadius: Self.pickerIconSize * 0.30,
+                                                style: .continuous)
+                                                .strokeBorder(Theme.indigo, lineWidth: 3)
+                                        }
+                                    }
                             }
                             .buttonStyle(.plain)
-                            .accessibilityLabel(Text(verbatim: candidate))
-                            .accessibilityAddTraits(candidate == emoji ? [.isSelected] : [])
+                            .accessibilityLabel(Text(candidate.name))
+                            .accessibilityAddTraits(candidate == icon ? [.isSelected] : [])
                         }
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, 6)
                 } header: {
-                    Text("Emoji")
+                    Text("Icon")
                 }
 
                 Section {
@@ -120,14 +119,14 @@ struct SpecialDateEditorSheet: View {
         let anchor = SpecialDateSchedule.anchor(for: date)
         if let existing {
             existing.title = trimmedTitle
-            existing.emoji = emoji
+            existing.icon = icon
             existing.date = anchor
             existing.repeatsYearly = repeatsYearly
             existing.updatedAt = .now
             Haptics.tap()
         } else {
-            context.insert(SpecialDate(title: trimmedTitle, emoji: emoji,
-                                       date: anchor, repeatsYearly: repeatsYearly))
+            context.insert(SpecialDate(title: trimmedTitle, date: anchor,
+                                       repeatsYearly: repeatsYearly, icon: icon))
             Haptics.success()
         }
         try? context.save()

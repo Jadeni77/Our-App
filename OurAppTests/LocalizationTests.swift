@@ -58,6 +58,11 @@ struct LocalizationTests {
                                language: "zh-Hans") == "距离下一个还有 %lld 天")
     }
 
+    @Test func iconPickerStringIsTranslated() {
+        #expect(localizedValue("Icon", language: "zh-Hans") == "图标")
+        #expect(localizedValue("Icon", language: "zh-Hant") == "圖示")
+    }
+
     @Test func counterHeroStringsAreTranslated() {
         #expect(localizedValue("We've been together for", language: "zh-Hans") == "我们在一起已经")
         #expect(localizedValue("We've been together for", language: "zh-Hant") == "我們在一起已經")

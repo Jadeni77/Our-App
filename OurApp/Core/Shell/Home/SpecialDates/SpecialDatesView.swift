@@ -18,10 +18,12 @@ struct SpecialDatesView: View {
         let split = SpecialDateSchedule.ordered(dates)
 
         ZStack {
-            // No tilt parallax: motion sensors stay Home-only.
-            DreamyBackground()
+            // No tilt parallax and no moon: both belong to Home (the sub-page
+            // chrome contract in docs/modules/couples-hub.md).
+            DreamyBackground(showsMoon: false)
 
             list(split)
+
         }
         .navigationTitle(Text("Special Dates"))
         .navigationBarTitleDisplayMode(.inline)

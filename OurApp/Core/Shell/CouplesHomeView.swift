@@ -34,8 +34,7 @@ struct CouplesHomeView: View {
                     Spacer()
 
                     VStack(spacing: 18) {
-                        Text("💞")
-                            .font(.system(size: 30))
+                        PairedHeartsView(size: 38)
                             .scaleEffect(pulse ? 1.15 : 0.95)
                             .animation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true), value: pulse)
 
@@ -59,7 +58,7 @@ struct CouplesHomeView: View {
                     // animation also sweeps in any geometry change its view
                     // receives. Adding the hub row and NavigationStack made the
                     // hero's frame settle one beat after first layout, so the
-                    // emoji began oscillating between the old and new position
+                    // hearts began oscillating between the old and new position
                     // forever. `geometryGroup` resolves this subtree's position
                     // before handing it to children, so only the scale pulses.
                     .geometryGroup()
@@ -131,7 +130,8 @@ struct CouplesHomeView: View {
             make()
         } else {
             ZStack {
-                DreamyBackground()
+                // A sub-page like any other: no moon (H16).
+                DreamyBackground(showsMoon: false)
                 Text("Coming soon")
                     .font(.system(.body, design: .rounded).weight(.semibold))
                     .foregroundStyle(.white)
