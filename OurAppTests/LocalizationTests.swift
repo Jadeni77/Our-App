@@ -63,6 +63,13 @@ struct LocalizationTests {
         #expect(localizedValue("Icon", language: "zh-Hant") == "圖示")
     }
 
+    @Test func dailyQuestionStringsAreTranslated() {
+        #expect(localizedValue("Daily Question", language: "zh-Hans") == "每日问答")
+        #expect(localizedValue("What made you smile today?", language: "zh-Hans") == "今天有什么让你笑了？")
+        #expect(localizedValue("What do you love most about us?", language: "zh-Hant") == "你最喜歡我們之間的什麼？")
+        #expect(localizedValue("Your answer", language: "zh-Hant") == "你的回答")
+    }
+
     @Test func counterHeroStringsAreTranslated() {
         #expect(localizedValue("We've been together for", language: "zh-Hans") == "我们在一起已经")
         #expect(localizedValue("We've been together for", language: "zh-Hant") == "我們在一起已經")
