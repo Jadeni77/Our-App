@@ -149,3 +149,74 @@ struct DailyQuestionStoreTests {
         #expect(history.map(\.text) == ["Newer", "Older"])
     }
 }
+
+@MainActor
+struct DailyQuestionBadgeRuleTests {
+    private func makeContext() throws -> ModelContext {
+        ModelContext(try Persistence.makeContainer(inMemory: true))
+    }
+
+    @Test func nothingToNagAboutBeforeThePhoneHasAnOwner() throws {
+        #expect(DailyQuestionStore.isUnanswered([], by: nil) == false)
+    }
+
+    @Test func anUnansweredDayNags() throws {
+        #expect(DailyQuestionStore.isUnanswered([], by: .one))
+    }
+
+    @Test func answeringTodaySilencesIt() throws {
+        let context = try makeContext()
+        let question = DailyQuestionCatalog.question()
+        DailyQuestionStore.write("Done", in: context, questionID: question.id,
+                                 day: .now, author: .one)
+        let answers = try context.fetch(FetchDescriptor<QuestionAnswer>())
+        #expect(DailyQuestionStore.isUnanswered(answers, by: .one) == false)
+    }
+
+    @Test func thePartnerAnsweringDoesNotSilenceIt() throws {
+        let context = try makeContext()
+        let question = DailyQuestionCatalog.question()
+        DailyQuestionStore.write("Theirs", in: context, questionID: question.id,
+                                 day: .now, author: .two)
+        let answers = try context.fetch(FetchDescriptor<QuestionAnswer>())
+        #expect(DailyQuestionStore.isUnanswered(answers, by: .one))
+    }
+
+    @Test func yesterdaysAnswerDoesNotSilenceToday() throws {
+        let context = try makeContext()
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: .now)!
+        let question = DailyQuestionCatalog.question(on: yesterday)
+        DailyQuestionStore.write("Old", in: context, questionID: question.id,
+                                 day: yesterday, author: .one)
+        let answers = try context.fetch(FetchDescriptor<QuestionAnswer>())
+        #expect(DailyQuestionStore.isUnanswered(answers, by: .one))
+    }
+}
+
+struct DailyQuestionTimezoneTests {
+    private func calendar(_ identifier: String) -> Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: identifier)!
+        return calendar
+    }
+
+    @Test func everyPhoneGetsTheSameQuestionForTheSameCivilDay() {
+        // The guarantee the whole design rests on. The first version counted
+        // days from a UTC instant re-localized through `startOfDay`, so every
+        // timezone west of UTC was a day out — and every test ran in UTC, which
+        // is precisely where that is invisible.
+        let zones = ["Pacific/Kiritimati", "Asia/Shanghai", "Europe/London",
+                     "America/New_York", "America/Los_Angeles", "Pacific/Midway"]
+        for hour in [0, 9, 23] {
+            var ids: Set<String> = []
+            for zone in zones {
+                let zoneCalendar = calendar(zone)
+                let moment = zoneCalendar.date(
+                    from: DateComponents(year: 2026, month: 8, day: 9, hour: hour))!
+                ids.insert(DailyQuestionCatalog.question(on: moment,
+                                                         calendar: zoneCalendar).id)
+            }
+            #expect(ids.count == 1, "phones disagreed at \(hour):00 — got \(ids)")
+        }
+    }
+}

@@ -82,6 +82,7 @@ struct CouplesHomeView: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)   // the hero is Home's top
+            .environment(identity)
             .navigationDestination(for: HubRoute.self) { destination(for: $0) }
         }
         .sheet(isPresented: $showSettings) {

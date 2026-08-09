@@ -9,14 +9,29 @@ struct DailyQuestion: Identifiable, Equatable {
 
 /// The sixty questions, and the rule that picks today's.
 enum DailyQuestionCatalog {
+    private static let utc: Calendar = {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        return calendar
+    }()
+
     /// Today's question is a pure function of the calendar day, counted from
     /// `Date`'s own reference date. Deliberately stateless: a sequence counter
     /// or a "next" button would diverge between two installs, and the two of us
     /// would end up answering different questions on the same day.
     static func question(on day: Date = .now, calendar: Calendar = .current) -> DailyQuestion {
-        let origin = calendar.startOfDay(for: Date(timeIntervalSinceReferenceDate: 0))
-        let today = calendar.startOfDay(for: day)
-        let elapsed = calendar.dateComponents([.day], from: origin, to: today).day ?? 0
+        // Counted in a fixed UTC calendar against the same noon-UTC anchor the
+        // stored `day` uses, so selection and storage share one civil-day rule.
+        //
+        // The obvious version is wrong: `Date(timeIntervalSinceReferenceDate: 0)`
+        // is midnight *UTC*, and `Calendar.current.startOfDay` re-localizes it —
+        // giving an origin of 2000-12-31 west of UTC and 2001-01-01 east of it.
+        // Two phones then land on different questions for the same day, which is
+        // the one thing this function exists to prevent.
+        let origin = utc.date(from: DateComponents(year: 2001, month: 1, day: 1, hour: 12))
+            ?? Date(timeIntervalSinceReferenceDate: 0)
+        let anchored = SpecialDateSchedule.anchor(for: day, calendar: calendar)
+        let elapsed = utc.dateComponents([.day], from: origin, to: anchored).day ?? 0
         // Swift's % keeps the sign of the dividend; dates before 2001 would
         // otherwise index backwards off the front of the array.
         let index = ((elapsed % all.count) + all.count) % all.count

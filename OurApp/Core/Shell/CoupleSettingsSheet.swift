@@ -25,9 +25,13 @@ struct CoupleSettingsSheet: View {
                 Section {
                     Picker(selection: $identity.me) {
                         Text("Not set").tag(Partner?.none)
-                        Text(identity.nameOne.isEmpty ? "Me" : "\(identity.nameOne)")
+                        // Verbatim for the name: a literal "\(name)" auto-keys
+                        // "%@" into the catalog as a string to translate.
+                        (identity.nameOne.isEmpty
+                            ? Text("Me") : Text(verbatim: identity.nameOne))
                             .tag(Partner?.some(.one))
-                        Text(identity.nameTwo.isEmpty ? "My love" : "\(identity.nameTwo)")
+                        (identity.nameTwo.isEmpty
+                            ? Text("My love") : Text(verbatim: identity.nameTwo))
                             .tag(Partner?.some(.two))
                     } label: {
                         Text("This phone is")

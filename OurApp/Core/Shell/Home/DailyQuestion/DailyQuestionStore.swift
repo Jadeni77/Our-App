@@ -48,6 +48,23 @@ enum DailyQuestionStore {
         return created
     }
 
+    /// Whether the tile should nag. Pure and static precisely so it can be
+    /// tested — the same rule living inside a view's `onChange` closure is how
+    /// the first version shipped a badge that never turned on.
+    static func isUnanswered(_ answers: [QuestionAnswer],
+                             by author: Partner?,
+                             on day: Date = .now) -> Bool {
+        guard let author else { return false }   // nothing to nag about before setup
+        let anchored = SpecialDateSchedule.anchor(for: day)
+        let questionID = DailyQuestionCatalog.question(on: day).id
+        return !answers.contains {
+            $0.deletedAt == nil
+                && $0.questionID == questionID
+                && $0.day == anchored
+                && $0.authorID == author.rawValue
+        }
+    }
+
     /// Every visible answer, newest day first.
     static func history(from context: ModelContext) throws -> [QuestionAnswer] {
         try context.fetch(FetchDescriptor<QuestionAnswer>(
