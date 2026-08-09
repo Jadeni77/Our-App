@@ -82,9 +82,13 @@ struct CouplesHomeView: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)   // the hero is Home's top
-            .environment(identity)
             .navigationDestination(for: HubRoute.self) { destination(for: $0) }
         }
+        // On the stack, not on its root content: a pushed `navigationDestination`
+        // is not a child of that content and would not inherit this — which is
+        // exactly how the Daily Question page shipped crashing while the badge,
+        // rendered inside the root, worked fine.
+        .environment(identity)
         .sheet(isPresented: $showSettings) {
             CoupleSettingsSheet(identity: identity)
         }
