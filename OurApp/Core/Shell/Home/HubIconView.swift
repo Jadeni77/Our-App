@@ -29,6 +29,10 @@ struct HubIconView: View {
             .overlay {
                 shape.strokeBorder(.white.opacity(0.45), lineWidth: max(1, side * 0.013))
             }
+            .overlay {
+                HubIconGlyph(icon: icon, side: side)
+                    .accessibilityHidden(true)
+            }
             .shadow(color: .black.opacity(0.22), radius: side * 0.09, y: side * 0.045)
             .frame(width: side, height: side)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
