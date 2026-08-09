@@ -130,7 +130,8 @@ struct CouplesHomeView: View {
             make()
         } else {
             ZStack {
-                DreamyBackground()
+                // A sub-page like any other: no moon (H16).
+                DreamyBackground(showsMoon: false)
                 Text("Coming soon")
                     .font(.system(.body, design: .rounded).weight(.semibold))
                     .foregroundStyle(.white)

@@ -30,6 +30,28 @@ enum DateIcon: String, CaseIterable {
         }
     }
 
+    /// What VoiceOver calls it. Without this every button in the picker
+    /// announces the same word and the grid is unusable without sight.
+    ///
+    /// `house` rather than `home`: the catalog's "Home" is the tab label, which
+    /// translates to 首页 — the wrong word entirely for a building.
+    var name: LocalizedStringResource {
+        switch self {
+        case .cake:       "Cake"
+        case .plane:      "Plane"
+        case .home:       "House"
+        case .ring:       "Ring"
+        case .heart:      "Heart"
+        case .gift:       "Gift"
+        case .camera:     "Camera"
+        case .star:       "Star"
+        case .wave:       "Wave"
+        case .graduation: "Graduation"
+        case .flower:     "Flower"
+        case .pin:        "Place"
+        }
+    }
+
     /// A stored id → an icon. Unknown ids (a future version's, or the `""` a
     /// row carries before migration) resolve to `.heart` rather than failing,
     /// which is why `iconID` is stored as a raw string (the `cuisineID`

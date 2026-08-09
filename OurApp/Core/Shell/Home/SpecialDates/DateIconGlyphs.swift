@@ -109,10 +109,16 @@ struct DateIconGlyph: View {
                 .fill(.white)
                 .frame(width: side * 0.62, height: side * 0.40)
                 .offset(y: side * 0.16)
-            Rectangle()
-                .fill(.white.opacity(0.60))
-                .frame(width: side * 0.10, height: side * 0.40)
-                .offset(y: side * 0.16)
+                .compositingGroup()
+                .overlay {
+                    // Cut, not drawn: a translucent white ribbon inside an
+                    // opaque white box is invisible by construction.
+                    Rectangle()
+                        .frame(width: side * 0.07, height: side * 0.40)
+                        .offset(y: side * 0.16)
+                        .blendMode(.destinationOut)
+                }
+                .compositingGroup()
             RoundedRectangle(cornerRadius: side * 0.03, style: .continuous)
                 .fill(.white)
                 .frame(width: side * 0.70, height: side * 0.12)

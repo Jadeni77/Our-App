@@ -13,6 +13,9 @@ struct SpecialDateEditorSheet: View {
 
     @State private var title: String
     @State private var icon: DateIcon
+
+    /// Shared by the tile and its selection ring, so the two can't drift.
+    private static let pickerIconSize: CGFloat = 38
     @State private var date: Date
     @State private var repeatsYearly: Bool
 
@@ -52,17 +55,18 @@ struct SpecialDateEditorSheet: View {
                                 Haptics.tap()
                                 icon = candidate
                             } label: {
-                                DateIconView(icon: candidate, size: 38)
+                                DateIconView(icon: candidate, size: Self.pickerIconSize)
                                     .overlay {
                                         if candidate == icon {
-                                            RoundedRectangle(cornerRadius: 38 * 0.30,
-                                                             style: .continuous)
+                                            RoundedRectangle(
+                                                cornerRadius: Self.pickerIconSize * 0.30,
+                                                style: .continuous)
                                                 .strokeBorder(Theme.indigo, lineWidth: 3)
                                         }
                                     }
                             }
                             .buttonStyle(.plain)
-                            .accessibilityLabel(Text("Icon"))
+                            .accessibilityLabel(Text(candidate.name))
                             .accessibilityAddTraits(candidate == icon ? [.isSelected] : [])
                         }
                     }
