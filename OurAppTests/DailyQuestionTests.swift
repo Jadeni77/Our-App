@@ -62,3 +62,90 @@ struct DailyQuestionCatalogTests {
         #expect(DailyQuestionCatalog.question(id: "not-a-question") == nil)
     }
 }
+
+@MainActor
+struct DailyQuestionStoreTests {
+    private func makeContext() throws -> ModelContext {
+        ModelContext(try Persistence.makeContainer(inMemory: true))
+    }
+
+    @Test func writingAnAnswerStoresItForThatDayAndAuthor() throws {
+        let context = try makeContext()
+        let today = Date(timeIntervalSinceReferenceDate: 800_000_000)
+
+        DailyQuestionStore.write("A cup of tea", in: context,
+                                 questionID: "q01", day: today, author: .one)
+
+        let found = DailyQuestionStore.answer(in: context, questionID: "q01",
+                                              day: today, author: .one)
+        #expect(found?.text == "A cup of tea")
+        #expect(found?.authorID == Partner.one.rawValue)
+    }
+
+    @Test func editingTodayUpdatesTheRowRatherThanAddingOne() throws {
+        let context = try makeContext()
+        let today = Date(timeIntervalSinceReferenceDate: 800_000_000)
+
+        DailyQuestionStore.write("First", in: context, questionID: "q01", day: today, author: .one)
+        DailyQuestionStore.write("Second", in: context, questionID: "q01", day: today, author: .one)
+
+        let all = try context.fetch(FetchDescriptor<QuestionAnswer>())
+        #expect(all.count == 1)
+        #expect(all.first?.text == "Second")
+    }
+
+    @Test func eachPartnerGetsTheirOwnRowForTheSameDay() throws {
+        let context = try makeContext()
+        let today = Date(timeIntervalSinceReferenceDate: 800_000_000)
+
+        DailyQuestionStore.write("Mine", in: context, questionID: "q01", day: today, author: .one)
+        DailyQuestionStore.write("Theirs", in: context, questionID: "q01", day: today, author: .two)
+
+        #expect(try context.fetch(FetchDescriptor<QuestionAnswer>()).count == 2)
+        #expect(DailyQuestionStore.answer(in: context, questionID: "q01",
+                                          day: today, author: .two)?.text == "Theirs")
+    }
+
+    @Test func aDifferentDayIsADifferentRow() throws {
+        let context = try makeContext()
+        let today = Date(timeIntervalSinceReferenceDate: 800_000_000)
+        let tomorrow = today.addingTimeInterval(86_400)
+
+        DailyQuestionStore.write("Today", in: context, questionID: "q01", day: today, author: .one)
+        DailyQuestionStore.write("Tomorrow", in: context, questionID: "q01", day: tomorrow, author: .one)
+
+        #expect(try context.fetch(FetchDescriptor<QuestionAnswer>()).count == 2)
+    }
+
+    @Test func theDayIsStoredAsAFloatingCivilDay() throws {
+        let context = try makeContext()
+        let evening = Date(timeIntervalSinceReferenceDate: 800_000_000)
+
+        DailyQuestionStore.write("Late", in: context, questionID: "q01", day: evening, author: .one)
+
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = TimeZone(secondsFromGMT: 0)!
+        let stored = try context.fetch(FetchDescriptor<QuestionAnswer>()).first!
+        // Noon UTC, exactly as Special Dates anchors its dates (H8).
+        #expect(utc.component(.hour, from: stored.day) == 12)
+    }
+
+    @Test func historyIsNewestFirstAndSkipsTombstones() throws {
+        let context = try makeContext()
+        let base = Date(timeIntervalSinceReferenceDate: 800_000_000)
+
+        DailyQuestionStore.write("Older", in: context, questionID: "q01",
+                                 day: base, author: .one)
+        DailyQuestionStore.write("Newer", in: context, questionID: "q02",
+                                 day: base.addingTimeInterval(86_400), author: .one)
+        DailyQuestionStore.write("Gone", in: context, questionID: "q03",
+                                 day: base.addingTimeInterval(2 * 86_400), author: .one)
+        DailyQuestionStore.answer(in: context, questionID: "q03",
+                                  day: base.addingTimeInterval(2 * 86_400),
+                                  author: .one)?.deletedAt = .now
+        try context.save()
+
+        let history = try DailyQuestionStore.history(from: context)
+        #expect(history.map(\.text) == ["Newer", "Older"])
+    }
+}

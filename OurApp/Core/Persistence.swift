@@ -9,6 +9,7 @@ enum Persistence {
         let schema = Schema([
             DecisionRecord.self,
             SpecialDate.self,
+            QuestionAnswer.self,
             MoonshotLevelResult.self,
             MoonshotCosmeticSetting.self,
             MoonshotCoachSeen.self,
