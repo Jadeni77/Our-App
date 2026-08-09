@@ -11,6 +11,7 @@ struct MemoryDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
     private let store = MemoryPhotoStore()
+    @State private var confirming = false
 
     var body: some View {
         NavigationStack {
@@ -55,12 +56,19 @@ struct MemoryDetailView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
+            .confirmationDialog(Text("Delete this memory?"),
+                                isPresented: $confirming, titleVisibility: .visible) {
+                Button(role: .destructive) { delete() } label: { Text("Delete") }
+            } message: {
+                // Unlike every other delete in the app, this one destroys files.
+                Text("Its photos are removed from the app. This can't be undone.")
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: { Text("Done") }
                 }
                 ToolbarItem(placement: .destructiveAction) {
-                    Button(role: .destructive) { delete() } label: { Text("Delete") }
+                    Button(role: .destructive) { confirming = true } label: { Text("Delete") }
                 }
             }
         }
@@ -68,10 +76,18 @@ struct MemoryDetailView: View {
 
     private func delete() {
         Haptics.tap()
-        for id in memory.photoIDs { store.delete(id) }
         memory.deletedAt = .now
         memory.updatedAt = .now
-        try? context.save()
+        do {
+            // Files go only once the tombstone is durable. Deleting first meant
+            // a failed save — disk full, say, which is exactly when someone is
+            // deleting things — left a visible memory whose photos were gone.
+            try context.save()
+        } catch {
+            memory.deletedAt = nil
+            return
+        }
+        for id in memory.photoIDs { store.delete(id) }
         dismiss()
     }
 }

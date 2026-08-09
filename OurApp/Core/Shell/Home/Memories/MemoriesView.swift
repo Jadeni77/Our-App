@@ -6,8 +6,13 @@ import SwiftUI
 /// Wears the sub-page chrome contract — dreamy background with no tilt parallax
 /// and no moon (H16), hidden toolbar background, inline title, tab bar visible.
 struct MemoriesView: View {
-    @Environment(\.modelContext) private var context
-    @Query(filter: Memory.visible, sort: \Memory.day, order: .reverse)
+    @Environment(CoupleIdentityStore.self) private var identity
+    // `day` is anchored to noon UTC, so every memory from the same civil day —
+    // a trip, typically — ties exactly. Without the tiebreak their order is
+    // whatever the store returns, and can differ between launches.
+    @Query(filter: Memory.visible,
+           sort: [SortDescriptor(\Memory.day, order: .reverse),
+                  SortDescriptor(\Memory.updatedAt, order: .reverse)])
     private var memories: [Memory]
 
     @State private var thumbnails = MemoryThumbnails()
@@ -20,7 +25,12 @@ struct MemoriesView: View {
         ZStack {
             DreamyBackground(showsMoon: false)
 
-            if memories.isEmpty {
+            if identity.me == nil {
+                // Same fail-soft as Daily Question (H19): an unattributed
+                // memory can't be merged when sync lands, and a Save that
+                // silently does nothing is a dead end (principle 7).
+                whoIsThis
+            } else if memories.isEmpty {
                 emptyState
             } else {
                 grid
@@ -38,6 +48,7 @@ struct MemoriesView: View {
                 } label: {
                     Image(systemName: "plus").foregroundStyle(.white)
                 }
+                .disabled(identity.me == nil)
                 .accessibilityLabel(Text("Add a memory"))
             }
         }
@@ -47,6 +58,17 @@ struct MemoriesView: View {
         .sheet(item: $showing) { memory in
             MemoryDetailView(memory: memory)
         }
+    }
+
+    private var whoIsThis: some View {
+        VStack(spacing: 14) {
+            Text(verbatim: "📷").font(.system(size: 38))
+            Text("Tell us who this phone belongs to first")
+                .font(.system(.callout, design: .rounded))
+                .foregroundStyle(.white.opacity(0.9))
+                .multilineTextAlignment(.center)
+        }
+        .padding(32)
     }
 
     private var grid: some View {
@@ -93,8 +115,20 @@ struct MemoriesView: View {
                         .padding(5)
                 }
             }
-            .task { if let first { thumbnails.loadIfNeeded(first) } }
-            .accessibilityLabel(Text("Memory"))
+            .task { if let first { await thumbnails.loadIfNeeded(first) } }
+            .accessibilityElement()
+            .accessibilityLabel(label(for: memory))
+    }
+
+    /// Every cell reading "Memory" makes the grid unnavigable by screen
+    /// reader. Compose the day, the note and the count instead.
+    private func label(for memory: Memory) -> Text {
+        let day = SpecialDateSchedule.localDay(of: memory.day)
+            .formatted(.dateTime.year().month(.abbreviated).day())
+        if memory.note.isEmpty {
+            return Text(verbatim: day)
+        }
+        return Text(verbatim: "\(day), \(memory.note)")
     }
 
     private var emptyState: some View {

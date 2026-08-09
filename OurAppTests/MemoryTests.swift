@@ -87,11 +87,16 @@ struct MemoryPhotoStoreTests {
     }
 
     @MainActor
-    @Test func unreadableDataThrowsRatherThanWritingRubbish() throws {
-        let store = MemoryPhotoStore(directory: try tempDirectory())
+    @Test func unreadableDataThrowsAndLeavesNothingBehind() throws {
+        let directory = try tempDirectory()
+        let store = MemoryPhotoStore(directory: directory)
         #expect(throws: MemoryPhotoStore.Failure.self) {
             _ = try store.save(Data("not an image".utf8))
         }
+        // A throw that still wrote a file would orphan it — nothing references
+        // it and there is no sweeper that would ever find it.
+        let left = (try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []
+        #expect(left.isEmpty)
     }
 }
 
@@ -154,5 +159,44 @@ struct MemoryRecordTests {
         // The picker caps selection, but the record is the last line of defence.
         #expect(try context.fetch(FetchDescriptor<Memory>()).first?.photoIDs.count
                 == Memory.maxPhotos)
+    }
+}
+
+@MainActor
+struct MemoryThumbnailsTests {
+    private func tempDirectory() throws -> URL {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        return url
+    }
+
+    @Test func aMissingPhotoIsLookedForOnceAndThenRemembered() async throws {
+        let directory = try tempDirectory()
+        let cache = MemoryThumbnails(store: MemoryPhotoStore(directory: directory))
+
+        await cache.loadIfNeeded("not-a-photo")
+        #expect(cache.image(for: "not-a-photo") == nil)
+
+        // The miss is cached, so a cell reappearing doesn't re-hit the disk.
+        // Proven by planting the file afterwards: a second look must not find
+        // it, because the first look already recorded that there was nothing.
+        let store = MemoryPhotoStore(directory: directory)
+        let planted = try store.save(Self.tinyJPEG())
+        try FileManager.default.moveItem(at: store.thumbnailURL(planted),
+                                         to: store.thumbnailURL("not-a-photo"))
+
+        await cache.loadIfNeeded("not-a-photo")
+        #expect(cache.image(for: "not-a-photo") == nil)
+    }
+
+    private static func tinyJPEG() -> Data {
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        let size = CGSize(width: 40, height: 40)
+        return UIGraphicsImageRenderer(size: size, format: format).image { context in
+            UIColor.systemPink.setFill()
+            context.fill(CGRect(origin: .zero, size: size))
+        }.jpegData(compressionQuality: 0.9)!
     }
 }

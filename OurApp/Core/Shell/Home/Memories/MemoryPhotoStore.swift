@@ -37,7 +37,14 @@ struct MemoryPhotoStore {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let id = UUID().uuidString
         try full.write(to: url(id), options: .atomic)
-        try thumbnail.write(to: thumbnailURL(id), options: .atomic)
+        do {
+            try thumbnail.write(to: thumbnailURL(id), options: .atomic)
+        } catch {
+            // Otherwise the full-size file is an orphan: nothing references it,
+            // and there is no sweeper anywhere that would ever find it.
+            try? FileManager.default.removeItem(at: url(id))
+            throw error
+        }
         return id
     }
 
