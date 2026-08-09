@@ -64,6 +64,33 @@ struct CoupleIdentityTests {
         #expect(reloaded.nameTwo == "Mei")
     }
 
+    @Test func theOwningPartnerRoundTrips() throws {
+        let suite = "test.\(UUID().uuidString)"
+        let dir = try tempDirectory()
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+
+        let store = CoupleIdentityStore(defaults: defaults, directory: dir)
+        #expect(store.me == nil)          // nobody has claimed this phone yet
+        store.me = .two
+
+        let reloaded = CoupleIdentityStore(defaults: defaults, directory: dir)
+        #expect(reloaded.me == .two)
+    }
+
+    @Test func clearingTheOwningPartnerPersists() throws {
+        let suite = "test.\(UUID().uuidString)"
+        let dir = try tempDirectory()
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+
+        let store = CoupleIdentityStore(defaults: defaults, directory: dir)
+        store.me = .one
+        store.me = nil
+
+        #expect(CoupleIdentityStore(defaults: defaults, directory: dir).me == nil)
+    }
+
     @Test func avatarPersistsToDiskAndReloads() throws {
         let suite = "test.\(UUID().uuidString)"
         let dir = try tempDirectory()

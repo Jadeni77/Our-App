@@ -22,6 +22,20 @@ struct CoupleSettingsSheet: View {
                 partnerSection(header: "Me", name: $identity.nameOne, partner: .one)
                 partnerSection(header: "My love", name: $identity.nameTwo, partner: .two)
 
+                Section {
+                    Picker(selection: $identity.me) {
+                        Text("Not set").tag(Partner?.none)
+                        Text(identity.nameOne.isEmpty ? "Me" : "\(identity.nameOne)")
+                            .tag(Partner?.some(.one))
+                        Text(identity.nameTwo.isEmpty ? "My love" : "\(identity.nameTwo)")
+                            .tag(Partner?.some(.two))
+                    } label: {
+                        Text("This phone is")
+                    }
+                } footer: {
+                    Text("So your answers are yours when your phones can talk to each other.")
+                }
+
                 Section("Language") {
                     Picker(selection: $languageRaw) {
                         ForEach(AppLanguage.allCases) { language in
