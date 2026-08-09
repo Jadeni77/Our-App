@@ -80,7 +80,9 @@ struct SpecialDateEditorSheet: View {
                     }
                 }
 
-                if existing != nil {
+                // The anniversary never opens this editor, but the guard belongs
+                // wherever a delete does — one rule, honoured by every path.
+                if let existing, existing.canDelete {
                     Section {
                         Button(role: .destructive) {
                             delete()
