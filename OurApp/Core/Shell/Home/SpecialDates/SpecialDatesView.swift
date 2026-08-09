@@ -22,6 +22,7 @@ struct SpecialDatesView: View {
             DreamyBackground()
 
             list(split)
+
         }
         .navigationTitle(Text("Special Dates"))
         .navigationBarTitleDisplayMode(.inline)
