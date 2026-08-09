@@ -10,10 +10,10 @@ struct HubCatalogTests {
         #expect(Set(ids).count == ids.count)
     }
 
-    @Test func specialDatesIsTheOnlyLiveEntryAndCarriesABadge() {
+    @Test func twoEntriesAreLiveAndBothCarryBadges() {
         let live = HubCatalog.entries.filter(\.isReady)
-        #expect(live.map(\.id) == ["special-dates"])
-        #expect(live.first?.makeBadge != nil)
+        #expect(live.map(\.id) == ["special-dates", "daily-question"])
+        #expect(live.allSatisfy { $0.makeBadge != nil })
     }
 
     @Test func comingSoonEntriesExplainThemselvesAndCarryNoBadge() {

@@ -6,8 +6,10 @@ import SwiftUI
 /// sub-pages. The module launcher lives on the Games tab (P11).
 ///
 /// DEBUG launch arguments exist solely so headless screenshot verification can
-/// reach a state simctl can't tap to: `-openSettings`, `-specialDates`.
+/// reach a state simctl can't tap to: `-openSettings`, `-specialDates`,
+/// `-dailyQuestion`, `-seedDailyQuestion`.
 struct CouplesHomeView: View {
+    @Environment(\.modelContext) private var modelContext
     @State private var identity = CoupleIdentityStore()
     @State private var tilt = TiltModel()
     @State private var showSettings = false
@@ -82,6 +84,11 @@ struct CouplesHomeView: View {
             .toolbar(.hidden, for: .navigationBar)   // the hero is Home's top
             .navigationDestination(for: HubRoute.self) { destination(for: $0) }
         }
+        // On the stack, not on its root content: a pushed `navigationDestination`
+        // is not a child of that content and would not inherit this — which is
+        // exactly how the Daily Question page shipped crashing while the badge,
+        // rendered inside the root, worked fine.
+        .environment(identity)
         .sheet(isPresented: $showSettings) {
             CoupleSettingsSheet(identity: identity)
         }
@@ -100,6 +107,13 @@ struct CouplesHomeView: View {
             if launchArguments.contains("-openSettings") { showSettings = true }
             if launchArguments.contains("-specialDates") {
                 path.append(HubRoute(entryID: "special-dates"))
+            }
+            #if DEBUG
+            DailyQuestionDebugSeed.runIfRequested(in: modelContext.container,
+                                                  identity: identity)
+            #endif
+            if launchArguments.contains("-dailyQuestion") {
+                path.append(HubRoute(entryID: "daily-question"))
             }
         }
         .onDisappear { tilt.stop() }

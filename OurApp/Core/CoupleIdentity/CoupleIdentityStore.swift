@@ -18,6 +18,7 @@ final class CoupleIdentityStore {
     private enum Keys {
         static let nameOne = "couple.nameOne"
         static let nameTwo = "couple.nameTwo"
+        static let me = "couple.me"
     }
 
     var nameOne: String {
@@ -25,6 +26,21 @@ final class CoupleIdentityStore {
     }
     var nameTwo: String {
         didSet { defaults.set(nameTwo, forKey: Keys.nameTwo) }
+    }
+    /// Which half of the couple this phone belongs to — the local author
+    /// identity every `QuestionAnswer` records. Nil until someone says.
+    ///
+    /// Nothing stops both phones choosing the same half; resolving that needs
+    /// the pairing step sync will bring, so it is deferred rather than
+    /// half-solved here.
+    var me: Partner? {
+        didSet {
+            if let me {
+                defaults.set(me.rawValue, forKey: Keys.me)
+            } else {
+                defaults.removeObject(forKey: Keys.me)
+            }
+        }
     }
     private(set) var avatars: [Partner: UIImage] = [:]
 
@@ -41,6 +57,7 @@ final class CoupleIdentityStore {
 
         nameOne = defaults.string(forKey: Keys.nameOne) ?? ""
         nameTwo = defaults.string(forKey: Keys.nameTwo) ?? ""
+        me = defaults.string(forKey: Keys.me).flatMap(Partner.init(rawValue:))
         for partner in Partner.allCases {
             if let image = UIImage(contentsOfFile: avatarURL(for: partner).path) {
                 avatars[partner] = image
