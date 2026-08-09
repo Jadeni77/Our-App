@@ -18,7 +18,7 @@ enum HubCatalog {
         HubEntry(id: "memories",
                  name: "Memories",
                  icon: .memories,
-                 kind: .comingSoon("When our phones can talk to each other")),
+                 kind: .page { AnyView(MemoriesView()) }),
     ]
 
     static func entry(_ id: String) -> HubEntry? {
