@@ -15,7 +15,14 @@ final class SpecialDate {
     var id: UUID = UUID()
     /// User data — stored verbatim, never translated.
     var title: String = ""
+    /// **Retired.** Superseded by `iconID`; kept only so `DateIconMigration`
+    /// can read it, because dropping the column in the same change that
+    /// consumes it would destroy every existing pick. Removed in a later slice
+    /// once the migration has run on both phones. Nothing reads it in the UI.
     var emoji: String = "🎂"
+    /// The drawn icon's stable id. `""` means "not migrated yet" — deliberately
+    /// distinct from `heart`, so migrating can't be confused with choosing.
+    var iconID: String = ""
     /// The anchor day. For a yearly date only its month/day matter after the
     /// first occurrence; the year records when it started.
     var date: Date = Date.now
@@ -29,13 +36,15 @@ final class SpecialDate {
     var deletedAt: Date?
 
     init(title: String, emoji: String = "🎂", date: Date,
-         repeatsYearly: Bool = false, isAnniversary: Bool = false) {
+         repeatsYearly: Bool = false, isAnniversary: Bool = false,
+         icon: DateIcon? = nil) {
         self.id = UUID()
         self.title = title
         self.emoji = emoji
         self.date = date
         self.repeatsYearly = repeatsYearly
         self.isAnniversary = isAnniversary
+        self.iconID = icon?.rawValue ?? ""
         self.updatedAt = .now
     }
 }
@@ -46,6 +55,12 @@ extension SpecialDate {
     /// tombstone rule eventually gets missed in one of them.
     static var visible: Predicate<SpecialDate> {
         #Predicate<SpecialDate> { $0.deletedAt == nil }
+    }
+
+    /// Always resolves — an unmigrated or unrecognised id reads as `.heart`.
+    var icon: DateIcon {
+        get { DateIcon.resolve(iconID) }
+        set { iconID = newValue.rawValue }
     }
 
     /// Home's single-row lookup.

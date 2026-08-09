@@ -41,3 +41,62 @@ struct DateIconTests {
         #expect(DateIcon.matching(emoji: "") == .heart)
     }
 }
+
+@MainActor
+struct DateIconMigrationTests {
+    private func rows(_ context: ModelContext) throws -> [SpecialDate] {
+        try context.fetch(FetchDescriptor<SpecialDate>())
+    }
+
+    @Test func fillsEmptyIDsFromTheRetiredEmoji() throws {
+        let container = try Persistence.makeContainer(inMemory: true)
+        let context = ModelContext(container)
+        context.insert(SpecialDate(title: "Birthday", emoji: "🎂", date: .now))
+        context.insert(SpecialDate(title: "Trip", emoji: "✈️", date: .now))
+        context.insert(SpecialDate(title: "Odd", emoji: "🦕", date: .now))
+        try context.save()
+
+        DateIconMigration.runIfNeeded(in: container)
+
+        let byTitle = Dictionary(uniqueKeysWithValues: try rows(ModelContext(container))
+            .map { ($0.title, $0.icon) })
+        #expect(byTitle["Birthday"] == .cake)
+        #expect(byTitle["Trip"] == .plane)
+        #expect(byTitle["Odd"] == .heart)
+    }
+
+    @Test func leavesAChosenIconAlone() throws {
+        let container = try Persistence.makeContainer(inMemory: true)
+        let context = ModelContext(container)
+        // Emoji says cake, but the id says star — the id is the user's choice
+        // and must win, or migrating twice would overwrite real picks.
+        context.insert(SpecialDate(title: "Chosen", emoji: "🎂", date: .now, icon: .star))
+        try context.save()
+
+        DateIconMigration.runIfNeeded(in: container)
+
+        #expect(try rows(ModelContext(container)).first?.icon == .star)
+    }
+
+    @Test func isIdempotent() throws {
+        let container = try Persistence.makeContainer(inMemory: true)
+        let context = ModelContext(container)
+        context.insert(SpecialDate(title: "Birthday", emoji: "🎂", date: .now))
+        try context.save()
+
+        DateIconMigration.runIfNeeded(in: container)
+        DateIconMigration.runIfNeeded(in: container)
+
+        let all = try rows(ModelContext(container))
+        #expect(all.count == 1)
+        #expect(all.first?.icon == .cake)
+    }
+
+    @Test func aNewDateKeepsTheIconItWasGiven() throws {
+        let container = try Persistence.makeContainer(inMemory: true)
+        let context = ModelContext(container)
+        context.insert(SpecialDate(title: "Fresh", date: .now, icon: .wave))
+        try context.save()
+        #expect(try rows(ModelContext(container)).first?.icon == .wave)
+    }
+}

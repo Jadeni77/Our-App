@@ -19,6 +19,7 @@ struct OurAppApp: App {
             fatalError("Failed to create model container: \(error)")
         }
         AnniversaryMigration.runIfNeeded(in: container)
+        DateIconMigration.runIfNeeded(in: container)
         #if DEBUG
         SpecialDatesDebugSeed.runIfRequested(in: container)
         #endif
