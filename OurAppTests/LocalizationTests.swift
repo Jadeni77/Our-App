@@ -39,6 +39,16 @@ struct LocalizationTests {
         #expect(localizedValue("System", language: "zh-Hant") == "跟隨系統")
     }
 
+    @Test func hubAndSpecialDatesStringsAreTranslated() {
+        #expect(localizedValue("Special Dates", language: "zh-Hans") == "纪念日")
+        #expect(localizedValue("Special Dates", language: "zh-Hant") == "紀念日")
+        #expect(localizedValue("Coming up", language: "zh-Hans") == "即将到来")
+        #expect(localizedValue("Passed", language: "zh-Hant") == "已過去")
+        #expect(localizedValue("Repeats every year", language: "zh-Hans") == "每年重复")
+        #expect(localizedValue("When our phones can talk to each other",
+                               language: "zh-Hant") == "等我們的手機能互通時")
+    }
+
     @Test func counterHeroStringsAreTranslated() {
         #expect(localizedValue("We've been together for", language: "zh-Hans") == "我们在一起已经")
         #expect(localizedValue("We've been together for", language: "zh-Hant") == "我們在一起已經")

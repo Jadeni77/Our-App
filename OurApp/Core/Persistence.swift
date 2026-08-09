@@ -8,6 +8,7 @@ enum Persistence {
     static func makeContainer(inMemory: Bool = false) throws -> ModelContainer {
         let schema = Schema([
             DecisionRecord.self,
+            SpecialDate.self,
             MoonshotLevelResult.self,
             MoonshotCosmeticSetting.self,
             MoonshotCoachSeen.self,

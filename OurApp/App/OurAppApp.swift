@@ -18,6 +18,9 @@ struct OurAppApp: App {
             // Cannot run without local storage; crashing at launch beats silent data loss.
             fatalError("Failed to create model container: \(error)")
         }
+        #if DEBUG
+        SpecialDatesDebugSeed.runIfRequested(in: container)
+        #endif
     }
 
     var body: some Scene {
