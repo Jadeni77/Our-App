@@ -107,20 +107,35 @@ enum SpecialDateSchedule {
     static func ordered(_ dates: [SpecialDate],
                         from now: Date = .now,
                         calendar: Calendar = .current)
-        -> (comingUp: [Entry], passed: [Entry]) {
-        var comingUp: [Entry] = []
-        var passed: [Entry] = []
+        -> (anniversary: Entry?, comingUp: [Entry], passed: [Entry]) {
+        var flagged: [SpecialDate] = []
+        var rest: [SpecialDate] = []
 
         for date in dates where date.deletedAt == nil {
-            let status = status(of: date.date, repeatsYearly: date.repeatsYearly,
-                                from: now, calendar: calendar)
-            if case .passed = status {
-                passed.append((date, status))
-            } else {
-                comingUp.append((date, status))
-            }
+            if date.isAnniversary { flagged.append(date) } else { rest.append(date) }
         }
-        return (comingUp.sorted(by: nearestFirst), passed.sorted(by: nearestFirst))
+
+        // Exactly one anniversary is supposed to exist (P17). If more ever do,
+        // the earliest wins and the others render as normal dates — a defined
+        // outcome, and one that can't hide the stray row.
+        let sortedFlagged = flagged.sorted { $0.date < $1.date }
+        rest.append(contentsOf: sortedFlagged.dropFirst())
+
+        func entry(for date: SpecialDate) -> Entry {
+            (date, status(of: date.date, repeatsYearly: date.repeatsYearly,
+                          from: now, calendar: calendar))
+        }
+
+        var comingUp: [Entry] = []
+        var passed: [Entry] = []
+        for date in rest {
+            let made = entry(for: date)
+            if case .passed = made.status { passed.append(made) } else { comingUp.append(made) }
+        }
+
+        return (anniversary: sortedFlagged.first.map(entry),
+                comingUp: comingUp.sorted(by: nearestFirst),
+                passed: passed.sorted(by: nearestFirst))
     }
 
     /// Ties break on title so two dates on the same day can't swap places
@@ -147,9 +162,14 @@ enum SpecialDateSchedule {
                       nearDays: Int = 7,
                       from now: Date = .now,
                       calendar: Calendar = .current) -> Status? {
-        guard let next = ordered(dates, from: now, calendar: calendar).comingUp.first else {
-            return nil
-        }
+        let split = ordered(dates, from: now, calendar: calendar)
+        // The anniversary has its own card on the page, but it is exactly the
+        // date we most want warning about — so the tile weighs it against the
+        // others rather than ignoring it.
+        let candidates = ([split.anniversary].compactMap { $0 } + split.comingUp)
+            .sorted(by: nearestFirst)
+
+        guard let next = candidates.first else { return nil }
         switch next.status {
         case .today:
             return .today
