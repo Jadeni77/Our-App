@@ -39,23 +39,9 @@ struct CouplesHomeView: View {
                             .scaleEffect(pulse ? 1.15 : 0.95)
                             .animation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true), value: pulse)
 
-                        if let anniversary = identity.anniversary {
-                            TogetherCounterView(anniversary: anniversary)
-                        } else {
-                            Button {
-                                showSettings = true
-                            } label: {
-                                Label {
-                                    Text("Set your anniversary")
-                                } icon: {
-                                    Image(systemName: "heart.circle.fill")
-                                }
-                                .font(.system(.body, design: .rounded).weight(.semibold))
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 20)
-                                .padding(.vertical, 12)
-                            }
-                            .glassCard(cornerRadius: 22)
+                        HomeCounter {
+                            Haptics.tap()
+                            path.append(HubRoute(entryID: "special-dates"))
                         }
 
                         if identity.nameOne.isEmpty && identity.nameTwo.isEmpty {
