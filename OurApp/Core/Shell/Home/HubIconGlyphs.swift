@@ -30,16 +30,20 @@ private struct CalendarHeartGlyph: View {
             }
             .offset(y: -side * 0.28)
 
+            // The overlay must be attached BEFORE the offset. `.offset` shifts
+            // rendering without moving the layout frame, so an overlay applied
+            // after it aligns to the un-shifted frame and the header bar stops
+            // tracking the card the moment either offset is retuned.
             RoundedRectangle(cornerRadius: side * 0.09, style: .continuous)
                 .fill(.white)
                 .frame(width: side * 0.52, height: side * 0.44)
-                .offset(y: side * 0.04)
                 .overlay(alignment: .top) {
                     Rectangle()
                         .fill(accent.opacity(0.35))
-                        .frame(width: side * 0.52, height: side * 0.03)
+                        .frame(height: side * 0.03)
                         .offset(y: side * 0.11)
                 }
+                .offset(y: side * 0.04)
 
             HeartShape()
                 .fill(accent)
@@ -69,7 +73,10 @@ private struct PairedBubblesGlyph: View {
                 .fill(.white.opacity(0.55))
                 .frame(width: side * 0.44, height: side * 0.32)
                 .scaleEffect(x: -1, y: 1)
-                .offset(x: side * 0.11, y: -side * 0.17)
+                // High enough that the mirrored tail clears the front bubble.
+                // Sitting lower, it is fully occluded and the mirror is a no-op
+                // — the back bubble then just reads as a plain rounded rect.
+                .offset(x: side * 0.13, y: -side * 0.22)
 
             // Ours, carrying the question.
             BubbleShape()
@@ -154,12 +161,12 @@ private struct PhotoStackGlyph: View {
 #Preview {
     VStack(spacing: 24) {
         HStack(spacing: 16) {
-            ForEach(Array(HubIcon.allCases.enumerated()), id: \.offset) { _, icon in
+            ForEach(HubIcon.allCases, id: \.self) { icon in
                 HubIconView(icon: icon).frame(width: 110, height: 110)
             }
         }
         HStack(spacing: 16) {
-            ForEach(Array(HubIcon.allCases.enumerated()), id: \.offset) { _, icon in
+            ForEach(HubIcon.allCases, id: \.self) { icon in
                 HubIconView(icon: icon).frame(width: 78, height: 78)
             }
         }

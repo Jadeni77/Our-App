@@ -54,7 +54,7 @@ struct HubIconView: View {
 
 #Preview {
     HStack(spacing: 18) {
-        ForEach(Array(HubIcon.allCases.enumerated()), id: \.offset) { _, icon in
+        ForEach(HubIcon.allCases, id: \.self) { icon in
             HubIconView(icon: icon).frame(width: 78, height: 78)
         }
     }

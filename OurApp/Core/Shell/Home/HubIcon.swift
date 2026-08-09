@@ -10,8 +10,17 @@ import SwiftUI
 enum HubIcon: CaseIterable {
     case specialDates, dailyQuestion, memories
 
-    /// Light → mid → deep, built around an existing `Theme` stop so the set
-    /// can't drift out of the palette the background is painted with.
+    /// Light → mid → deep. The **mid stop is the `Theme` token itself**; the two
+    /// ends are hand-tuned around it.
+    ///
+    /// Deriving the ends programmatically (mix toward white and toward
+    /// `Theme.indigo`) was tried and reverted: it turned the heart mauve and
+    /// drained the separation between the three icons. Hue ramps are a
+    /// judgement, not an arithmetic mean.
+    ///
+    /// The cost of that choice, stated so it isn't a surprise: **if `Theme`'s
+    /// palette is ever re-tuned (as it was in P8), these six literals must be
+    /// re-tuned with it.** Nothing in the build will catch the drift.
     var ramp: (light: Color, mid: Color, deep: Color) {
         switch self {
         case .specialDates:

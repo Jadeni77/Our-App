@@ -4,6 +4,11 @@ import SwiftUI
 /// the caller sizes it and the shape scales — no fixed points anywhere.
 
 /// A rounded heart: two lobes meeting at a point.
+///
+/// Expects a frame of roughly **w/h 1.05–1.2** (both callers sit at ~1.1). The
+/// lobe radius scales off the width while its centre scales off the height, so
+/// a much wider frame lifts the lobes above y = 0 — and shapes aren't clipped
+/// to their frame, so it would bleed rather than fail visibly.
 struct HeartShape: Shape {
     func path(in rect: CGRect) -> Path {
         let width = rect.width, height = rect.height

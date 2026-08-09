@@ -34,6 +34,9 @@ struct HubCatalogTests {
     @Test func everyEntryCarriesADistinctIcon() {
         let icons = HubCatalog.entries.map(\.icon)
         #expect(icons == [.specialDates, .dailyQuestion, .memories])
-        #expect(Set(HubCatalog.entries.map(\.id)).count == icons.count)
+        // Distinctness of the *icons* — a copy-pasted fourth entry reusing an
+        // existing one would otherwise only trip the literal above, and the
+        // tempting "fix" for that is to edit the literal to match.
+        #expect(Set(icons).count == icons.count)
     }
 }
