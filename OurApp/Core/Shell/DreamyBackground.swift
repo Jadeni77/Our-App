@@ -7,6 +7,12 @@ import SwiftUI
 /// and stateless.
 struct DreamyBackground: View {
     var parallax: CGSize = .zero
+    /// Home's hero art. Sub-pages pass `false`: the moon sits at 20% of the
+    /// screen height with a 300pt halo — positioned to clear Home's avatars and
+    /// sit above its counter — which is exactly where a sub-page puts its own
+    /// content, and the halo washes the text out. Same reasoning as the tilt
+    /// parallax they already drop: it belongs to Home.
+    var showsMoon: Bool = true
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
@@ -22,8 +28,10 @@ struct DreamyBackground: View {
                      x: 0.72 + 0.08 * cos(t / 9), y: 0.62 + 0.07 * sin(t / 15))
                     .offset(x: parallax.width * 1.6, y: parallax.height * 1.6)
 
-                moon(t: t)
-                    .offset(x: parallax.width * 1.2, y: parallax.height * 1.2)
+                if showsMoon {
+                    moon(t: t)
+                        .offset(x: parallax.width * 1.2, y: parallax.height * 1.2)
+                }
 
                 ParticleField(time: t)
                     .offset(x: parallax.width * 0.6, y: parallax.height * 0.6)

@@ -40,14 +40,12 @@ enum SpecialDatesDebugSeed {
                                        repeatsYearly: true, isAnniversary: true))
         }
 
-        context.insert(SpecialDate(title: "Her birthday", emoji: "🎂",
-                                   date: offset(3), repeatsYearly: true))
-        context.insert(SpecialDate(title: "Kyoto trip", emoji: "✈️",
-                                   date: offset(26)))
-        context.insert(SpecialDate(title: "Moved in together", emoji: "🏠",
-                                   date: offset(88), repeatsYearly: true))
-        context.insert(SpecialDate(title: "First date", emoji: "🎡",
-                                   date: offset(-1165)))
+        context.insert(SpecialDate(title: "Her birthday", date: offset(3),
+                                   repeatsYearly: true, icon: .cake))
+        context.insert(SpecialDate(title: "Kyoto trip", date: offset(26), icon: .plane))
+        context.insert(SpecialDate(title: "Moved in together", date: offset(88),
+                                   repeatsYearly: true, icon: .home))
+        context.insert(SpecialDate(title: "First date", date: offset(-1165), icon: .star))
         try? context.save()
     }
 }
