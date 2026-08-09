@@ -10,6 +10,44 @@ struct LocalizationTests {
         return value == "«missing»" ? nil : value
     }
 
+    /// Catches the failure this suite previously could not: a string that
+    /// reached the catalog by build-time extraction, carrying no translations
+    /// at all. `Not answered today` shipped that way.
+    @Test func everyCatalogEntryHasAllThreeLanguages() throws {
+        // The source catalog, not the bundle: `.xcstrings` compiles into
+        // `.lproj` files, so the authored entry is only visible on disk — and
+        // an entry with no translations is exactly what compiles away silently.
+        let url = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()          // OurAppTests
+            .deletingLastPathComponent()          // repo root
+            .appendingPathComponent("OurApp/Resources/Localizable.xcstrings")
+        let data = try Data(contentsOf: url)
+        let root = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        let strings = root["strings"] as! [String: Any]
+
+        /// Symbols, emoji and bare format specifiers are the same in every
+        /// language, so they legitimately carry no translations. Anything with
+        /// an actual word in it does not.
+        func needsTranslating(_ key: String) -> Bool {
+            let withoutFormats = key.replacingOccurrences(
+                of: "%[0-9$]*(lld|ld|d|@|f)", with: "", options: .regularExpression)
+            return withoutFormats.contains { $0.isLetter }
+        }
+
+        var untranslated: [String] = []
+        for (key, value) in strings where !key.isEmpty && needsTranslating(key) {
+            let entry = value as! [String: Any]
+            guard let localizations = entry["localizations"] as? [String: Any] else {
+                untranslated.append(key)
+                continue
+            }
+            for language in ["en", "zh-Hans", "zh-Hant"] where localizations[language] == nil {
+                untranslated.append("\(key) [\(language)]")
+            }
+        }
+        #expect(untranslated.isEmpty, "untranslated catalog entries: \(untranslated)")
+    }
+
     @Test func appShipsAllThreeLanguages() {
         for language in ["en", "zh-Hans", "zh-Hant"] {
             #expect(Bundle.main.path(forResource: language, ofType: "lproj") != nil,
@@ -42,20 +80,20 @@ struct LocalizationTests {
     @Test func hubAndSpecialDatesStringsAreTranslated() {
         #expect(localizedValue("Special Dates", language: "zh-Hans") == "纪念日")
         #expect(localizedValue("Special Dates", language: "zh-Hant") == "紀念日")
-        #expect(localizedValue("Coming up", language: "zh-Hans") == "即将到来")
-        #expect(localizedValue("Passed", language: "zh-Hant") == "已過去")
+        #expect(localizedValue("Coming up", language: "zh-Hans") == "快到了")
+        #expect(localizedValue("Passed", language: "zh-Hant") == "過去")
         #expect(localizedValue("Repeats every year", language: "zh-Hans") == "每年重复")
         #expect(localizedValue("When our phones can talk to each other",
-                               language: "zh-Hant") == "等我們的手機能互通時")
+                               language: "zh-Hant") == "等兩台手機連上就能用")
     }
 
     @Test func anniversaryStringsAreTranslated() {
         #expect(localizedValue("Our anniversary", language: "zh-Hans") == "我们的纪念日")
         #expect(localizedValue("Our anniversary", language: "zh-Hant") == "我們的紀念日")
-        #expect(localizedValue("Set the day we started", language: "zh-Hans") == "设置我们开始的那天")
-        #expect(localizedValue("since %@", language: "zh-Hant") == "始於 %@")
+        #expect(localizedValue("Set the day we started", language: "zh-Hans") == "设置在一起的日子")
+        #expect(localizedValue("since %@", language: "zh-Hant") == "從 %@ 開始")
         #expect(localizedValue("%lld days until the next one",
-                               language: "zh-Hans") == "距离下一个还有 %lld 天")
+                               language: "zh-Hans") == "还有 %lld 天")
     }
 
     @Test func iconPickerStringIsTranslated() {

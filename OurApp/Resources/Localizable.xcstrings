@@ -59,13 +59,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "距离下一个还有 %lld 天"
+            "value" : "还有 %lld 天"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "距離下一個還有 %lld 天"
+            "value" : "還有 %lld 天"
           }
         }
       }
@@ -347,13 +347,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "添加日子"
+            "value" : "添加纪念日"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "新增日子"
+            "value" : "新增紀念日"
           }
         }
       }
@@ -1152,13 +1152,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "即将到来"
+            "value" : "快到了"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "即將到來"
+            "value" : "快到了"
           }
         }
       }
@@ -1543,13 +1543,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "过往"
+            "value" : "以前"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "過往"
+            "value" : "以前"
           }
         }
       }
@@ -1589,13 +1589,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "编辑日子"
+            "value" : "编辑纪念日"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "編輯日子"
+            "value" : "編輯紀念日"
           }
         }
       }
@@ -2761,13 +2761,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "新的日子"
+            "value" : "新纪念日"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "新的日子"
+            "value" : "新紀念日"
           }
         }
       }
@@ -2853,13 +2853,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "还没有回答 —— 就从今天开始吧"
+            "value" : "还没有回答，就从今天开始吧"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "還沒有回答 —— 就從今天開始吧"
+            "value" : "還沒有回答，就從今天開始吧"
           }
         }
       }
@@ -2876,19 +2876,39 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "还没有其他日子 —— 把我们不想错过的加进来"
+            "value" : "还没有别的日子，想记住的都可以加进来"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "還沒有其他日子 —— 把我們不想錯過的加進來"
+            "value" : "還沒有別的日子，想記住的都可以加進來"
           }
         }
       }
     },
     "Not answered today" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not answered today"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今天还没回答"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今天還沒回答"
+          }
+        }
+      }
     },
     "Not equipped" : {
       "extractionState" : "manual",
@@ -2925,13 +2945,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "未设置"
+            "value" : "还没选"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "未設定"
+            "value" : "還沒選"
           }
         }
       }
@@ -3477,13 +3497,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已过去"
+            "value" : "过去"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已過去"
+            "value" : "過去"
           }
         }
       }
@@ -4006,13 +4026,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "设置我们开始的那天"
+            "value" : "设置在一起的日子"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "設定我們開始的那天"
+            "value" : "設定在一起的日子"
           }
         }
       }
@@ -4075,13 +4095,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "始于 %@"
+            "value" : "从 %@ 开始"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "始於 %@"
+            "value" : "從 %@ 開始"
           }
         }
       }
@@ -4121,13 +4141,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "这样等手机互通时，回答才知道是谁写的。"
+            "value" : "这样连上以后，才分得清哪句是谁写的。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "這樣等手機互通時，回答才知道是誰寫的。"
+            "value" : "這樣連上以後，才分得清哪句是誰寫的。"
           }
         }
       }
@@ -4397,13 +4417,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "点一下来回答"
+            "value" : "写下你的回答"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "點一下來回答"
+            "value" : "寫下你的回答"
           }
         }
       }
@@ -4420,13 +4440,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请先告诉我们这台手机是谁的"
+            "value" : "先告诉我们这台手机是谁在用"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "請先告訴我們這台手機是誰的"
+            "value" : "先告訴我們這台手機是誰在用"
           }
         }
       }
@@ -4535,13 +4555,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "我们开始的那天"
+            "value" : "在一起的那天"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "我們開始的那天"
+            "value" : "在一起的那天"
           }
         }
       }
@@ -4696,13 +4716,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "下一个就是今天"
+            "value" : "就是今天"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "下一個就是今天"
+            "value" : "就是今天"
           }
         }
       }
@@ -4742,13 +4762,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "对方的回答"
+            "value" : "TA 的回答"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "對方的回答"
+            "value" : "TA 的回答"
           }
         }
       }
@@ -4765,13 +4785,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "这台手机是"
+            "value" : "这台手机属于"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "這台手機是"
+            "value" : "這台手機屬於"
           }
         }
       }
@@ -5030,13 +5050,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "等待对方 —— 等你们的手机能互通时就会出现"
+            "value" : "等 TA 回答，两台手机连上后就能看到"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "等待對方 —— 等你們的手機能互通時就會出現"
+            "value" : "等 TA 回答，兩台手機連上後就能看到"
           }
         }
       }
@@ -5122,13 +5142,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "我们要记住什么？"
+            "value" : "想记住什么日子？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "我們要記住什麼？"
+            "value" : "想記住什麼日子？"
           }
         }
       }
@@ -6433,13 +6453,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "等我们的手机能互通时"
+            "value" : "等两台手机连上就能用"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "等我們的手機能互通時"
+            "value" : "等兩台手機連上就能用"
           }
         }
       }
