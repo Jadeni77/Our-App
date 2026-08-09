@@ -103,7 +103,7 @@ struct LocalizationTests {
 
     @Test func dailyQuestionStringsAreTranslated() {
         #expect(localizedValue("Daily Question", language: "zh-Hans") == "每日问答")
-        #expect(localizedValue("What made you smile today?", language: "zh-Hans") == "今天有什么让你笑了？")
+        #expect(localizedValue("What made you smile today?", language: "zh-Hans") == "今天有什么高兴的事情吗？")
         #expect(localizedValue("What do you love most about us?", language: "zh-Hant") == "你最喜歡我們之間的什麼？")
         #expect(localizedValue("Your answer", language: "zh-Hant") == "你的回答")
     }

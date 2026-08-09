@@ -2118,13 +2118,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你难过的时候希望被怎样安慰？"
+            "value" : "你难过的时候，希望我怎么安慰你？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你難過的時候希望被怎樣安慰？"
+            "value" : "你難過的時候，希望我怎麼安慰你？"
           }
         }
       }
@@ -5188,13 +5188,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "小时候你信过什么后来发现是错的？"
+            "value" : "小时候你相信过什么，后来发现是错的？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "小時候你信過什麼後來發現是錯的？"
+            "value" : "小時候你相信過什麼，後來發現是錯的？"
           }
         }
       }
@@ -5211,13 +5211,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你最近梦到了什么？"
+            "value" : "你最近做了什么梦吗？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你最近夢到了什麼？"
+            "value" : "你最近做了什麼夢嗎？"
           }
         }
       }
@@ -5257,13 +5257,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "今天你在担心什么？"
+            "value" : "今天有什么担心的事情吗？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "今天你在擔心什麼？"
+            "value" : "今天有什麼擔心的事情嗎？"
           }
         }
       }
@@ -5326,13 +5326,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "现在你最需要多一点的是什么？"
+            "value" : "你现在最缺的是什么？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "現在你最需要多一點的是什麼？"
+            "value" : "你現在最缺的是什麼？"
           }
         }
       }
@@ -5349,13 +5349,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "入睡前你都在想什么？"
+            "value" : "你睡前一般都在想什么？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "入睡前你都在想什麼？"
+            "value" : "你睡前一般都在想什麼？"
           }
         }
       }
@@ -5395,13 +5395,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "哪种食物你永远吃不腻？"
+            "value" : "你有什么永远吃不腻的食物吗？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "哪種食物你永遠吃不膩？"
+            "value" : "你有什麼永遠吃不膩的食物嗎？"
           }
         }
       }
@@ -5418,13 +5418,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你希望常听到哪句夸奖？"
+            "value" : "你希望我常夸你什么？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你希望常聽到哪句誇獎？"
+            "value" : "你希望我常誇你什麼？"
           }
         }
       }
@@ -5441,13 +5441,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "有什么恐惧你基本已经克服了？"
+            "value" : "有什么以前怕的东西，现在基本不怕了？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "有什麼恐懼你基本已經克服了？"
+            "value" : "有什麼以前怕的東西，現在基本不怕了？"
           }
         }
       }
@@ -5464,13 +5464,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你悄悄学会了我的哪个习惯？"
+            "value" : "你有没有不知不觉学会我的什么习惯？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你悄悄學會了我的哪個習慣？"
+            "value" : "你有沒有不知不覺學會我的什麼習慣？"
           }
         }
       }
@@ -5510,13 +5510,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你想对自己许下什么承诺？"
+            "value" : "你想跟自己约定什么？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你想對自己許下什麼承諾？"
+            "value" : "你想跟自己約定什麼？"
           }
         }
       }
@@ -5533,13 +5533,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你从小到大一直守着的规矩是什么？"
+            "value" : "有什么从小的规矩你到现在还守着？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你從小到大一直守著的規矩是什麼？"
+            "value" : "有什麼從小的規矩你到現在還守著？"
           }
         }
       }
@@ -5556,13 +5556,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "哪件小事会立刻毁掉你的心情？"
+            "value" : "哪件小事会让你一下子心情变差？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "哪件小事會立刻毀掉你的心情？"
+            "value" : "哪件小事會讓你一下子心情變差？"
           }
         }
       }
@@ -5579,13 +5579,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "关于家人，你最爱讲哪个故事？"
+            "value" : "关于家里人，你最爱讲的是哪件事？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "關於家人，你最愛講哪個故事？"
+            "value" : "關於家裡人，你最愛講的是哪件事？"
           }
         }
       }
@@ -5602,13 +5602,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "哪件小事让今天变好了一点？"
+            "value" : "今天有什么小事让你心情好一点吗？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "哪件小事讓今天變好了一點？"
+            "value" : "今天有什麼小事讓你心情好一點嗎？"
           }
         }
       }
@@ -5648,13 +5648,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "我做的哪件小事是你喜欢的？"
+            "value" : "你最喜欢我做的哪件小事？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "我做的哪件小事是你喜歡的？"
+            "value" : "你最喜歡我做的哪件小事？"
           }
         }
       }
@@ -5671,13 +5671,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "这个月我们该一起尝试什么？"
+            "value" : "这个月我们一起试点什么好？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "這個月我們該一起嘗試什麼？"
+            "value" : "這個月我們一起試點什麼好？"
           }
         }
       }
@@ -5694,13 +5694,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "最近你对什么感到好奇？"
+            "value" : "你最近对什么特别好奇？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "最近你對什麼感到好奇？"
+            "value" : "你最近對什麼特別好奇？"
           }
         }
       }
@@ -5717,13 +5717,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "今天你想感谢什么？"
+            "value" : "今天有什么让你觉得感激的吗？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "今天你想感謝什麼？"
+            "value" : "今天有什麼讓你覺得感激的嗎？"
           }
         }
       }
@@ -5740,13 +5740,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "有什么是你觉得美、别人却未必懂的？"
+            "value" : "有什么东西你觉得很美，别人却不一定懂？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "有什麼是你覺得美、別人卻未必懂的？"
+            "value" : "有什麼東西你覺得很美，別人卻不一定懂？"
           }
         }
       }
@@ -5763,13 +5763,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "有什么事你后来改变了看法？"
+            "value" : "有什么事你后来想法变了吗？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "有什麼事你後來改變了看法？"
+            "value" : "有什麼事你後來想法變了嗎？"
           }
         }
       }
@@ -5832,13 +5832,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "有什么想跟我说、却总是忘记的事？"
+            "value" : "有什么话想跟我说，但总是忘了说的吗？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "有什麼想跟我說、卻總是忘記的事？"
+            "value" : "有什麼話想跟我說，但總是忘了說的嗎？"
           }
         }
       }
@@ -5855,13 +5855,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "有什么是你想原谅自己的？"
+            "value" : "有什么事你想放过自己吗？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "有什麼是你想原諒自己的？"
+            "value" : "有什麼事你想放過自己嗎？"
           }
         }
       }
@@ -5878,13 +5878,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "有什么是你想和我一起学的？"
+            "value" : "有什么是你想跟我一起学的吗？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "有什麼是你想和我一起學的？"
+            "value" : "有什麼是你想跟我一起學的嗎？"
           }
         }
       }
@@ -5901,13 +5901,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "有什么是你希望我们别再做的？"
+            "value" : "有什么事你希望我们以后别做了？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "有什麼是你希望我們別再做的？"
+            "value" : "有什麼事你希望我們以後別做了？"
           }
         }
       }
@@ -5970,13 +5970,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "这周最难的是什么？"
+            "value" : "这周有什么难熬的事情吗？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "這週最難的是什麼？"
+            "value" : "這週有什麼難熬的事情嗎？"
           }
         }
       }
@@ -5993,13 +5993,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你见过陌生人做过最善良的事是什么？"
+            "value" : "你见过陌生人做过最暖的一件事是什么？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你見過陌生人做過最善良的事是什麼？"
+            "value" : "你見過陌生人做過最暖的一件事是什麼？"
           }
         }
       }
@@ -6016,13 +6016,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "最近让你笑出声的是什么？"
+            "value" : "最近有什么事让你笑出声吗？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "最近讓你笑出聲的是什麼？"
+            "value" : "最近有什麼事讓你笑出聲嗎？"
           }
         }
       }
@@ -6039,13 +6039,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "别人对你说过最动听的话是什么？"
+            "value" : "别人对你说过最好听的话是什么？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "別人對你說過最動聽的話是什麼？"
+            "value" : "別人對你說過最好聽的話是什麼？"
           }
         }
       }
@@ -6085,13 +6085,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你最喜欢我们住的地方的什么？"
+            "value" : "我们住的地方，你最喜欢哪里？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你最喜歡我們住的地方的什麼？"
+            "value" : "我們住的地方，你最喜歡哪裡？"
           }
         }
       }
@@ -6131,13 +6131,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你心中完美的懒散一天是什么样？"
+            "value" : "你心中懒散的一天是什么样？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你心中完美的懶散一天是什麼樣？"
+            "value" : "你心中懶散的一天是什麼樣？"
           }
         }
       }
@@ -6154,13 +6154,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你最没用的一项本领是什么？"
+            "value" : "你有什么没什么用的本事吗？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你最沒用的一項本領是什麼？"
+            "value" : "你有什麼沒什麼用的本事嗎？"
           }
         }
       }
@@ -6177,13 +6177,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "今天有什么让你笑了？"
+            "value" : "今天有什么高兴的事情吗？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "今天有什麼讓你笑了？"
+            "value" : "今天有什麼高興的事情嗎？"
           }
         }
       }
@@ -6200,13 +6200,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "什么时候你最像你自己？"
+            "value" : "什么时候你觉得最像自己？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "什麼時候你最像你自己？"
+            "value" : "什麼時候你覺得最像自己？"
           }
         }
       }
@@ -6269,13 +6269,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "哪种气味会立刻把你带回某个地方？"
+            "value" : "有什么味道会一下子让你想起某个地方吗？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "哪種氣味會立刻把你帶回某個地方？"
+            "value" : "有什麼味道會一下子讓你想起某個地方嗎？"
           }
         }
       }
@@ -6338,13 +6338,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "一个完全空闲的周末你会做什么？"
+            "value" : "完全空下来的一个周末，你想怎么过？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "一個完全空閒的週末你會做什麼？"
+            "value" : "完全空下來的一個週末，你想怎麼過？"
           }
         }
       }
@@ -6407,13 +6407,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "上一次真心为自己骄傲是什么时候？"
+            "value" : "上一次对自己感到很骄傲是什么时候？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "上一次真心為自己驕傲是什麼時候？"
+            "value" : "上一次對自己感到很驕傲是什麼時候？"
           }
         }
       }
@@ -6430,13 +6430,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "上一次让自己意外是什么时候？"
+            "value" : "上一次你自己都觉得意外是什么时候？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "上一次讓自己意外是什麼時候？"
+            "value" : "上一次你自己都覺得意外是什麼時候？"
           }
         }
       }
@@ -6476,13 +6476,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在哪里你最感到平静？"
+            "value" : "你在哪里最觉得安心？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在哪裡你最感到平靜？"
+            "value" : "你在哪裡最覺得安心？"
           }
         }
       }
@@ -6522,13 +6522,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你最怀念童年的哪个地方？"
+            "value" : "你最怀念小时候的哪个地方？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你最懷念童年的哪個地方？"
+            "value" : "你最懷念小時候的哪個地方？"
           }
         }
       }
@@ -6568,13 +6568,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此刻你在想念谁？"
+            "value" : "你现在最想念谁？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此刻你在想念誰？"
+            "value" : "你現在最想念誰？"
           }
         }
       }
