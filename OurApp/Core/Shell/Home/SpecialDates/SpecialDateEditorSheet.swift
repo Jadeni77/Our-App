@@ -24,7 +24,12 @@ struct SpecialDateEditorSheet: View {
         self.existing = existing
         _title = State(initialValue: existing?.title ?? "")
         _emoji = State(initialValue: existing?.emoji ?? "🎂")
-        _date = State(initialValue: existing?.date ?? .now)
+        // Through `localDay`: the stored value is noon UTC, so seeding the
+        // picker with it raw shows the following day anywhere past UTC+12 —
+        // and then saving shifts the date by one.
+        _date = State(initialValue: existing.map {
+            SpecialDateSchedule.localDay(of: $0.date)
+        } ?? .now)
         _repeatsYearly = State(initialValue: existing?.repeatsYearly ?? false)
     }
 
@@ -80,6 +85,9 @@ struct SpecialDateEditorSheet: View {
                     }
                 }
 
+                // Only ever opened for rows in the list, and `ordered` keeps
+                // the real anniversary out of those, so anything reachable here
+                // is deletable.
                 if existing != nil {
                     Section {
                         Button(role: .destructive) {

@@ -1,8 +1,9 @@
 import PhotosUI
 import SwiftUI
 
-/// Edit names, anniversary, and avatar photos — the whole of "couple identity"
-/// (P6, local settings only). PhotosPicker runs out-of-process, so no photo
+/// Edit names and avatar photos — the whole of "couple identity" (P6, local
+/// settings only; the anniversary moved into Special Dates with P17).
+/// PhotosPicker runs out-of-process, so no photo
 /// library permission or Info.plist key is needed (non-obvious but true).
 struct CoupleSettingsSheet: View {
     @Bindable var identity: CoupleIdentityStore
@@ -20,18 +21,6 @@ struct CoupleSettingsSheet: View {
             Form {
                 partnerSection(header: "Me", name: $identity.nameOne, partner: .one)
                 partnerSection(header: "My love", name: $identity.nameTwo, partner: .two)
-
-                Section("Anniversary") {
-                    DatePicker(
-                        "Anniversary",
-                        selection: Binding(
-                            get: { identity.anniversary ?? .now },
-                            set: { identity.anniversary = $0 }
-                        ),
-                        in: ...Date.now,
-                        displayedComponents: .date
-                    )
-                }
 
                 Section("Language") {
                     Picker(selection: $languageRaw) {

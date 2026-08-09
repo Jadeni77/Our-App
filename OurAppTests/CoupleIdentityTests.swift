@@ -47,7 +47,9 @@ struct CoupleIdentityTests {
 
     // MARK: CoupleIdentityStore
 
-    @Test func namesAndAnniversaryRoundTrip() throws {
+    /// The anniversary left this store with P17 (it is a `SpecialDate` record
+    /// now, covered by AnniversaryMigrationTests). Names still round-trip here.
+    @Test func namesRoundTrip() throws {
         let suite = "test.\(UUID().uuidString)"
         let dir = try tempDirectory()
         let defaults = UserDefaults(suiteName: suite)!
@@ -56,13 +58,10 @@ struct CoupleIdentityTests {
         let store = CoupleIdentityStore(defaults: defaults, directory: dir)
         store.nameOne = "小彬"
         store.nameTwo = "Mei"
-        let date = Date(timeIntervalSinceReferenceDate: 700_000_000)
-        store.anniversary = date
 
         let reloaded = CoupleIdentityStore(defaults: defaults, directory: dir)
         #expect(reloaded.nameOne == "小彬")
         #expect(reloaded.nameTwo == "Mei")
-        #expect(reloaded.anniversary == date)
     }
 
     @Test func avatarPersistsToDiskAndReloads() throws {

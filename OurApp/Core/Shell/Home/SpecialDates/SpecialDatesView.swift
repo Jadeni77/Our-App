@@ -12,6 +12,7 @@ struct SpecialDatesView: View {
 
     @State private var editing: SpecialDate?
     @State private var addingNew = false
+    @State private var editingAnniversary = false
 
     var body: some View {
         let split = SpecialDateSchedule.ordered(dates)
@@ -20,11 +21,7 @@ struct SpecialDatesView: View {
             // No tilt parallax: motion sensors stay Home-only.
             DreamyBackground()
 
-            if dates.isEmpty {
-                emptyState
-            } else {
-                list(comingUp: split.comingUp, passed: split.passed)
-            }
+            list(split)
         }
         .navigationTitle(Text("Special Dates"))
         .navigationBarTitleDisplayMode(.inline)
@@ -48,25 +45,55 @@ struct SpecialDatesView: View {
         .sheet(item: $editing) { date in
             SpecialDateEditorSheet(existing: date)
         }
+        .sheet(isPresented: $editingAnniversary) {
+            AnniversaryEditorSheet(existing: split.anniversary?.date)
+        }
     }
 
-    private func list(comingUp: [SpecialDateSchedule.Entry],
-                      passed: [SpecialDateSchedule.Entry]) -> some View {
+    private func list(_ split: SpecialDateSchedule.Split) -> some View {
         List {
-            // A section with nothing in it would render a bare header.
-            if !comingUp.isEmpty {
-                section(header: "Coming up", entries: comingUp)
+            Section {
+                AnniversaryCard(entry: split.anniversary) {
+                    Haptics.tap()
+                    editingAnniversary = true
+                }
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 6, leading: 12, bottom: 2, trailing: 12))
             }
-            if !passed.isEmpty {
-                section(header: "Passed", entries: passed)
+
+            // A section with nothing in it would render a bare header.
+            if split.comingUp.isEmpty && split.passed.isEmpty {
+                noOtherDates
+            } else {
+                if !split.comingUp.isEmpty {
+                    section(header: "Coming up", entries: split.comingUp,
+                            anniversary: split.anniversary?.date)
+                }
+                if !split.passed.isEmpty {
+                    section(header: "Passed", entries: split.passed,
+                            anniversary: split.anniversary?.date)
+                }
             }
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
     }
 
+    private var noOtherDates: some View {
+        Text("No other dates yet — add the ones we don't want to miss")
+            .font(.system(.footnote, design: .rounded))
+            .foregroundStyle(.white.opacity(0.8))
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 24)
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+    }
+
     private func section(header: LocalizedStringKey,
-                         entries: [SpecialDateSchedule.Entry]) -> some View {
+                         entries: [SpecialDateSchedule.Entry],
+                         anniversary: SpecialDate?) -> some View {
         Section {
             // The status came back from `ordered` — rows never recompute it.
             ForEach(entries, id: \.date.id) { entry in
@@ -82,8 +109,13 @@ struct SpecialDatesView: View {
                 .listRowSeparator(.hidden)
                 .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
                 .swipeActions(edge: .trailing) {
+                    // Every row here is deletable by construction: `ordered`
+                    // hands the real anniversary back separately, so nothing in
+                    // these sections is the one Home depends on. Even a stray
+                    // second flagged row can be removed — which is the whole
+                    // point of it falling back to being an ordinary date.
                     Button(role: .destructive) {
-                        softDelete(date)
+                        softDelete(date, anniversary: anniversary)
                     } label: {
                         Label("Delete", systemImage: "trash")
                     }
@@ -98,33 +130,14 @@ struct SpecialDatesView: View {
         .listRowBackground(Color.clear)
     }
 
-    private var emptyState: some View {
-        VStack(spacing: 16) {
-            // Verbatim: it's decoration, not copy. A literal Text("💗") is a
-            // localizable key, so the build extracts it into the catalog as a
-            // string someone is expected to translate.
-            Text(verbatim: "💗").font(.system(size: 40))
-            Text("No dates yet — add the ones we don't want to miss")
-                .font(.system(.callout, design: .rounded))
-                .foregroundStyle(.white.opacity(0.9))
-                .multilineTextAlignment(.center)
-            Button {
-                Haptics.tap()
-                addingNew = true
-            } label: {
-                Text("Add a date")
-                    .font(.system(.body, design: .rounded).weight(.semibold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 22)
-                    .padding(.vertical, 12)
-            }
-            .glassCard(cornerRadius: 22)
-        }
-        .padding(32)
-    }
-
     /// Delete is a tombstone, never a removal (DESIGN.md §7 record hygiene).
-    private func softDelete(_ date: SpecialDate) {
+    ///
+    /// The guard is on the mutation rather than on the button, so a future call
+    /// site inherits it instead of having to remember it. It compares identity,
+    /// not the `isAnniversary` flag: a stray second flagged row is an ordinary
+    /// date and must stay removable.
+    private func softDelete(_ date: SpecialDate, anniversary: SpecialDate?) {
+        guard date.id != anniversary?.id else { return }
         Haptics.tap()
         date.deletedAt = .now
         date.updatedAt = .now

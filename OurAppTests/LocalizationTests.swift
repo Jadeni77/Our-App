@@ -49,6 +49,15 @@ struct LocalizationTests {
                                language: "zh-Hant") == "等我們的手機能互通時")
     }
 
+    @Test func anniversaryStringsAreTranslated() {
+        #expect(localizedValue("Our anniversary", language: "zh-Hans") == "我们的纪念日")
+        #expect(localizedValue("Our anniversary", language: "zh-Hant") == "我們的紀念日")
+        #expect(localizedValue("Set the day we started", language: "zh-Hans") == "设置我们开始的那天")
+        #expect(localizedValue("since %@", language: "zh-Hant") == "始於 %@")
+        #expect(localizedValue("%lld days until the next one",
+                               language: "zh-Hans") == "距离下一个还有 %lld 天")
+    }
+
     @Test func counterHeroStringsAreTranslated() {
         #expect(localizedValue("We've been together for", language: "zh-Hans") == "我们在一起已经")
         #expect(localizedValue("We've been together for", language: "zh-Hant") == "我們在一起已經")

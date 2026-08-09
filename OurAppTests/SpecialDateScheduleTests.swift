@@ -124,6 +124,7 @@ struct SpecialDateScheduleTests {
         #expect(split.passed.map(\.date.title) == ["Recent", "Old"])
         // The status travels with the date so rows never recompute it.
         #expect(split.comingUp.map(\.status) == [.today, .upcoming(days: 7), .upcoming(days: 88)])
+        #expect(split.anniversary == nil)
     }
 
     @MainActor
@@ -204,6 +205,95 @@ struct SpecialDateScheduleTests {
                                                 calendar: calendar)
 
         #expect(split.comingUp.map(\.date.title) == ["Live"])
+        #expect(split.passed.isEmpty)
+        #expect(split.anniversary == nil)
+    }
+
+    // MARK: The anniversary
+
+    @MainActor
+    @Test func theAnniversaryComesBackInItsOwnGroupAndNotInComingUp() {
+        let anniversary = SpecialDate(title: "", date: day(2023, 5, 21),
+                                      repeatsYearly: true, isAnniversary: true)
+        let birthday = SpecialDate(title: "Her birthday", date: day(2000, 8, 14),
+                                   repeatsYearly: true)
+
+        let split = SpecialDateSchedule.ordered([birthday, anniversary],
+                                                from: day(2026, 8, 7), calendar: calendar)
+
+        #expect(split.anniversary?.date === anniversary)
+        #expect(split.comingUp.map(\.date.title) == ["Her birthday"])
+        #expect(split.passed.isEmpty)
+    }
+
+    @MainActor
+    @Test func aSecondFlaggedRowFallsBackToBeingANormalDate() {
+        let first = SpecialDate(title: "First", date: day(2023, 5, 21),
+                                repeatsYearly: true, isAnniversary: true)
+        let stray = SpecialDate(title: "Stray", date: day(2024, 1, 2),
+                                repeatsYearly: true, isAnniversary: true)
+
+        let split = SpecialDateSchedule.ordered([stray, first],
+                                                from: day(2026, 8, 7), calendar: calendar)
+
+        // Earliest wins; the extra one is visible rather than silently hidden.
+        #expect(split.anniversary?.date.title == "First")
+        #expect(split.comingUp.map(\.date.title) == ["Stray"])
+    }
+
+    @MainActor
+    @Test func theAnniversaryStillBadgesTheHomeTile() {
+        let anniversary = SpecialDate(title: "", date: day(2023, 8, 10),
+                                      repeatsYearly: true, isAnniversary: true)
+        #expect(SpecialDateSchedule.badge(for: [anniversary],
+                                          from: day(2026, 8, 7),
+                                          calendar: calendar) == .upcoming(days: 3))
+    }
+
+    @MainActor
+    @Test func aNearerNormalDateBeatsTheAnniversaryForTheBadge() {
+        let anniversary = SpecialDate(title: "", date: day(2023, 8, 10),
+                                      repeatsYearly: true, isAnniversary: true)
+        let sooner = SpecialDate(title: "Sooner", date: day(2026, 8, 8))
+        #expect(SpecialDateSchedule.badge(for: [anniversary, sooner],
+                                          from: day(2026, 8, 7),
+                                          calendar: calendar) == .upcoming(days: 1))
+    }
+
+    @MainActor
+    @Test func theBadgeIgnoresAnAnniversaryOutsideTheWindow() {
+        // Without the `days <= nearDays` clamp the tile would carry a badge 365
+        // days a year — the anniversary must not get an exemption from it.
+        let anniversary = SpecialDate(title: "", date: day(2023, 3, 1),
+                                      repeatsYearly: true, isAnniversary: true)
+        #expect(SpecialDateSchedule.badge(for: [anniversary],
+                                          from: day(2026, 8, 7),
+                                          calendar: calendar) == nil)
+    }
+
+    @MainActor
+    @Test func aPassedAnniversaryDoesNotMaskARealUpcomingDate() {
+        // `distance` ranks "2 days ago" as near, so an un-repeating anniversary
+        // that has gone by would sort first and silence the badge entirely.
+        let stale = SpecialDate(title: "", date: day(2026, 8, 5), isAnniversary: true)
+        let soon = SpecialDate(title: "Soon", date: day(2026, 8, 12))
+        #expect(SpecialDateSchedule.badge(for: [stale, soon],
+                                          from: day(2026, 8, 7),
+                                          calendar: calendar) == .upcoming(days: 5))
+    }
+
+    @MainActor
+    @Test func aTombstonedAnniversaryLeavesTheCardSlotEmptyAndStaysOutOfBothSections() {
+        let anniversary = SpecialDate(title: "", date: day(2023, 5, 21),
+                                      repeatsYearly: true, isAnniversary: true)
+        anniversary.deletedAt = .now
+        let normal = SpecialDate(title: "Kyoto", date: day(2026, 9, 2))
+
+        let split = SpecialDateSchedule.ordered([anniversary, normal],
+                                                from: day(2026, 8, 7), calendar: calendar)
+
+        #expect(split.anniversary == nil)
+        #expect(split.comingUp.map(\.date.title) == ["Kyoto"])
         #expect(split.passed.isEmpty)
     }
 

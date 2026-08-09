@@ -20,18 +20,22 @@ final class SpecialDate {
     /// first occurrence; the year records when it started.
     var date: Date = Date.now
     var repeatsYearly: Bool = false
+    /// The one date Home's counter reads (P17). Exactly one record carries it.
+    var isAnniversary: Bool = false
     var updatedAt: Date = Date.now
     /// Nil until pairing exists — there is only one author on one phone today.
     var authorID: String?
     /// Soft-delete tombstone. Set on delete; the row is never removed.
     var deletedAt: Date?
 
-    init(title: String, emoji: String = "🎂", date: Date, repeatsYearly: Bool = false) {
+    init(title: String, emoji: String = "🎂", date: Date,
+         repeatsYearly: Bool = false, isAnniversary: Bool = false) {
         self.id = UUID()
         self.title = title
         self.emoji = emoji
         self.date = date
         self.repeatsYearly = repeatsYearly
+        self.isAnniversary = isAnniversary
         self.updatedAt = .now
     }
 }
@@ -42,5 +46,10 @@ extension SpecialDate {
     /// tombstone rule eventually gets missed in one of them.
     static var visible: Predicate<SpecialDate> {
         #Predicate<SpecialDate> { $0.deletedAt == nil }
+    }
+
+    /// Home's single-row lookup.
+    static var anniversary: Predicate<SpecialDate> {
+        #Predicate<SpecialDate> { $0.isAnniversary && $0.deletedAt == nil }
     }
 }
