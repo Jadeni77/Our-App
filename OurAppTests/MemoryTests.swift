@@ -94,3 +94,65 @@ struct MemoryPhotoStoreTests {
         }
     }
 }
+
+@MainActor
+struct MemoryRecordTests {
+    private func makeContext() throws -> ModelContext {
+        ModelContext(try Persistence.makeContainer(inMemory: true))
+    }
+
+    @Test func aMemoryRoundTripsWithItsPhotoOrder() throws {
+        let context = try makeContext()
+        let day = Date(timeIntervalSinceReferenceDate: 800_000_000)
+        context.insert(Memory(note: "Kyoto, first morning",
+                              day: day,
+                              authorID: Partner.one.rawValue,
+                              photoIDs: ["a", "b", "c"]))
+        try context.save()
+
+        let stored = try context.fetch(FetchDescriptor<Memory>()).first
+        #expect(stored?.note == "Kyoto, first morning")
+        // Order is meaningful — the first photo is what the grid shows.
+        #expect(stored?.photoIDs == ["a", "b", "c"])
+        #expect(stored?.deletedAt == nil)
+    }
+
+    @Test func theDayIsStoredAsAFloatingCivilDay() throws {
+        let context = try makeContext()
+        context.insert(Memory(note: "", day: Date(timeIntervalSinceReferenceDate: 800_000_000),
+                              authorID: Partner.one.rawValue, photoIDs: ["a"]))
+        try context.save()
+
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = TimeZone(secondsFromGMT: 0)!
+        let stored = try context.fetch(FetchDescriptor<Memory>()).first!
+        #expect(utc.component(.hour, from: stored.day) == 12)
+    }
+
+    @Test func theVisiblePredicateHidesTombstones() throws {
+        let context = try makeContext()
+        let kept = Memory(note: "kept", day: .now,
+                          authorID: Partner.one.rawValue, photoIDs: ["a"])
+        let gone = Memory(note: "gone", day: .now,
+                          authorID: Partner.one.rawValue, photoIDs: ["b"])
+        context.insert(kept)
+        context.insert(gone)
+        gone.deletedAt = .now
+        try context.save()
+
+        let visible = try context.fetch(FetchDescriptor<Memory>(predicate: Memory.visible))
+        #expect(visible.map(\.note) == ["kept"])
+    }
+
+    @Test func aMemoryKeepsAtMostNinePhotos() throws {
+        let context = try makeContext()
+        let tooMany = (1...15).map(String.init)
+        context.insert(Memory(note: "", day: .now,
+                              authorID: Partner.one.rawValue, photoIDs: tooMany))
+        try context.save()
+
+        // The picker caps selection, but the record is the last line of defence.
+        #expect(try context.fetch(FetchDescriptor<Memory>()).first?.photoIDs.count
+                == Memory.maxPhotos)
+    }
+}
