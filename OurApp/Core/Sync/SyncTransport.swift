@@ -15,6 +15,10 @@ protocol SyncTransport: Sendable {
 actor LoopbackCloud {
     private var envelopes: [(sequence: Int, envelope: SyncEnvelope)] = []
     private var nextSequence = 0
+    private var assets: [String: Data] = [:]
+
+    func putAsset(_ data: Data, id: String) { assets[id] = data }
+    func asset(id: String) -> Data? { assets[id] }
 
     func push(_ incoming: [SyncEnvelope]) {
         for envelope in incoming {
@@ -33,8 +37,16 @@ actor LoopbackCloud {
     }
 }
 
-struct LoopbackTransport: SyncTransport {
+struct LoopbackTransport: SyncTransport, SyncAssetTransport {
     let cloud: LoopbackCloud
+
+    func putAsset(_ data: Data, id: String) async throws {
+        await cloud.putAsset(data, id: id)
+    }
+
+    func getAsset(id: String) async throws -> Data? {
+        await cloud.asset(id: id)
+    }
 
     func push(_ envelopes: [SyncEnvelope]) async throws {
         await cloud.push(envelopes)

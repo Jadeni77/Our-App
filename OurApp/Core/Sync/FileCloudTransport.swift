@@ -9,8 +9,25 @@ import Foundation
 ///
 /// This is scaffolding for slice D, but it is not throwaway — it is also the
 /// only way to watch replication happen before there is a CloudKit container.
-struct FileCloudTransport: SyncTransport {
+struct FileCloudTransport: SyncTransport, SyncAssetTransport {
     let directory: URL
+
+    /// Assets live in their own subdirectory so `pull(since:)`, which lists the
+    /// records directory, never has to filter megabytes of JPEG out of its way.
+    private var assetsDirectory: URL { directory.appendingPathComponent("assets", isDirectory: true) }
+
+    func putAsset(_ data: Data, id: String) async throws {
+        try FileManager.default.createDirectory(at: assetsDirectory, withIntermediateDirectories: true)
+        let final = assetsDirectory.appendingPathComponent("\(id).jpg")
+        guard !FileManager.default.fileExists(atPath: final.path) else { return }
+        let staging = assetsDirectory.appendingPathComponent("\(id).jpg.tmp")
+        try data.write(to: staging, options: .atomic)
+        try FileManager.default.moveItem(at: staging, to: final)
+    }
+
+    func getAsset(id: String) async throws -> Data? {
+        try? Data(contentsOf: assetsDirectory.appendingPathComponent("\(id).jpg"))
+    }
 
     private static let encoder = JSONEncoder()
     private static let decoder = JSONDecoder()

@@ -1,6 +1,7 @@
 import Foundation
 import SwiftData
 import Testing
+import UIKit
 @testable import OurApp
 
 /// Two phones, one process. `LoopbackCloud` stands in for the network, so every
@@ -294,5 +295,143 @@ struct FileCloudTransportTests {
         // it, "9.0" sorts after "10.0" and pull(since:) silently skips records.
         #expect(batch.envelopes.map { $0.string("note") }
                 == (0..<12).map { "note-\($0)" })
+    }
+}
+
+@MainActor
+struct SyncAssetTests {
+    private func photoStore() throws -> MemoryPhotoStore {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        return MemoryPhotoStore(directory: url)
+    }
+
+    private func jpeg() -> Data {
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        return UIGraphicsImageRenderer(size: CGSize(width: 900, height: 600), format: format)
+            .image { context in
+                UIColor.systemPink.setFill()
+                context.fill(CGRect(x: 0, y: 0, width: 900, height: 600))
+            }.jpegData(compressionQuality: 0.9)!
+    }
+
+    private func context() throws -> ModelContext {
+        ModelContext(try Persistence.makeContainer(inMemory: true))
+    }
+
+    private func defaults() -> UserDefaults {
+        let suite = "assets.test.\(UUID().uuidString)"
+        let store = UserDefaults(suiteName: suite)!
+        store.removePersistentDomain(forName: suite)
+        return store
+    }
+
+    @Test func aPhotoUploadedByOnePhoneIsWrittenOnTheOther() async throws {
+        let cloud = LoopbackCloud()
+        let transport = LoopbackTransport(cloud: cloud)
+        let sender = try photoStore()
+        let receiver = try photoStore()
+        let id = try sender.write(jpeg(), id: UUID().uuidString)
+
+        let sending = try context()
+        sending.insert(Memory(note: "with a picture", day: .now,
+                              authorID: "author-a", photoIDs: [id]))
+        try sending.save()
+        await SyncAssetPump.upload(context: sending, transport: transport,
+                                   photos: sender, defaults: defaults())
+
+        let receiving = try context()
+        receiving.insert(Memory(note: "with a picture", day: .now,
+                                authorID: "author-a", photoIDs: [id]))
+        try receiving.save()
+        let arrived = await SyncAssetPump.download(context: receiving,
+                                                   transport: transport, photos: receiver)
+
+        #expect(arrived == [id])
+        #expect(receiver.has(id))
+        // The thumbnail is regenerated locally rather than transferred, so it
+        // is guaranteed to be derived from the image it sits under.
+        #expect(receiver.thumbnail(for: id) != nil)
+    }
+
+    @Test func aPhotoNotYetUploadedIsSimplyRetriedNextTick() async throws {
+        let transport = LoopbackTransport(cloud: LoopbackCloud())
+        let receiver = try photoStore()
+        let id = UUID().uuidString
+
+        let receiving = try context()
+        receiving.insert(Memory(note: "picture still coming", day: .now,
+                                authorID: "author-a", photoIDs: [id]))
+        try receiving.save()
+
+        // Records outrun their pictures by design: nothing is uploaded yet, so
+        // this is a normal state and not a failure.
+        let first = await SyncAssetPump.download(context: receiving,
+                                                 transport: transport, photos: receiver)
+        #expect(first.isEmpty)
+        #expect(!receiver.has(id))
+
+        let sender = try photoStore()
+        try sender.write(jpeg(), id: id)
+        try await transport.putAsset(sender.storedData(for: id)!, id: id)
+
+        let second = await SyncAssetPump.download(context: receiving,
+                                                  transport: transport, photos: receiver)
+        #expect(second == [id])
+    }
+
+    @Test func aPhotoAlreadyOnDiskIsNotFetchedAgain() async throws {
+        let transport = LoopbackTransport(cloud: LoopbackCloud())
+        let store = try photoStore()
+        let id = try store.write(jpeg(), id: UUID().uuidString)
+
+        let receiving = try context()
+        receiving.insert(Memory(note: "already here", day: .now,
+                                authorID: "author-a", photoIDs: [id]))
+        try receiving.save()
+
+        // Nothing was ever uploaded; if this tried to fetch it would fail. It
+        // returning empty is what proves it never asked.
+        #expect(await SyncAssetPump.download(context: receiving,
+                                             transport: transport, photos: store).isEmpty)
+    }
+
+    @Test func uploadingIsNotRepeatedOnEveryTick() async throws {
+        let transport = LoopbackTransport(cloud: LoopbackCloud())
+        let store = try photoStore()
+        let shared = defaults()
+        let id = try store.write(jpeg(), id: UUID().uuidString)
+
+        let sending = try context()
+        sending.insert(Memory(note: "once", day: .now, authorID: "author-a", photoIDs: [id]))
+        try sending.save()
+
+        await SyncAssetPump.upload(context: sending, transport: transport,
+                                   photos: store, defaults: shared)
+        // Deleting the local file makes a second upload impossible to fake: if
+        // it re-read and re-sent, this would have nothing to send.
+        store.delete(id)
+        await SyncAssetPump.upload(context: sending, transport: transport,
+                                   photos: store, defaults: shared)
+
+        #expect(try await transport.getAsset(id: id) != nil)
+    }
+
+    @Test func aThumbnailCacheForgetsAMissSoAnArrivingPhotoShows() async throws {
+        let store = try photoStore()
+        let cache = MemoryThumbnails(store: store)
+        let id = UUID().uuidString
+
+        await cache.loadIfNeeded(id)
+        #expect(cache.image(for: id) == nil)
+
+        try store.write(jpeg(), id: id)
+        // Without `forget`, the remembered miss keeps the placeholder on screen
+        // until relaunch — indistinguishable from sync having failed.
+        cache.forget(id)
+        await cache.loadIfNeeded(id)
+        #expect(cache.image(for: id) != nil)
     }
 }

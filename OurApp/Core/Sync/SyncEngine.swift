@@ -28,9 +28,19 @@ final class SyncEngine {
         self.defaults = defaults
     }
 
-    func tick() async throws {
+    /// - Returns: photo ids that landed this tick, so a view can drop the
+    ///   cached misses standing in for them.
+    @discardableResult
+    func tick() async throws -> [String] {
         try await push()
         try await pull()
+        // Records first, always. A memory's note and date are worth having
+        // immediately; the picture filling in a moment later is a far better
+        // experience than a timeline that waits on megabytes.
+        guard let assets = transport as? any SyncAssetTransport else { return [] }
+        await SyncAssetPump.upload(context: context, transport: assets, defaults: defaults)
+        return await SyncAssetPump.download(context: context, transport: assets,
+                                            photos: MemoryPhotoStore())
     }
 
     /// "Changed since last push" is tracked by `updatedAt` rather than a dirty
