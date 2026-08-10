@@ -31,22 +31,21 @@ struct DailyQuestionView: View {
     private func resolve() -> Today {
         let question = DailyQuestionCatalog.question()
         let anchor = SpecialDateSchedule.anchor(for: .now)
-        let me = identity.me
-        let them: Partner? = me.map { $0 == .one ? .two : .one }
-
-        func answer(by author: Partner?) -> QuestionAnswer? {
-            guard let author else { return nil }
-            return answers.first {
+        // `.one` is always whoever holds this phone (P18), so "mine" needs no
+        // setup to resolve. Before sync there is no other author at all, and
+        // `theirs` is simply nil.
+        func answer(by slot: Partner) -> QuestionAnswer? {
+            answers.first {
                 $0.questionID == question.id
                     && $0.day == anchor
-                    && $0.authorID == author.rawValue
+                    && identity.slot(for: $0.authorID) == slot
             }
         }
 
         return Today(question: question,
                      anchor: anchor,
-                     mine: answer(by: me),
-                     theirs: answer(by: them),
+                     mine: answer(by: .one),
+                     theirs: answer(by: .two),
                      earlier: answers.filter { $0.day != anchor })
     }
 
@@ -56,11 +55,7 @@ struct DailyQuestionView: View {
         ZStack {
             DreamyBackground(showsMoon: false)
 
-            if identity.me == nil {
-                whoIsThis
-            } else {
-                content(today)
-            }
+            content(today)
         }
         .navigationTitle(Text("Daily Question"))
         .navigationBarTitleDisplayMode(.inline)
@@ -68,39 +63,13 @@ struct DailyQuestionView: View {
         .toolbarColorScheme(.dark, for: .navigationBar)
         .sheet(isPresented: $editing) {
             AnswerEditorSheet(question: today.question, existing: today.mine?.text ?? "") { text in
-                guard let me = identity.me else { return }
                 DailyQuestionStore.write(text, in: context, questionID: today.question.id,
-                                         day: .now, author: me)
+                                         day: .now, authorID: identity.authorID)
             }
         }
         .sheet(isPresented: $showingSettings) {
             CoupleSettingsSheet(identity: identity)
         }
-    }
-
-    /// Fail-soft (principle 7): an answer with no author would be unattributable
-    /// the moment sync arrives, so ask first rather than guess — and offer the
-    /// way there, rather than leaving the reader to hunt for the setting.
-    private var whoIsThis: some View {
-        VStack(spacing: 14) {
-            Text(verbatim: "💬").font(.system(size: 38))
-            Text("Tell us who this phone belongs to first")
-                .font(.system(.callout, design: .rounded))
-                .foregroundStyle(.white.opacity(0.9))
-                .multilineTextAlignment(.center)
-            Button {
-                Haptics.tap()
-                showingSettings = true
-            } label: {
-                Text("Our details")
-                    .font(.system(.body, design: .rounded).weight(.semibold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 22)
-                    .padding(.vertical, 12)
-            }
-            .glassCard(cornerRadius: 22)
-        }
-        .padding(32)
     }
 
     private func content(_ today: Today) -> some View {

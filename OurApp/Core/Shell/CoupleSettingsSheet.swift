@@ -22,24 +22,6 @@ struct CoupleSettingsSheet: View {
                 partnerSection(header: "Me", name: $identity.nameOne, partner: .one)
                 partnerSection(header: "My love", name: $identity.nameTwo, partner: .two)
 
-                Section {
-                    Picker(selection: $identity.me) {
-                        Text("Not set").tag(Partner?.none)
-                        // Verbatim for the name: a literal "\(name)" auto-keys
-                        // "%@" into the catalog as a string to translate.
-                        (identity.nameOne.isEmpty
-                            ? Text("Me") : Text(verbatim: identity.nameOne))
-                            .tag(Partner?.some(.one))
-                        (identity.nameTwo.isEmpty
-                            ? Text("My love") : Text(verbatim: identity.nameTwo))
-                            .tag(Partner?.some(.two))
-                    } label: {
-                        Text("This phone is")
-                    }
-                } footer: {
-                    Text("So your answers are yours when your phones can talk to each other.")
-                }
-
                 Section("Language") {
                     Picker(selection: $languageRaw) {
                         ForEach(AppLanguage.allCases) { language in
