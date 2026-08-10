@@ -15,6 +15,8 @@ enum SyncApply {
         case QuestionAnswer.syncTypeName: applyQuestionAnswer(envelope, in: context)
         case Memory.syncTypeName: applyMemory(envelope, in: context)
         case CheckIn.syncTypeName: applyCheckIn(envelope, in: context)
+        case MoonshotLevelResult.syncTypeName:
+            applyProgress(envelope, in: context, localAuthorID: localAuthorID)
         // An unknown type is a newer build's record. Dropping it is right:
         // guessing at a payload we have no model for would corrupt the store,
         // and the record is still on the other phone when we catch up.
@@ -45,6 +47,48 @@ enum SyncApply {
                                                 updatedAt: existingUpdatedAt,
                                                 deletedAt: nil,
                                                 fields: [:]))
+    }
+
+    /// Mirrored (P20): the other phone's progress is stored so it can be
+    /// *shown*, and this phone's own rows are never touched by a remote copy.
+    ///
+    /// The guard is the whole category. Without it, two installs that both
+    /// think they are the same author merge campaign saves into each other —
+    /// which is exactly what the old `"one"`-for-everyone key would have done.
+    private static func applyProgress(_ envelope: SyncEnvelope,
+                                      in context: ModelContext,
+                                      localAuthorID: String) -> Bool {
+        guard envelope.authorID != localAuthorID else { return false }
+
+        let id = envelope.id
+        let existing = try? context.fetch(
+            FetchDescriptor<MoonshotLevelResult>(predicate: #Predicate { $0.id == id })).first
+        // No tombstone case: progress is never deleted, only improved on.
+        if let existing, existing.updatedAt >= envelope.updatedAt { return false }
+
+        guard let levelID = envelope.string("levelID").flatMap(UUID.init(uuidString:)),
+              let mode = envelope.string("modeRaw").flatMap(PlayMode.init(rawValue:))
+        else { return false }
+
+        let row = existing ?? {
+            let created = MoonshotLevelResult(partnerID: envelope.authorID, levelID: levelID,
+                                              mode: mode, cleared: false,
+                                              bestStars: 0, bestFlings: 0)
+            created.id = envelope.id
+            context.insert(created)
+            return created
+        }()
+        row.levelID = levelID
+        row.modeRaw = mode.rawValue
+        row.cleared = envelope.bool("cleared") ?? row.cleared
+        row.bestStars = envelope.int("bestStars") ?? row.bestStars
+        row.bestFlings = envelope.int("bestFlings") ?? row.bestFlings
+        row.featOneFling = envelope.bool("featOneFling") ?? row.featOneFling
+        row.featNoAbility = envelope.bool("featNoAbility") ?? row.featNoAbility
+        row.featCleanSweep = envelope.bool("featCleanSweep") ?? row.featCleanSweep
+        row.partnerID = envelope.authorID
+        row.updatedAt = envelope.updatedAt
+        return true
     }
 
     private static func applySpecialDate(_ envelope: SyncEnvelope,
@@ -164,6 +208,11 @@ extension SyncEnvelope {
 
     func bool(_ key: String) -> Bool? {
         if case .bool(let value)? = fields[key] { return value }
+        return nil
+    }
+
+    func int(_ key: String) -> Int? {
+        if case .int(let value)? = fields[key] { return value }
         return nil
     }
 

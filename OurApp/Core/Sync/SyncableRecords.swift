@@ -99,3 +99,30 @@ enum SyncRegistry {
         }
     }
 }
+
+/// Campaign progress is **mirrored**, not shared (P20): each phone owns its own
+/// rows, the other stores and displays them, and neither ever writes the
+/// other's. Two authors therefore never touch one record, so no conflict is
+/// possible — which is the guarantee the owner asked for when they said the
+/// regular mode doesn't share.
+extension MoonshotLevelResult: SyncableRecord {
+    static var syncTypeName: String { "MoonshotLevelResult" }
+    static var syncCategory: SyncCategory { .mirrored }
+
+    var syncID: UUID { id }
+    var syncAuthorID: String { partnerID }
+    var syncUpdatedAt: Date { updatedAt }
+    /// No tombstone: progress is never deleted, only improved on.
+    var syncDeletedAt: Date? { nil }
+
+    func syncFields() -> [String: SyncValue] {
+        ["levelID": .string(levelID.uuidString),
+         "modeRaw": .string(modeRaw),
+         "cleared": .bool(cleared),
+         "bestStars": .int(bestStars),
+         "bestFlings": .int(bestFlings),
+         "featOneFling": .bool(featOneFling),
+         "featNoAbility": .bool(featNoAbility),
+         "featCleanSweep": .bool(featCleanSweep)]
+    }
+}

@@ -46,6 +46,35 @@ enum AuthorIDMigration {
             }
         }
 
+        // Moonshot progress keyed itself off `"couple.devicePartner"`, a
+        // defaults key nothing ever wrote — so every phone's rows say `"one"`.
+        // They belong to whoever is holding this phone, exactly as the couples
+        // records did, and for the same reason: nothing has ever synced.
+        if let results = try? context.fetch(FetchDescriptor<MoonshotLevelResult>()) {
+            for row in results where legacy.contains(row.partnerID) {
+                row.partnerID = authorID
+                changed = true
+            }
+        }
+        if let dust = try? context.fetch(FetchDescriptor<MoonshotMoondustEntry>()) {
+            for row in dust where legacy.contains(row.partnerID) {
+                row.partnerID = authorID
+                changed = true
+            }
+        }
+        if let seen = try? context.fetch(FetchDescriptor<MoonshotCoachSeen>()) {
+            for row in seen where legacy.contains(row.partnerID) {
+                row.partnerID = authorID
+                changed = true
+            }
+        }
+        if let cosmetics = try? context.fetch(FetchDescriptor<MoonshotCosmeticSetting>()) {
+            for row in cosmetics where legacy.contains(row.partnerID) {
+                row.partnerID = authorID
+                changed = true
+            }
+        }
+
         guard changed else { return }
         do {
             // `updatedAt` is deliberately not bumped: nothing about the moment

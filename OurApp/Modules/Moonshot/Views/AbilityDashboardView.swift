@@ -6,7 +6,9 @@ import SwiftData
 /// Locked characters demo too; watching the well work is the best
 /// advertisement for earning 24★.
 struct AbilityDashboardView: View {
-    @Query private var results: [MoonshotLevelResult]
+    /// Personal: an ability is unlocked by *your* play, not by hers.
+    @Query private var allResults: [MoonshotLevelResult]
+    private var results: [MoonshotLevelResult] { allResults.mine }
     @State private var selected: CharacterID
 
     init(initial: CharacterID = .mochi) {

@@ -11,7 +11,7 @@ import SwiftData
 /// owns that reconciliation.
 @Model
 final class MoonshotMoondustEntry {
-    @Attribute(.unique) var id: UUID
+    var id: UUID
     var partnerID: String
     var amount: Int
     var reason: String

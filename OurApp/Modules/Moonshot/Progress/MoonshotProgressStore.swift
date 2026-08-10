@@ -11,8 +11,16 @@ final class MoonshotProgressStore {
     /// (slice b pass-the-phone); until then it defaults to partner one.
     /// nonisolated so it can serve as a default argument (those evaluate
     /// outside the class's MainActor isolation).
+    /// This install's id (P18).
+    ///
+    /// It used to read `"couple.devicePartner"`, a key **nothing has ever
+    /// written** — so every phone keyed its progress to the literal string
+    /// `"one"`. Harmless while nothing synced, and actively destructive the
+    /// moment something does: two phones both claiming `"one"` means each one
+    /// reads the other's rows as its own, which is precisely the merging of
+    /// campaign progress the owner ruled out.
     nonisolated static var devicePartnerID: String {
-        UserDefaults.standard.string(forKey: "couple.devicePartner") ?? Partner.one.rawValue
+        LocalAuthor.id()
     }
 
     let partnerID: String

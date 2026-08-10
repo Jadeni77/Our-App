@@ -6,7 +6,13 @@ import SwiftData
 /// a tap away — and the roadmap shrunk to one quiet line.
 struct MoonshotHomeView: View {
     @Environment(\.modelContext) private var modelContext
+    /// **Not** scoped to this phone, deliberately: the star pool is shared —
+    /// "Every star either of us earns lights this up" is the promise on screen.
+    /// Clear state is personal (P20); the sky the stars light is not.
     @Query private var results: [MoonshotLevelResult]
+    /// **Not** scoped, like the star pool: moondust is one couple wallet
+    /// (M31 — "over ALL partners' rows"), not a personal balance. Scoping it
+    /// would have silently halved the wallet the first time sync ran.
     @Query private var moondust: [MoonshotMoondustEntry]
     private let catalog = CampaignCatalog.bundled
     private let partnerID = MoonshotProgressStore.devicePartnerID
@@ -37,6 +43,35 @@ struct MoonshotHomeView: View {
     private var pool: Int { MoonshotRewards.starPool(results.map(\.snapshot)) }
     /// The couple wallet (M31): both partners' rows, one sum.
     private var moondustBalance: Int { moondust.reduce(0) { $0 + $1.amount } }
+
+    /// Two columns, not a merged total: the whole point of mirrored progress
+    /// (P20) is that these are two separate campaigns you can see side by side.
+    ///
+    /// **No `CoupleIdentityStore` here.** It lives in Home's environment only,
+    /// and reaching for it from this tab is the exact crash Daily Question
+    /// shipped once — a pushed view isn't a child of the content that declared
+    /// the environment. Neutral labels cost a name and are always correct.
+    private var sideBySide: some View {
+        HStack(alignment: .top, spacing: 22) {
+            column(Text("You"), results.mine)
+            column(Text("Them"), results.theirs)
+        }
+        .padding(.top, 2)
+    }
+
+    private func column(_ label: Text, _ rows: [MoonshotLevelResult]) -> some View {
+        VStack(spacing: 1) {
+            label
+                .font(.caption2)
+                .foregroundStyle(.white.opacity(0.6))
+            Text("\(rows.filter(\.cleared).count) cleared")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.9))
+            Text(verbatim: "\(MoonshotRewards.starPool(rows.map(\.snapshot)))★")
+                .font(.caption2)
+                .foregroundStyle(.white.opacity(0.7))
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -75,6 +110,11 @@ struct MoonshotHomeView: View {
                             .font(.caption)
                             .foregroundStyle(.white.opacity(0.75))
                             .multilineTextAlignment(.center)
+
+                        // Only once there is something to show. Before sync
+                        // there is no other campaign, and an empty "TA" column
+                        // would advertise a feature that isn't on yet.
+                        if !results.theirs.isEmpty { sideBySide }
                         VStack(spacing: 2) {
                             HStack(spacing: 5) {
                                 MoondustGem()
