@@ -44,11 +44,15 @@ struct MemoryDetailView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
 
-                        Text(verbatim: SpecialDateSchedule.localDay(of: memory.day)
-                            .formatted(.dateTime.year().month(.abbreviated).day()))
-                            .font(.caption)
-                            .foregroundStyle(.white.opacity(0.65))
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                        // No date line at all when there isn't one — "Unknown"
+                        // would be a label for something nobody asked about.
+                        if let day = memory.day {
+                            Text(verbatim: SpecialDateSchedule.localDay(of: day)
+                                .formatted(.dateTime.year().month(.abbreviated).day()))
+                                .font(.caption)
+                                .foregroundStyle(.white.opacity(0.65))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
                     }
                     .padding(16)
                 }

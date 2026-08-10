@@ -7,19 +7,31 @@ import SwiftUI
 /// and no moon (H16), hidden toolbar background, inline title, tab bar visible.
 struct MemoriesView: View {
     @Environment(CoupleIdentityStore.self) private var identity
-    // `day` is anchored to noon UTC, so every memory from the same civil day —
-    // a trip, typically — ties exactly. Without the tiebreak their order is
-    // whatever the store returns, and can differ between launches.
+    // Sorted again by `MemoryTimeline`, which is where the real ordering rule
+    // lives — undated memories can't be expressed as a sort descriptor, and a
+    // descriptor can't be tested. This sort just keeps the input stable.
     @Query(filter: Memory.visible,
            sort: [SortDescriptor(\Memory.day, order: .reverse),
                   SortDescriptor(\Memory.updatedAt, order: .reverse)])
     private var memories: [Memory]
 
     @State private var thumbnails = MemoryThumbnails()
-    @State private var composing = false
+    @State private var composing = MemoriesView.opensComposerAtLaunch
     @State private var showing: Memory?
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 3), count: 3)
+
+    /// `-composeMemory` opens the sheet at launch, so headless screenshots can
+    /// reach copy that otherwise needs a tap. Read once as initial state rather
+    /// than in `onAppear`: a lifecycle modifier on a view that may not be there
+    /// is how the Daily Question badge silently stopped installing (H18).
+    private static var opensComposerAtLaunch: Bool {
+        #if DEBUG
+        ProcessInfo.processInfo.arguments.contains("-composeMemory")
+        #else
+        false
+        #endif
+    }
 
     var body: some View {
         ZStack {
@@ -72,19 +84,36 @@ struct MemoriesView: View {
     }
 
     private var grid: some View {
-        ScrollView {
-            LazyVGrid(columns: columns, spacing: 3) {
-                ForEach(memories) { memory in
-                    Button {
-                        Haptics.tap()
-                        showing = memory
-                    } label: {
-                        cell(memory)
-                    }
-                    .buttonStyle(.plain)
+        let timeline = MemoryTimeline.ordered(memories)
+        return ScrollView {
+            LazyVStack(alignment: .leading, spacing: 3) {
+                cells(timeline.dated)
+                if !timeline.undated.isEmpty {
+                    // Only ever shown when there is something under it, so a
+                    // timeline where every day is known looks exactly as before.
+                    Text("Sometime")
+                        .font(.system(.footnote, design: .rounded).weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.7))
+                        .padding(.top, 16)
+                        .padding(.leading, 4)
+                    cells(timeline.undated)
                 }
             }
             .padding(3)
+        }
+    }
+
+    private func cells(_ list: [Memory]) -> some View {
+        LazyVGrid(columns: columns, spacing: 3) {
+            ForEach(list) { memory in
+                Button {
+                    Haptics.tap()
+                    showing = memory
+                } label: {
+                    cell(memory)
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 
@@ -123,12 +152,17 @@ struct MemoriesView: View {
     /// Every cell reading "Memory" makes the grid unnavigable by screen
     /// reader. Compose the day, the note and the count instead.
     private func label(for memory: Memory) -> Text {
-        let day = SpecialDateSchedule.localDay(of: memory.day)
-            .formatted(.dateTime.year().month(.abbreviated).day())
-        if memory.note.isEmpty {
-            return Text(verbatim: day)
+        let day = memory.day.map {
+            SpecialDateSchedule.localDay(of: $0)
+                .formatted(.dateTime.year().month(.abbreviated).day())
         }
-        return Text(verbatim: "\(day), \(memory.note)")
+        switch (day, memory.note.isEmpty) {
+        case let (day?, false): return Text(verbatim: "\(day), \(memory.note)")
+        case let (day?, true): return Text(verbatim: day)
+        case (nil, false): return Text(verbatim: memory.note)
+        // Nothing to read out but the fact that it exists.
+        case (nil, true): return Text("Undated memory")
+        }
     }
 
     private var emptyState: some View {

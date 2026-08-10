@@ -27,6 +27,7 @@ struct MemoryComposeSheet: View {
     @State private var importing = false
     @State private var skipped = 0
     @State private var note = ""
+    @State private var hasDay = true
     @State private var day = Date.now
 
     private let store = MemoryPhotoStore()
@@ -88,9 +89,23 @@ struct MemoryComposeSheet: View {
                 }
 
                 Section {
-                    DatePicker(selection: $day, in: ...Date.now,
-                               displayedComponents: .date) {
-                        Text("Date")
+                    // Defaults on, with today: most memories are added the day
+                    // they happen. Turned off for the shoebox of old photos,
+                    // where a guessed date would be wrong forever.
+                    // Not "Add a date" — that key is Special Dates', and means
+                    // 添加纪念日 there. Same English, different sentence.
+                    Toggle(isOn: $hasDay) {
+                        Text("I remember the date")
+                    }
+                    if hasDay {
+                        DatePicker(selection: $day, in: ...Date.now,
+                                   displayedComponents: .date) {
+                            Text("Date")
+                        }
+                    }
+                } footer: {
+                    if !hasDay {
+                        Text("It'll sit at the end of your timeline.")
                     }
                 }
             }
@@ -154,7 +169,7 @@ struct MemoryComposeSheet: View {
         guard let me = identity.me, !staged.isEmpty else { return }
 
         context.insert(Memory(note: note.trimmingCharacters(in: .whitespacesAndNewlines),
-                              day: day,
+                              day: hasDay ? day : nil,
                               authorID: me.rawValue,
                               photoIDs: staged))
         do {

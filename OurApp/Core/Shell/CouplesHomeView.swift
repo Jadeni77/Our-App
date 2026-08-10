@@ -7,7 +7,7 @@ import SwiftUI
 ///
 /// DEBUG launch arguments exist solely so headless screenshot verification can
 /// reach a state simctl can't tap to: `-openSettings`, `-specialDates`,
-/// `-dailyQuestion`, `-seedDailyQuestion`, `-memories`.
+/// `-dailyQuestion`, `-seedDailyQuestion`, `-memories`, `-seedMemories`.
 struct CouplesHomeView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var identity = CoupleIdentityStore()
@@ -111,6 +111,8 @@ struct CouplesHomeView: View {
             #if DEBUG
             DailyQuestionDebugSeed.runIfRequested(in: modelContext.container,
                                                   identity: identity)
+            MemoryDebugSeed.runIfRequested(in: modelContext.container,
+                                           identity: identity)
             #endif
             if launchArguments.contains("-dailyQuestion") {
                 path.append(HubRoute(entryID: "daily-question"))

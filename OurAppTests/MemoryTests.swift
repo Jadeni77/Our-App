@@ -131,7 +131,20 @@ struct MemoryRecordTests {
         var utc = Calendar(identifier: .gregorian)
         utc.timeZone = TimeZone(secondsFromGMT: 0)!
         let stored = try context.fetch(FetchDescriptor<Memory>()).first!
-        #expect(utc.component(.hour, from: stored.day) == 12)
+        #expect(utc.component(.hour, from: try #require(stored.day)) == 12)
+    }
+
+    @Test func aMemoryCanHaveNoDayAtAll() throws {
+        let context = try makeContext()
+        context.insert(Memory(note: "somewhere, years ago", day: nil,
+                              authorID: Partner.one.rawValue, photoIDs: ["a"]))
+        try context.save()
+
+        // Not a sentinel date: a guessed day would be wrong forever, and
+        // `.distantPast` would sort as a real day.
+        let stored = try context.fetch(FetchDescriptor<Memory>()).first
+        #expect(stored?.day == nil)
+        #expect(stored?.note == "somewhere, years ago")
     }
 
     @Test func theVisiblePredicateHidesTombstones() throws {
@@ -198,5 +211,64 @@ struct MemoryThumbnailsTests {
             UIColor.systemPink.setFill()
             context.fill(CGRect(origin: .zero, size: size))
         }.jpegData(compressionQuality: 0.9)!
+    }
+}
+
+@MainActor
+struct MemoryTimelineTests {
+    private func makeContext() throws -> ModelContext {
+        ModelContext(try Persistence.makeContainer(inMemory: true))
+    }
+
+    private func memory(_ note: String, day: Date?, updated: Date) -> Memory {
+        let memory = Memory(note: note, day: day,
+                            authorID: Partner.one.rawValue, photoIDs: ["a"])
+        memory.updatedAt = updated
+        return memory
+    }
+
+    private func date(_ offset: TimeInterval) -> Date {
+        Date(timeIntervalSinceReferenceDate: 800_000_000 + offset)
+    }
+
+    @Test func datedMemoriesComeBackNewestFirst() {
+        let split = MemoryTimeline.ordered([
+            memory("older", day: date(0), updated: date(0)),
+            memory("newest", day: date(200_000), updated: date(0)),
+            memory("middle", day: date(100_000), updated: date(0)),
+        ])
+        #expect(split.dated.map(\.note) == ["newest", "middle", "older"])
+        #expect(split.undated.isEmpty)
+    }
+
+    @Test func memoriesFromTheSameDayFallBackToWhenTheyWereAdded() {
+        // `day` is anchored to noon UTC, so a whole trip's worth of memories
+        // tie exactly. Without this tiebreak their order is whatever the store
+        // returned, which can differ between launches.
+        let sameDay = date(0)
+        let split = MemoryTimeline.ordered([
+            memory("added first", day: sameDay, updated: date(10)),
+            memory("added last", day: sameDay, updated: date(30)),
+            memory("added second", day: sameDay, updated: date(20)),
+        ])
+        #expect(split.dated.map(\.note) == ["added last", "added second", "added first"])
+    }
+
+    @Test func undatedMemoriesAreSeparatedOutAndGoLast() {
+        let split = MemoryTimeline.ordered([
+            memory("no idea when", day: nil, updated: date(10)),
+            memory("dated", day: date(0), updated: date(0)),
+            memory("also no idea", day: nil, updated: date(50)),
+        ])
+        // Split rather than interleaved: the grid draws them under their own
+        // heading, and a `SortDescriptor` cannot express this.
+        #expect(split.dated.map(\.note) == ["dated"])
+        #expect(split.undated.map(\.note) == ["also no idea", "no idea when"])
+    }
+
+    @Test func anEmptyTimelineIsEmptyOnBothSides() {
+        let split = MemoryTimeline.ordered([])
+        #expect(split.dated.isEmpty)
+        #expect(split.undated.isEmpty)
     }
 }

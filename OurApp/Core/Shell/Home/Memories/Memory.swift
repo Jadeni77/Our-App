@@ -18,8 +18,10 @@ final class Memory {
     /// are just the picture.
     var note: String = ""
     /// A floating civil day at noon UTC (H8), so two phones agree which day a
-    /// memory belongs to.
-    var day: Date = Date.now
+    /// memory belongs to — or `nil` when nobody remembers it. A shoebox photo
+    /// with no date still belongs in the timeline; forcing a guess would put a
+    /// wrong day on it forever, which is worse than no day (H23).
+    var day: Date?
     /// `Partner.rawValue` — who added it, so a synced timeline merges by author.
     var authorID: String = ""
     /// Ordered filenames in `MemoryPhotoStore`. The first is what the grid shows.
@@ -27,10 +29,10 @@ final class Memory {
     var updatedAt: Date = Date.now
     var deletedAt: Date?
 
-    init(note: String, day: Date, authorID: String, photoIDs: [String]) {
+    init(note: String, day: Date?, authorID: String, photoIDs: [String]) {
         self.id = UUID()
         self.note = note
-        self.day = SpecialDateSchedule.anchor(for: day)
+        self.day = day.map { SpecialDateSchedule.anchor(for: $0) }
         self.authorID = authorID
         self.photoIDs = Array(photoIDs.prefix(Self.maxPhotos))
         self.updatedAt = .now
