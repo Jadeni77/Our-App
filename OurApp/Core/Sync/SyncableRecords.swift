@@ -1,0 +1,101 @@
+import Foundation
+import SwiftData
+
+/// The four shared record types, each spelling out what travels.
+///
+/// Kept in one file rather than scattered across the model definitions: this is
+/// the wire format, and seeing all four together is how you notice that one of
+/// them forgot a field. The `apply` side lives here too, so the read and the
+/// write of a given field are never more than a few lines apart.
+///
+/// **Deliberate omissions**, so they read as decisions rather than oversights:
+/// `SpecialDate.emoji` (retired, and owed for deletion once the icon migration
+/// has run on both phones), and `Memory.photoIDs`' actual bytes — the ids
+/// travel, the files arrive in slice B.
+
+extension SpecialDate: SyncableRecord {
+    static var syncTypeName: String { "SpecialDate" }
+    static var syncCategory: SyncCategory { .shared }
+
+    var syncID: UUID { id }
+    var syncAuthorID: String { authorID ?? "" }
+    var syncUpdatedAt: Date { updatedAt }
+    var syncDeletedAt: Date? { deletedAt }
+
+    func syncFields() -> [String: SyncValue] {
+        ["title": .string(title),
+         "iconID": .string(iconID),
+         "date": .date(date),
+         "repeatsYearly": .bool(repeatsYearly),
+         "isAnniversary": .bool(isAnniversary)]
+    }
+}
+
+extension QuestionAnswer: SyncableRecord {
+    static var syncTypeName: String { "QuestionAnswer" }
+    static var syncCategory: SyncCategory { .shared }
+
+    var syncID: UUID { id }
+    var syncAuthorID: String { authorID }
+    var syncUpdatedAt: Date { updatedAt }
+    var syncDeletedAt: Date? { deletedAt }
+
+    func syncFields() -> [String: SyncValue] {
+        ["questionID": .string(questionID),
+         "day": .date(day),
+         "text": .string(text)]
+    }
+}
+
+extension Memory: SyncableRecord {
+    static var syncTypeName: String { "Memory" }
+    static var syncCategory: SyncCategory { .shared }
+
+    var syncID: UUID { id }
+    var syncAuthorID: String { authorID }
+    var syncUpdatedAt: Date { updatedAt }
+    var syncDeletedAt: Date? { deletedAt }
+
+    func syncFields() -> [String: SyncValue] {
+        var fields: [String: SyncValue] = ["note": .string(note),
+                                           "photoIDs": .stringArray(photoIDs)]
+        // Optional day (H23): absent means undated, which is different from a
+        // sentinel date and must survive the round trip as absent.
+        if let day { fields["day"] = .date(day) }
+        return fields
+    }
+}
+
+extension CheckIn: SyncableRecord {
+    static var syncTypeName: String { "CheckIn" }
+    static var syncCategory: SyncCategory { .shared }
+
+    var syncID: UUID { id }
+    var syncAuthorID: String { authorID }
+    var syncUpdatedAt: Date { updatedAt }
+    var syncDeletedAt: Date? { deletedAt }
+
+    func syncFields() -> [String: SyncValue] {
+        ["day": .date(day)]
+    }
+}
+
+/// The registry the engine dispatches through. Adding a type means adding it
+/// here *and* to `apply` below; a type listed in neither simply doesn't sync,
+/// which is the safe direction.
+@MainActor
+enum SyncRegistry {
+    static let sharedTypes: [any SyncableRecord.Type] = [
+        SpecialDate.self, QuestionAnswer.self, Memory.self, CheckIn.self,
+    ]
+
+    static func category(of recordType: String) -> SyncCategory? {
+        switch recordType {
+        case SpecialDate.syncTypeName, QuestionAnswer.syncTypeName,
+             Memory.syncTypeName, CheckIn.syncTypeName:
+            .shared
+        default:
+            nil
+        }
+    }
+}
