@@ -7,7 +7,7 @@ import SwiftUI
 ///
 /// DEBUG launch arguments exist solely so headless screenshot verification can
 /// reach a state simctl can't tap to: `-openSettings`, `-specialDates`,
-/// `-dailyQuestion`, `-seedDailyQuestion`, `-memories`, `-seedMemories`.
+/// `-dailyQuestion`, `-seedDailyQuestion`, `-memories`, `-seedMemories`, `-seedSpark`, `-seedSparkAtRisk`, `-sparkSheet`.
 struct CouplesHomeView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var identity = CoupleIdentityStore()
@@ -44,6 +44,11 @@ struct CouplesHomeView: View {
                             Haptics.tap()
                             path.append(HubRoute(entryID: "special-dates"))
                         }
+
+                        // 火花 (H25). Inside the geometry group deliberately —
+                        // it changes the hero's geometry, which is exactly what
+                        // the group is here to absorb.
+                        SparkPill()
 
                         if identity.nameOne.isEmpty && identity.nameTwo.isEmpty {
                             Button {
@@ -113,6 +118,8 @@ struct CouplesHomeView: View {
                                                   identity: identity)
             MemoryDebugSeed.runIfRequested(in: modelContext.container,
                                            identity: identity)
+            SparkDebugSeed.runIfRequested(in: modelContext.container,
+                                          authorID: identity.authorID)
             #endif
             if launchArguments.contains("-dailyQuestion") {
                 path.append(HubRoute(entryID: "daily-question"))

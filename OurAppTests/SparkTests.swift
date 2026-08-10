@@ -145,3 +145,77 @@ struct SparkStreakTests {
         }
     }
 }
+
+struct SparkReminderPlanTests {
+    private var calendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Shanghai")!
+        return calendar
+    }
+
+    /// 08:00 local, so a 21:00 reminder is still ahead of "now" today.
+    private var morning: Date {
+        calendar.date(bySettingHour: 8, minute: 0, second: 0,
+                      of: Date(timeIntervalSinceReferenceDate: 800_000_000))!
+    }
+
+    private var evening: DateComponents { DateComponents(hour: 21, minute: 0) }
+
+    private func day(_ offset: Int) -> Date {
+        let civil = calendar.date(byAdding: .day, value: offset,
+                                  to: calendar.startOfDay(for: morning))!
+        return SpecialDateSchedule.anchor(for: civil, calendar: calendar)
+    }
+
+    @Test func anEmptyHistoryFillsTheWholeHorizon() {
+        let pending = SparkReminderPlan.pending(from: morning, at: evening,
+                                                checkedIn: [], calendar: calendar)
+        #expect(pending.count == SparkReminderPlan.horizon)
+    }
+
+    @Test func checkingInTodaySilencesTodayAndNothingElse() {
+        let pending = SparkReminderPlan.pending(from: morning, at: evening,
+                                                checkedIn: [day(0)], calendar: calendar)
+        // The point of one request per day rather than a repeating trigger:
+        // today goes quiet, tomorrow does not.
+        #expect(pending.count == SparkReminderPlan.horizon - 1)
+        #expect(!pending.contains { calendar.isDate($0, inSameDayAs: morning) })
+    }
+
+    @Test func aTimeAlreadyPastTodayIsNotScheduledInThePast() {
+        let lateEvening = calendar.date(bySettingHour: 23, minute: 30, second: 0, of: morning)!
+        let pending = SparkReminderPlan.pending(from: lateEvening, at: evening,
+                                                checkedIn: [], calendar: calendar)
+        // 21:00 has gone; scheduling it would fire the instant the app closes.
+        #expect(pending.count == SparkReminderPlan.horizon - 1)
+        #expect(pending.allSatisfy { $0 > lateEvening })
+    }
+
+    @Test func daysAlreadyCheckedInAreSkippedWhereverTheyFall() {
+        let pending = SparkReminderPlan.pending(from: morning, at: evening,
+                                                checkedIn: [day(0), day(2), day(5)],
+                                                calendar: calendar)
+        #expect(pending.count == SparkReminderPlan.horizon - 3)
+    }
+
+    @Test func identifiersAreOneADayAndStable() {
+        let pending = SparkReminderPlan.pending(from: morning, at: evening,
+                                                checkedIn: [], calendar: calendar)
+        let ids = pending.map { SparkReminderPlan.identifier(for: $0, calendar: calendar) }
+        // Removal-by-identifier is how a check-in silences a day, so a
+        // collision would silence the wrong one.
+        #expect(Set(ids).count == ids.count)
+        #expect(ids.allSatisfy { $0.hasPrefix(SparkReminderPlan.identifierPrefix) })
+    }
+
+    @Test func identifiersDoNotDependOnTheLocalesCalendar() {
+        var buddhist = calendar
+        buddhist.locale = Locale(identifier: "th_TH_u_ca_buddhist")
+        let fire = calendar.date(bySettingHour: 21, minute: 0, second: 0, of: morning)!
+        // Built from Gregorian components, not a DateFormatter — a locale that
+        // renders 2026 as 2569 would otherwise change every id and orphan every
+        // pending request.
+        #expect(SparkReminderPlan.identifier(for: fire, calendar: calendar)
+                == SparkReminderPlan.identifier(for: fire, calendar: buddhist))
+    }
+}
