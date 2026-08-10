@@ -31,23 +31,21 @@ struct DailyQuestionView: View {
     private func resolve() -> Today {
         let question = DailyQuestionCatalog.question()
         let anchor = SpecialDateSchedule.anchor(for: .now)
-        // "Mine" is this install's id; "theirs" is any other author (P18).
-        // Before sync there is no other author, so `theirs` is simply nil —
-        // no second half to name, and nothing to ask the owner about.
-        let mine = identity.authorID
-
-        func answer(matching isMine: Bool) -> QuestionAnswer? {
+        // `.one` is always whoever holds this phone (P18), so "mine" needs no
+        // setup to resolve. Before sync there is no other author at all, and
+        // `theirs` is simply nil.
+        func answer(by slot: Partner) -> QuestionAnswer? {
             answers.first {
                 $0.questionID == question.id
                     && $0.day == anchor
-                    && ($0.authorID == mine) == isMine
+                    && identity.slot(for: $0.authorID) == slot
             }
         }
 
         return Today(question: question,
                      anchor: anchor,
-                     mine: answer(matching: true),
-                     theirs: answer(matching: false),
+                     mine: answer(by: .one),
+                     theirs: answer(by: .two),
                      earlier: answers.filter { $0.day != anchor })
     }
 

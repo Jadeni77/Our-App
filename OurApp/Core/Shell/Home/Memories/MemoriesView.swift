@@ -6,7 +6,6 @@ import SwiftUI
 /// Wears the sub-page chrome contract — dreamy background with no tilt parallax
 /// and no moon (H16), hidden toolbar background, inline title, tab bar visible.
 struct MemoriesView: View {
-    @Environment(CoupleIdentityStore.self) private var identity
     // Sorted again by `MemoryTimeline`, which is where the real ordering rule
     // lives — undated memories can't be expressed as a sort descriptor, and a
     // descriptor can't be tested. This sort just keeps the input stable.
