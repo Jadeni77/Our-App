@@ -10,20 +10,16 @@ struct HubCatalogTests {
         #expect(Set(ids).count == ids.count)
     }
 
-    @Test func twoEntriesAreLiveAndBothCarryBadges() {
-        let live = HubCatalog.entries.filter(\.isReady)
-        #expect(live.map(\.id) == ["special-dates", "daily-question"])
-        #expect(live.allSatisfy { $0.makeBadge != nil })
-    }
+    @Test func everyEntryIsLiveAndBadgesOnlyWhereThereIsSomethingToSay() {
+        // Computed outside the macro: `allSatisfy` is `rethrows`, and `#expect`
+        // treats that as throwing.
+        let allLive = HubCatalog.entries.allSatisfy(\.isReady)
+        #expect(allLive)
 
-    @Test func comingSoonEntriesExplainThemselvesAndCarryNoBadge() {
-        for entry in HubCatalog.entries where !entry.isReady {
-            guard case .comingSoon = entry.kind else {
-                Issue.record("\(entry.id) is not ready but isn't .comingSoon")
-                continue
-            }
-            #expect(entry.makeBadge == nil)
-        }
+        let badged = HubCatalog.entries.filter { $0.makeBadge != nil }.map(\.id)
+        // Special Dates has an approaching date; Daily Question has an
+        // unanswered day. Memories has nothing that expires.
+        #expect(badged == ["special-dates", "daily-question"])
     }
 
     @Test func lookupFindsKnownIDsAndRejectsUnknownOnes() {

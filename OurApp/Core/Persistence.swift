@@ -10,6 +10,7 @@ enum Persistence {
             DecisionRecord.self,
             SpecialDate.self,
             QuestionAnswer.self,
+            Memory.self,
             MoonshotLevelResult.self,
             MoonshotCosmeticSetting.self,
             MoonshotCoachSeen.self,
