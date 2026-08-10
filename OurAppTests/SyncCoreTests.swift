@@ -565,3 +565,21 @@ struct ProgressScopingTests {
         #expect(MoonshotRewards.starPool(all.mine.map(\.snapshot)) == 3)
     }
 }
+
+@MainActor
+struct CoupleWalletTests {
+    @Test func moondustSumsBothPartnersBecauseItIsOneWallet() throws {
+        let store = ModelContext(try Persistence.makeContainer(inMemory: true))
+        MoonshotProgressStore(context: store, partnerID: LocalAuthor.id())
+            .addMoondust(30, reason: "smash")
+        MoonshotProgressStore(context: store, partnerID: "them")
+            .addMoondust(20, reason: "smash")
+        try store.save()
+
+        // M31: "over ALL partners' rows (one couple wallet)". Scoping this the
+        // way clear state is scoped would silently halve the balance the first
+        // time sync ran — the same mistake as scoping the star pool, made twice.
+        let all = try store.fetch(FetchDescriptor<MoonshotMoondustEntry>())
+        #expect(all.reduce(0) { $0 + $1.amount } == 50)
+    }
+}

@@ -10,9 +10,10 @@ struct MoonshotHomeView: View {
     /// "Every star either of us earns lights this up" is the promise on screen.
     /// Clear state is personal (P20); the sky the stars light is not.
     @Query private var results: [MoonshotLevelResult]
-    /// Moondust is currency, so it is personal.
-    @Query private var allMoondust: [MoonshotMoondustEntry]
-    private var moondust: [MoonshotMoondustEntry] { allMoondust.mine }
+    /// **Not** scoped, like the star pool: moondust is one couple wallet
+    /// (M31 — "over ALL partners' rows"), not a personal balance. Scoping it
+    /// would have silently halved the wallet the first time sync ran.
+    @Query private var moondust: [MoonshotMoondustEntry]
     private let catalog = CampaignCatalog.bundled
     private let partnerID = MoonshotProgressStore.devicePartnerID
     /// Headless screenshot paths: `-moonshotLevel N` jumps into level N

@@ -9,8 +9,8 @@ struct RewardTrackView: View {
     @Query private var results: [MoonshotLevelResult]
     @Query private var allCosmetics: [MoonshotCosmeticSetting]
     private var cosmetics: [MoonshotCosmeticSetting] { allCosmetics.mine }
-    @Query private var allMoondust: [MoonshotMoondustEntry]
-    private var moondust: [MoonshotMoondustEntry] { allMoondust.mine }
+    /// One couple wallet (M31), same as Home's headline balance.
+    @Query private var moondust: [MoonshotMoondustEntry]
 
     private let partnerID = MoonshotProgressStore.devicePartnerID
 
