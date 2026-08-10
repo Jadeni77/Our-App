@@ -11,6 +11,11 @@ import SwiftUI
 struct CouplesHomeView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var identity = CoupleIdentityStore()
+    #if DEBUG
+    /// Held for the life of Home so the pull cursor survives between ticks.
+    @State private var syncEngine: SyncEngine?
+    @Environment(\.scenePhase) private var scenePhase
+    #endif
     @State private var tilt = TiltModel()
     @State private var showSettings = false
     @State private var pulse = false
@@ -97,6 +102,16 @@ struct CouplesHomeView: View {
         .sheet(isPresented: $showSettings) {
             CoupleSettingsSheet(identity: identity)
         }
+        #if DEBUG
+        // Ticks on appear and on every foreground — no timers and no background
+        // modes, both of which need entitlements this slice avoids. Switching
+        // between two simulators is itself the trigger, which is exactly the
+        // demo.
+        .task(id: scenePhase) {
+            guard scenePhase == .active else { return }
+            try? await syncEngine?.tick()
+        }
+        #endif
         .onAppear {
             pulse = true
             // Returning from the Apps tab while a sub-page is pushed would
@@ -109,6 +124,13 @@ struct CouplesHomeView: View {
             // unreachable for the rest of the run.
             guard !didHandleLaunchArguments else { return }
             didHandleLaunchArguments = true
+            #if DEBUG
+            if let directory = FakeCloudLaunch.directory {
+                syncEngine = SyncEngine(context: modelContext,
+                                        transport: FileCloudTransport(directory: directory),
+                                        authorID: identity.authorID)
+            }
+            #endif
             if launchArguments.contains("-openSettings") { showSettings = true }
             if launchArguments.contains("-specialDates") {
                 path.append(HubRoute(entryID: "special-dates"))
