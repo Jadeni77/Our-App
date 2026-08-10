@@ -8,8 +8,13 @@ import SwiftData
 /// lock at its heart. Results come through @Query so a win recorded in the
 /// pushed game view refreshes the map deterministically on pop-back.
 struct LevelSelectView: View {
+    /// Every row, both people's. The star pool below is shared by design.
     @Query private var results: [MoonshotLevelResult]
-    @Query private var cosmetics: [MoonshotCosmeticSetting]
+    /// What *this* phone has cleared, and what it may play next. Mirrored rows
+    /// would otherwise unlock levels this phone never finished (P20).
+    private var myResults: [MoonshotLevelResult] { results.mine }
+    @Query private var allCosmetics: [MoonshotCosmeticSetting]
+    private var cosmetics: [MoonshotCosmeticSetting] { allCosmetics.mine }
     private let catalog = CampaignCatalog.bundled
     private let partnerID = MoonshotProgressStore.devicePartnerID
     @State private var world = 1
@@ -45,7 +50,7 @@ struct LevelSelectView: View {
             }
             TabView(selection: $world) {
                 ForEach(1...max(catalog.worldCount, 1), id: \.self) { number in
-                    WorldConstellationView(world: number, results: results, theme: equippedTheme)
+                    WorldConstellationView(world: number, results: myResults, theme: equippedTheme)
                         .tag(number)
                 }
             }
@@ -95,7 +100,7 @@ struct LevelSelectView: View {
     /// last world, where the campaign currently ends). One rule with the
     /// home's Continue hero: `nextPlayableIndex`.
     private var firstOpenWorld: Int {
-        catalog.nextPlayableIndex(snapshots: results.map(\.snapshot), partnerID: partnerID)
+        catalog.nextPlayableIndex(snapshots: myResults.map(\.snapshot), partnerID: partnerID)
             .map { catalog.levels[$0].worldNumber }
             ?? max(catalog.worldCount, 1)
     }

@@ -5,9 +5,12 @@ import SwiftData
 /// every milestone on the track and lets unlocked cosmetics be equipped.
 struct RewardTrackView: View {
     @Environment(\.modelContext) private var modelContext
+    /// Shared: unlocks ride the pooled star count, same as Home's headline.
     @Query private var results: [MoonshotLevelResult]
-    @Query private var cosmetics: [MoonshotCosmeticSetting]
-    @Query private var moondust: [MoonshotMoondustEntry]
+    @Query private var allCosmetics: [MoonshotCosmeticSetting]
+    private var cosmetics: [MoonshotCosmeticSetting] { allCosmetics.mine }
+    @Query private var allMoondust: [MoonshotMoondustEntry]
+    private var moondust: [MoonshotMoondustEntry] { allMoondust.mine }
 
     private let partnerID = MoonshotProgressStore.devicePartnerID
 

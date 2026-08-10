@@ -435,3 +435,133 @@ struct SyncAssetTests {
         #expect(cache.image(for: id) != nil)
     }
 }
+
+@MainActor
+struct MirroredProgressTests {
+    private func context() throws -> ModelContext {
+        ModelContext(try Persistence.makeContainer(inMemory: true))
+    }
+
+    private func envelope(author: String, levelID: UUID, stars: Int,
+                          updatedAt: Date = .now, id: UUID = UUID()) -> SyncEnvelope {
+        SyncEnvelope(recordType: MoonshotLevelResult.syncTypeName, id: id,
+                     authorID: author, updatedAt: updatedAt, deletedAt: nil,
+                     fields: ["levelID": .string(levelID.uuidString),
+                              "modeRaw": .string(PlayMode.solo.rawValue),
+                              "cleared": .bool(true),
+                              "bestStars": .int(stars),
+                              "bestFlings": .int(3),
+                              "featOneFling": .bool(false),
+                              "featNoAbility": .bool(false),
+                              "featCleanSweep": .bool(false)])
+    }
+
+    @Test func thePartnersProgressIsStoredSeparatelyFromYours() throws {
+        let store = try context()
+        let level = UUID()
+        MoonshotProgressStore(context: store, partnerID: "me")
+            .recordSolo(levelID: level, cleared: true, stars: 1, flings: 9)
+
+        SyncApply.apply(envelope(author: "them", levelID: level, stars: 3),
+                        in: store, localAuthorID: "me")
+        try store.save()
+
+        // Two rows for one level: yours and theirs. Campaign progress is
+        // mirrored, never merged — the owner's rule.
+        let all = try store.fetch(FetchDescriptor<MoonshotLevelResult>())
+        #expect(all.count == 2)
+        #expect(all.first { $0.partnerID == "me" }?.bestStars == 1)
+        #expect(all.first { $0.partnerID == "them" }?.bestStars == 3)
+    }
+
+    @Test func anEnvelopeClaimingToBeYouIsIgnored() throws {
+        let store = try context()
+        let level = UUID()
+        MoonshotProgressStore(context: store, partnerID: "me")
+            .recordSolo(levelID: level, cleared: true, stars: 1, flings: 9)
+
+        // The failure this guards: two installs that both believe they are the
+        // same author would merge campaign saves into each other, which is what
+        // the old "one"-for-every-phone key set up.
+        let applied = SyncApply.apply(envelope(author: "me", levelID: level, stars: 3),
+                                      in: store, localAuthorID: "me")
+        try store.save()
+
+        #expect(applied == false)
+        #expect(try store.fetch(FetchDescriptor<MoonshotLevelResult>()).count == 1)
+        #expect(try store.fetch(FetchDescriptor<MoonshotLevelResult>()).first?.bestStars == 1)
+    }
+
+    @Test func anOlderCopyOfTheirProgressDoesNotUndoANewerOne() throws {
+        let store = try context()
+        let level = UUID()
+        let rowID = UUID()
+        let newer = Date(timeIntervalSinceReferenceDate: 800_000_000)
+
+        SyncApply.apply(envelope(author: "them", levelID: level, stars: 3,
+                                 updatedAt: newer, id: rowID),
+                        in: store, localAuthorID: "me")
+        SyncApply.apply(envelope(author: "them", levelID: level, stars: 1,
+                                 updatedAt: newer.addingTimeInterval(-3600), id: rowID),
+                        in: store, localAuthorID: "me")
+        try store.save()
+
+        #expect(try store.fetch(FetchDescriptor<MoonshotLevelResult>()).first?.bestStars == 3)
+    }
+
+    @Test func legacyProgressKeyedToOneBecomesThisInstalls() throws {
+        let container = try Persistence.makeContainer(inMemory: true)
+        let store = ModelContext(container)
+        MoonshotProgressStore(context: store, partnerID: Partner.one.rawValue)
+            .recordSolo(levelID: UUID(), cleared: true, stars: 2, flings: 5)
+        try store.save()
+
+        AuthorIDMigration.runIfNeeded(in: container, authorID: "this-install")
+
+        let migrated = try ModelContext(container)
+            .fetch(FetchDescriptor<MoonshotLevelResult>()).first
+        // Every phone wrote "one", because the defaults key it read was never
+        // written by anything. Left alone, both phones' progress collides the
+        // moment sync starts.
+        #expect(migrated?.partnerID == "this-install")
+    }
+}
+
+@MainActor
+struct ProgressScopingTests {
+    private func context() throws -> ModelContext {
+        ModelContext(try Persistence.makeContainer(inMemory: true))
+    }
+
+    @Test func mineExcludesThePartnersRowsAndTheirsIsTheComplement() throws {
+        let store = try context()
+        let mine = LocalAuthor.id()
+        MoonshotProgressStore(context: store, partnerID: mine)
+            .recordSolo(levelID: UUID(), cleared: true, stars: 3, flings: 2)
+        MoonshotProgressStore(context: store, partnerID: "them")
+            .recordSolo(levelID: UUID(), cleared: true, stars: 2, flings: 4)
+        try store.save()
+
+        let all = try store.fetch(FetchDescriptor<MoonshotLevelResult>())
+        #expect(all.count == 2)
+        #expect(all.mine.count == 1)
+        #expect(all.theirs.count == 1)
+        #expect(all.mine.first?.bestStars == 3)
+    }
+
+    @Test func thePooledStarCountDeliberatelyCountsBoth() throws {
+        let store = try context()
+        MoonshotProgressStore(context: store, partnerID: LocalAuthor.id())
+            .recordSolo(levelID: UUID(), cleared: true, stars: 3, flings: 2)
+        MoonshotProgressStore(context: store, partnerID: "them")
+            .recordSolo(levelID: UUID(), cleared: true, stars: 2, flings: 4)
+        try store.save()
+
+        // "Every star either of us earns lights this up" — the promise on the
+        // Moonshot home screen. Clear state is personal; the sky is not, and
+        // scoping this one would quietly break a stated design.
+        let all = try store.fetch(FetchDescriptor<MoonshotLevelResult>())
+        #expect(MoonshotRewards.starPool(all.map(\.snapshot)) == 5)
+        #expect(MoonshotRewards.starPool(all.mine.map(\.snapshot)) == 3)
+    }
+}

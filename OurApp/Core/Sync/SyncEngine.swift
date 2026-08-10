@@ -64,6 +64,7 @@ final class SyncEngine {
         collect(QuestionAnswer.self)
         collect(Memory.self)
         collect(CheckIn.self)
+        collect(MoonshotLevelResult.self)
 
         guard !outgoing.isEmpty else { return }
         try await transport.push(outgoing)

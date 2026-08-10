@@ -6,8 +6,13 @@ import SwiftData
 /// a tap away — and the roadmap shrunk to one quiet line.
 struct MoonshotHomeView: View {
     @Environment(\.modelContext) private var modelContext
+    /// **Not** scoped to this phone, deliberately: the star pool is shared —
+    /// "Every star either of us earns lights this up" is the promise on screen.
+    /// Clear state is personal (P20); the sky the stars light is not.
     @Query private var results: [MoonshotLevelResult]
-    @Query private var moondust: [MoonshotMoondustEntry]
+    /// Moondust is currency, so it is personal.
+    @Query private var allMoondust: [MoonshotMoondustEntry]
+    private var moondust: [MoonshotMoondustEntry] { allMoondust.mine }
     private let catalog = CampaignCatalog.bundled
     private let partnerID = MoonshotProgressStore.devicePartnerID
     /// Headless screenshot paths: `-moonshotLevel N` jumps into level N

@@ -6,7 +6,10 @@ import SwiftData
 /// lands, two phones' rows union with a max-merge instead of conflicting.
 @Model
 final class MoonshotLevelResult {
-    @Attribute(.unique) var id: UUID
+    // No `@Attribute(.unique)`: SwiftData's CloudKit mirroring rejects it
+    // outright, and under mirroring a uniqueness constraint turns the other
+    // phone's row into a collision rather than a separate record (§7).
+    var id: UUID
     var partnerID: String
     var levelID: UUID
     var modeRaw: String
@@ -45,7 +48,11 @@ final class MoonshotLevelResult {
 /// record (one per partner), unlike the append/max results above.
 @Model
 final class MoonshotCosmeticSetting {
-    @Attribute(.unique) var partnerID: String
+    // Was `@Attribute(.unique)`, which allowed exactly one row per partner id
+    // in the entire store. Wrong twice over: mirroring rejects unique
+    // constraints, and the other phone's row is a *different* record rather
+    // than a duplicate of ours.
+    var partnerID: String
     var trailRaw: String?
     var themeRaw: String?
     var skinRaw: String?
