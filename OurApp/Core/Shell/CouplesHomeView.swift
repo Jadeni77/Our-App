@@ -109,7 +109,11 @@ struct CouplesHomeView: View {
         // demo.
         .task(id: scenePhase) {
             guard scenePhase == .active else { return }
-            try? await syncEngine?.tick()
+            let arrived = (try? await syncEngine?.tick()) ?? []
+            // Photos that just landed were cached as misses while they were
+            // absent; without forgetting them the grid keeps its placeholders
+            // until the next launch, which looks exactly like sync failing.
+            for id in arrived { MemoryThumbnails.shared.forget(id) }
         }
         #endif
         .onAppear {

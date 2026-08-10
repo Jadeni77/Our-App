@@ -14,7 +14,7 @@ struct MemoriesView: View {
                   SortDescriptor(\Memory.updatedAt, order: .reverse)])
     private var memories: [Memory]
 
-    @State private var thumbnails = MemoryThumbnails()
+    private let thumbnails = MemoryThumbnails.shared
     @State private var composing = MemoriesView.opensComposerAtLaunch
     @State private var showing: Memory?
 

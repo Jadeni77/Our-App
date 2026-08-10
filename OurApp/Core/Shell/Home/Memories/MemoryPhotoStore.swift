@@ -31,11 +31,21 @@ struct MemoryPhotoStore {
 
     /// Writes a downscaled copy and a thumbnail; returns the new photo's id.
     func save(_ data: Data) throws -> String {
+        try write(data, id: UUID().uuidString)
+    }
+
+    /// The same work at a **given** id — how a photo arriving from the other
+    /// phone lands under the filename its record already names (slice B).
+    ///
+    /// Only the 2048px copy travels; the thumbnail is regenerated here. Half
+    /// the bytes, and the thumbnail is guaranteed to be derived from the image
+    /// it sits under rather than from whatever a second file happened to hold.
+    @discardableResult
+    func write(_ data: Data, id: String) throws -> String {
         let full = try downscaled(data, maxPixel: Self.fullMaxPixel)
         let thumbnail = try downscaled(data, maxPixel: Self.thumbnailMaxPixel)
 
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let id = UUID().uuidString
         try full.write(to: url(id), options: .atomic)
         do {
             try thumbnail.write(to: thumbnailURL(id), options: .atomic)
@@ -47,6 +57,16 @@ struct MemoryPhotoStore {
         }
         return id
     }
+
+    /// Whether both files for this id are already on disk — what the asset
+    /// sync uses to decide there is nothing to fetch.
+    func has(_ id: String) -> Bool {
+        FileManager.default.fileExists(atPath: url(id).path)
+            && FileManager.default.fileExists(atPath: thumbnailURL(id).path)
+    }
+
+    /// The bytes to send: the stored 2048px copy, not the untouched original.
+    func storedData(for id: String) -> Data? { try? Data(contentsOf: url(id)) }
 
     func image(for id: String) -> UIImage? { UIImage(contentsOfFile: url(id).path) }
     func thumbnail(for id: String) -> UIImage? { UIImage(contentsOfFile: thumbnailURL(id).path) }
