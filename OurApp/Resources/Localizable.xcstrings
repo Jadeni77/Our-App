@@ -4,6 +4,29 @@
     "" : {
 
     },
+    "%lld cleared" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld cleared"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已通关 %lld"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已通關 %lld"
+          }
+        }
+      }
+    },
     "%lld days" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -326,6 +349,29 @@
         }
       }
     },
+    "Them" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Them"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TA"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TA"
+          }
+        }
+      }
+    },
     "This counts your days. When our phones can talk to each other it'll count both." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -391,6 +437,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "沒有日期的回憶"
+          }
+        }
+      }
+    },
+    "You" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你"
           }
         }
       }

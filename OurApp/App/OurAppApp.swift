@@ -23,6 +23,7 @@ struct OurAppApp: App {
         AuthorIDMigration.runIfNeeded(in: container)
         #if DEBUG
         SpecialDatesDebugSeed.runIfRequested(in: container)
+        MoonshotDebugSeed.runIfRequested(in: container)
         #endif
     }
 
