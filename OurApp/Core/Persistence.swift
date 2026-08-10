@@ -11,6 +11,7 @@ enum Persistence {
             SpecialDate.self,
             QuestionAnswer.self,
             Memory.self,
+            CheckIn.self,
             MoonshotLevelResult.self,
             MoonshotCosmeticSetting.self,
             MoonshotCoachSeen.self,
