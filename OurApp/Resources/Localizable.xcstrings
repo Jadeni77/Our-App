@@ -3025,29 +3025,6 @@
         }
       }
     },
-    "Not set" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Not set"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "还没选"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "還沒選"
-          }
-        }
-      }
-    },
     "Nothing nearby for %@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4221,29 +4198,6 @@
         }
       }
     },
-    "So your answers are yours when your phones can talk to each other." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "So your answers are yours when your phones can talk to each other."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "这样连上以后，才分得清哪句是谁写的。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "這樣連上以後，才分得清哪句是誰寫的。"
-          }
-        }
-      }
-    },
     "Special Dates" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4516,29 +4470,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "寫下你的回答"
-          }
-        }
-      }
-    },
-    "Tell us who this phone belongs to first" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tell us who this phone belongs to first"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "先告诉我们这台手机是谁在用"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "先告訴我們這台手機是誰在用"
           }
         }
       }
@@ -4861,29 +4792,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "TA 的回答"
-          }
-        }
-      }
-    },
-    "This phone is" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This phone is"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "这台手机属于"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "這台手機屬於"
           }
         }
       }

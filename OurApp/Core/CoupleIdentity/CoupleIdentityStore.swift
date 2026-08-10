@@ -18,7 +18,6 @@ final class CoupleIdentityStore {
     private enum Keys {
         static let nameOne = "couple.nameOne"
         static let nameTwo = "couple.nameTwo"
-        static let me = "couple.me"
     }
 
     var nameOne: String {
@@ -27,20 +26,15 @@ final class CoupleIdentityStore {
     var nameTwo: String {
         didSet { defaults.set(nameTwo, forKey: Keys.nameTwo) }
     }
-    /// Which half of the couple this phone belongs to — the local author
-    /// identity every `QuestionAnswer` records. Nil until someone says.
-    ///
-    /// Nothing stops both phones choosing the same half; resolving that needs
-    /// the pairing step sync will bring, so it is deferred rather than
-    /// half-solved here.
-    var me: Partner? {
-        didSet {
-            if let me {
-                defaults.set(me.rawValue, forKey: Keys.me)
-            } else {
-                defaults.removeObject(forKey: Keys.me)
-            }
-        }
+    /// This install's author id (P18). Nobody chooses it; see `LocalAuthor`.
+    let authorID: String
+
+    /// Which display slot a record's author belongs in. `Partner` survives as
+    /// *this phone's* two slots — `.one` is always whoever holds it — rather
+    /// than as a globally-agreed half of the couple, which is what made it
+    /// answerable wrongly.
+    func slot(for authorID: String) -> Partner {
+        authorID == self.authorID ? .one : .two
     }
     private(set) var avatars: [Partner: UIImage] = [:]
 
@@ -57,7 +51,7 @@ final class CoupleIdentityStore {
 
         nameOne = defaults.string(forKey: Keys.nameOne) ?? ""
         nameTwo = defaults.string(forKey: Keys.nameTwo) ?? ""
-        me = defaults.string(forKey: Keys.me).flatMap(Partner.init(rawValue:))
+        authorID = LocalAuthor.id(defaults: defaults)
         for partner in Partner.allCases {
             if let image = UIImage(contentsOfFile: avatarURL(for: partner).path) {
                 avatars[partner] = image

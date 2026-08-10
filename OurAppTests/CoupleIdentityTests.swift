@@ -64,31 +64,45 @@ struct CoupleIdentityTests {
         #expect(reloaded.nameTwo == "Mei")
     }
 
-    @Test func theOwningPartnerRoundTrips() throws {
+    @Test func theAuthorIDIsGeneratedOnceAndThenStable() throws {
         let suite = "test.\(UUID().uuidString)"
         let dir = try tempDirectory()
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
 
+        // Nobody is asked for it — a fresh install simply has one.
         let store = CoupleIdentityStore(defaults: defaults, directory: dir)
-        #expect(store.me == nil)          // nobody has claimed this phone yet
-        store.me = .two
+        #expect(!store.authorID.isEmpty)
 
         let reloaded = CoupleIdentityStore(defaults: defaults, directory: dir)
-        #expect(reloaded.me == .two)
+        #expect(reloaded.authorID == store.authorID)
     }
 
-    @Test func clearingTheOwningPartnerPersists() throws {
+    @Test func twoInstallsGetDifferentAuthorIDs() throws {
+        let dir = try tempDirectory()
+        func freshInstall() throws -> String {
+            let suite = "test.\(UUID().uuidString)"
+            let defaults = UserDefaults(suiteName: suite)!
+            defaults.removePersistentDomain(forName: suite)
+            return CoupleIdentityStore(defaults: defaults, directory: dir).authorID
+        }
+        // The whole point: two phones can't collide the way two picks of the
+        // same half could.
+        #expect(try freshInstall() != freshInstall())
+    }
+
+    @Test func myOwnRecordsReadAsMineAndEverythingElseAsMyLove() throws {
         let suite = "test.\(UUID().uuidString)"
         let dir = try tempDirectory()
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
 
         let store = CoupleIdentityStore(defaults: defaults, directory: dir)
-        store.me = .one
-        store.me = nil
-
-        #expect(CoupleIdentityStore(defaults: defaults, directory: dir).me == nil)
+        #expect(store.slot(for: store.authorID) == .one)
+        #expect(store.slot(for: UUID().uuidString) == .two)
+        // Legacy values are somebody else until the migration rewrites them,
+        // which is the safe direction: nothing is silently claimed as mine.
+        #expect(store.slot(for: "one") == .two)
     }
 
     @Test func avatarPersistsToDiskAndReloads() throws {

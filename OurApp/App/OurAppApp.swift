@@ -20,6 +20,7 @@ struct OurAppApp: App {
         }
         AnniversaryMigration.runIfNeeded(in: container)
         DateIconMigration.runIfNeeded(in: container)
+        AuthorIDMigration.runIfNeeded(in: container)
         #if DEBUG
         SpecialDatesDebugSeed.runIfRequested(in: container)
         #endif

@@ -2,22 +2,20 @@
 import Foundation
 import SwiftData
 
-/// Headless screenshot verification can't tap, so `-seedDailyQuestion` claims
-/// the phone for one partner and writes a couple of past answers — otherwise
-/// the only reachable state is the "who is this phone" prompt.
+/// Headless screenshot verification can't tap, so `-seedDailyQuestion` writes a
+/// couple of past answers — otherwise the page has nothing but today's empty
+/// prompt on it.
 ///
-/// DEBUG only, and it declines when the phone already has an owner, so it can
-/// never overwrite a real choice.
+/// DEBUG only, and it declines when anything has been answered already, so it
+/// can never sit on top of real answers.
 enum DailyQuestionDebugSeed {
     @MainActor
     static func runIfRequested(in container: ModelContainer,
                                identity: CoupleIdentityStore) {
-        guard ProcessInfo.processInfo.arguments.contains("-seedDailyQuestion"),
-              identity.me == nil else { return }
-
-        identity.me = .one
+        guard ProcessInfo.processInfo.arguments.contains("-seedDailyQuestion") else { return }
 
         let context = ModelContext(container)
+        guard (try? context.fetchCount(FetchDescriptor<QuestionAnswer>())) == 0 else { return }
         let calendar = Calendar.current
         for daysAgo in [2, 5] {
             let day = calendar.date(byAdding: .day, value: -daysAgo, to: .now) ?? .now
@@ -25,7 +23,7 @@ enum DailyQuestionDebugSeed {
             DailyQuestionStore.write(daysAgo == 2 ? "The way the light came in this morning."
                                                   : "Getting the bikes out again.",
                                      in: context, questionID: question.id,
-                                     day: day, author: .one)
+                                     day: day, authorID: identity.authorID)
         }
     }
 }

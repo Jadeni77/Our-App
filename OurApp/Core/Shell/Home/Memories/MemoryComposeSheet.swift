@@ -166,11 +166,11 @@ struct MemoryComposeSheet: View {
     }
 
     private func save() {
-        guard let me = identity.me, !staged.isEmpty else { return }
+        guard !staged.isEmpty else { return }
 
         context.insert(Memory(note: note.trimmingCharacters(in: .whitespacesAndNewlines),
                               day: hasDay ? day : nil,
-                              authorID: me.rawValue,
+                              authorID: identity.authorID,
                               photoIDs: staged))
         do {
             try context.save()

@@ -34,20 +34,20 @@ struct DailyQuestionBadge: View {
         // morning after answering leaves yesterday's answer satisfying today,
         // and a once-a-day nudge never fires.
         .onChange(of: RefreshKey(updates: answers.map(\.updatedAt),
-                                 owner: identity.me,
                                  day: SpecialDateSchedule.anchor(for: .now)),
                   initial: true) { _, _ in
-            unanswered = DailyQuestionStore.isUnanswered(answers, by: identity.me)
+            unanswered = DailyQuestionStore.isUnanswered(answers, by: identity.authorID)
         }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
-            unanswered = DailyQuestionStore.isUnanswered(answers, by: identity.me)
+            unanswered = DailyQuestionStore.isUnanswered(answers, by: identity.authorID)
         }
     }
 
+    /// No `owner` any more: the author id is fixed for the life of the install
+    /// (P18), so it can't change under the badge the way the old picker could.
     private struct RefreshKey: Equatable {
         let updates: [Date]
-        let owner: Partner?
         let day: Date
     }
 }

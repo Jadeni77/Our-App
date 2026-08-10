@@ -10,9 +10,8 @@ enum DailyQuestionStore {
     static func answer(in context: ModelContext,
                        questionID: String,
                        day: Date,
-                       author: Partner) -> QuestionAnswer? {
+                       authorID: String) -> QuestionAnswer? {
         let anchored = SpecialDateSchedule.anchor(for: day)
-        let authorID = author.rawValue
         let descriptor = FetchDescriptor<QuestionAnswer>(
             predicate: #Predicate {
                 $0.deletedAt == nil
@@ -31,9 +30,9 @@ enum DailyQuestionStore {
                       in context: ModelContext,
                       questionID: String,
                       day: Date,
-                      author: Partner) -> QuestionAnswer {
+                      authorID: String) -> QuestionAnswer {
         if let existing = answer(in: context, questionID: questionID,
-                                 day: day, author: author) {
+                                 day: day, authorID: authorID) {
             existing.text = text
             existing.updatedAt = .now
             try? context.save()
@@ -42,7 +41,7 @@ enum DailyQuestionStore {
         let created = QuestionAnswer(questionID: questionID,
                                      day: SpecialDateSchedule.anchor(for: day),
                                      text: text,
-                                     authorID: author.rawValue)
+                                     authorID: authorID)
         context.insert(created)
         try? context.save()
         return created
@@ -52,16 +51,17 @@ enum DailyQuestionStore {
     /// tested — the same rule living inside a view's `onChange` closure is how
     /// the first version shipped a badge that never turned on.
     static func isUnanswered(_ answers: [QuestionAnswer],
-                             by author: Partner?,
+                             by authorID: String,
                              on day: Date = .now) -> Bool {
-        guard let author else { return false }   // nothing to nag about before setup
+        // No "before setup" case any more: this phone always has an id (P18),
+        // so the badge has one fewer state in which it silently can't turn on.
         let anchored = SpecialDateSchedule.anchor(for: day)
         let questionID = DailyQuestionCatalog.question(on: day).id
         return !answers.contains {
             $0.deletedAt == nil
                 && $0.questionID == questionID
                 && $0.day == anchored
-                && $0.authorID == author.rawValue
+                && $0.authorID == authorID
         }
     }
 

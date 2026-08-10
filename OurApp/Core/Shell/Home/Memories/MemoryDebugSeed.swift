@@ -18,8 +18,6 @@ enum MemoryDebugSeed {
 
         let context = ModelContext(container)
         guard (try? context.fetchCount(FetchDescriptor<Memory>())) == 0 else { return }
-        if identity.me == nil { identity.me = .one }
-
         let store = MemoryPhotoStore()
         let calendar = Calendar.current
         // The third has no day — that is the whole point of the seed.
@@ -35,7 +33,7 @@ enum MemoryDebugSeed {
                 calendar.date(byAdding: .day, value: -$0, to: .now)
             }
             context.insert(Memory(note: seed.note, day: day,
-                                  authorID: Partner.one.rawValue, photoIDs: ids))
+                                  authorID: identity.authorID, photoIDs: ids))
         }
         try? context.save()
     }

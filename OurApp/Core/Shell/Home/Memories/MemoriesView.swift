@@ -37,12 +37,7 @@ struct MemoriesView: View {
         ZStack {
             DreamyBackground(showsMoon: false)
 
-            if identity.me == nil {
-                // Same fail-soft as Daily Question (H19): an unattributed
-                // memory can't be merged when sync lands, and a Save that
-                // silently does nothing is a dead end (principle 7).
-                whoIsThis
-            } else if memories.isEmpty {
+            if memories.isEmpty {
                 emptyState
             } else {
                 grid
@@ -60,7 +55,6 @@ struct MemoriesView: View {
                 } label: {
                     Image(systemName: "plus").foregroundStyle(.white)
                 }
-                .disabled(identity.me == nil)
                 .accessibilityLabel(Text("Add a memory"))
             }
         }
@@ -72,18 +66,7 @@ struct MemoriesView: View {
         }
     }
 
-    private var whoIsThis: some View {
-        VStack(spacing: 14) {
-            Text(verbatim: "📷").font(.system(size: 38))
-            Text("Tell us who this phone belongs to first")
-                .font(.system(.callout, design: .rounded))
-                .foregroundStyle(.white.opacity(0.9))
-                .multilineTextAlignment(.center)
-        }
-        .padding(32)
-    }
-
-    private var grid: some View {
+private var grid: some View {
         let timeline = MemoryTimeline.ordered(memories)
         return ScrollView {
             LazyVStack(alignment: .leading, spacing: 3) {

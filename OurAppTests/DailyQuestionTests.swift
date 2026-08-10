@@ -74,20 +74,20 @@ struct DailyQuestionStoreTests {
         let today = Date(timeIntervalSinceReferenceDate: 800_000_000)
 
         DailyQuestionStore.write("A cup of tea", in: context,
-                                 questionID: "q01", day: today, author: .one)
+                                 questionID: "q01", day: today, authorID: "author-a")
 
         let found = DailyQuestionStore.answer(in: context, questionID: "q01",
-                                              day: today, author: .one)
+                                              day: today, authorID: "author-a")
         #expect(found?.text == "A cup of tea")
-        #expect(found?.authorID == Partner.one.rawValue)
+        #expect(found?.authorID == "author-a")
     }
 
     @Test func editingTodayUpdatesTheRowRatherThanAddingOne() throws {
         let context = try makeContext()
         let today = Date(timeIntervalSinceReferenceDate: 800_000_000)
 
-        DailyQuestionStore.write("First", in: context, questionID: "q01", day: today, author: .one)
-        DailyQuestionStore.write("Second", in: context, questionID: "q01", day: today, author: .one)
+        DailyQuestionStore.write("First", in: context, questionID: "q01", day: today, authorID: "author-a")
+        DailyQuestionStore.write("Second", in: context, questionID: "q01", day: today, authorID: "author-a")
 
         let all = try context.fetch(FetchDescriptor<QuestionAnswer>())
         #expect(all.count == 1)
@@ -98,12 +98,12 @@ struct DailyQuestionStoreTests {
         let context = try makeContext()
         let today = Date(timeIntervalSinceReferenceDate: 800_000_000)
 
-        DailyQuestionStore.write("Mine", in: context, questionID: "q01", day: today, author: .one)
-        DailyQuestionStore.write("Theirs", in: context, questionID: "q01", day: today, author: .two)
+        DailyQuestionStore.write("Mine", in: context, questionID: "q01", day: today, authorID: "author-a")
+        DailyQuestionStore.write("Theirs", in: context, questionID: "q01", day: today, authorID: "author-b")
 
         #expect(try context.fetch(FetchDescriptor<QuestionAnswer>()).count == 2)
         #expect(DailyQuestionStore.answer(in: context, questionID: "q01",
-                                          day: today, author: .two)?.text == "Theirs")
+                                          day: today, authorID: "author-b")?.text == "Theirs")
     }
 
     @Test func aDifferentDayIsADifferentRow() throws {
@@ -111,8 +111,8 @@ struct DailyQuestionStoreTests {
         let today = Date(timeIntervalSinceReferenceDate: 800_000_000)
         let tomorrow = today.addingTimeInterval(86_400)
 
-        DailyQuestionStore.write("Today", in: context, questionID: "q01", day: today, author: .one)
-        DailyQuestionStore.write("Tomorrow", in: context, questionID: "q01", day: tomorrow, author: .one)
+        DailyQuestionStore.write("Today", in: context, questionID: "q01", day: today, authorID: "author-a")
+        DailyQuestionStore.write("Tomorrow", in: context, questionID: "q01", day: tomorrow, authorID: "author-a")
 
         #expect(try context.fetch(FetchDescriptor<QuestionAnswer>()).count == 2)
     }
@@ -121,7 +121,7 @@ struct DailyQuestionStoreTests {
         let context = try makeContext()
         let evening = Date(timeIntervalSinceReferenceDate: 800_000_000)
 
-        DailyQuestionStore.write("Late", in: context, questionID: "q01", day: evening, author: .one)
+        DailyQuestionStore.write("Late", in: context, questionID: "q01", day: evening, authorID: "author-a")
 
         var utc = Calendar(identifier: .gregorian)
         utc.timeZone = TimeZone(secondsFromGMT: 0)!
@@ -135,14 +135,14 @@ struct DailyQuestionStoreTests {
         let base = Date(timeIntervalSinceReferenceDate: 800_000_000)
 
         DailyQuestionStore.write("Older", in: context, questionID: "q01",
-                                 day: base, author: .one)
+                                 day: base, authorID: "author-a")
         DailyQuestionStore.write("Newer", in: context, questionID: "q02",
-                                 day: base.addingTimeInterval(86_400), author: .one)
+                                 day: base.addingTimeInterval(86_400), authorID: "author-a")
         DailyQuestionStore.write("Gone", in: context, questionID: "q03",
-                                 day: base.addingTimeInterval(2 * 86_400), author: .one)
+                                 day: base.addingTimeInterval(2 * 86_400), authorID: "author-a")
         DailyQuestionStore.answer(in: context, questionID: "q03",
                                   day: base.addingTimeInterval(2 * 86_400),
-                                  author: .one)?.deletedAt = .now
+                                  authorID: "author-a")?.deletedAt = .now
         try context.save()
 
         let history = try DailyQuestionStore.history(from: context)
@@ -156,30 +156,26 @@ struct DailyQuestionBadgeRuleTests {
         ModelContext(try Persistence.makeContainer(inMemory: true))
     }
 
-    @Test func nothingToNagAboutBeforeThePhoneHasAnOwner() throws {
-        #expect(DailyQuestionStore.isUnanswered([], by: nil) == false)
-    }
-
     @Test func anUnansweredDayNags() throws {
-        #expect(DailyQuestionStore.isUnanswered([], by: .one))
+        #expect(DailyQuestionStore.isUnanswered([], by: "author-a"))
     }
 
     @Test func answeringTodaySilencesIt() throws {
         let context = try makeContext()
         let question = DailyQuestionCatalog.question()
         DailyQuestionStore.write("Done", in: context, questionID: question.id,
-                                 day: .now, author: .one)
+                                 day: .now, authorID: "author-a")
         let answers = try context.fetch(FetchDescriptor<QuestionAnswer>())
-        #expect(DailyQuestionStore.isUnanswered(answers, by: .one) == false)
+        #expect(DailyQuestionStore.isUnanswered(answers, by: "author-a") == false)
     }
 
     @Test func thePartnerAnsweringDoesNotSilenceIt() throws {
         let context = try makeContext()
         let question = DailyQuestionCatalog.question()
         DailyQuestionStore.write("Theirs", in: context, questionID: question.id,
-                                 day: .now, author: .two)
+                                 day: .now, authorID: "author-b")
         let answers = try context.fetch(FetchDescriptor<QuestionAnswer>())
-        #expect(DailyQuestionStore.isUnanswered(answers, by: .one))
+        #expect(DailyQuestionStore.isUnanswered(answers, by: "author-a"))
     }
 
     @Test func yesterdaysAnswerDoesNotSilenceToday() throws {
@@ -187,9 +183,9 @@ struct DailyQuestionBadgeRuleTests {
         let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: .now)!
         let question = DailyQuestionCatalog.question(on: yesterday)
         DailyQuestionStore.write("Old", in: context, questionID: question.id,
-                                 day: yesterday, author: .one)
+                                 day: yesterday, authorID: "author-a")
         let answers = try context.fetch(FetchDescriptor<QuestionAnswer>())
-        #expect(DailyQuestionStore.isUnanswered(answers, by: .one))
+        #expect(DailyQuestionStore.isUnanswered(answers, by: "author-a"))
     }
 }
 
