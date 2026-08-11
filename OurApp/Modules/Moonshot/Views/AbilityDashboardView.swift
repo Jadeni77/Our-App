@@ -6,9 +6,14 @@ import SwiftData
 /// Locked characters demo too; watching the well work is the best
 /// advertisement for earning 24★.
 struct AbilityDashboardView: View {
-    /// Personal: an ability is unlocked by *your* play, not by hers.
-    @Query private var allResults: [MoonshotLevelResult]
-    private var results: [MoonshotLevelResult] { allResults.mine }
+    /// **Not** scoped. Its only use is the reward pool below, and reward
+    /// unlocks ride the *shared* star count (P23) — the same number Home, the
+    /// reward track and the in-game roster all use.
+    ///
+    /// Scoping it produced a character shown unlocked on Home, summonable in a
+    /// level, and marked "reached" on the reward track, that this screen then
+    /// padlocked with "Unlocks at 24★". Four screens, two different truths.
+    @Query private var results: [MoonshotLevelResult]
     @State private var selected: CharacterID
 
     init(initial: CharacterID = .mochi) {

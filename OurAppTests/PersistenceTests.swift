@@ -32,7 +32,10 @@ struct PersistenceTests {
         #expect(dates.first?.repeatsYearly == true)
         // Soft-delete tombstone starts empty — a fresh date is not deleted.
         #expect(dates.first?.deletedAt == nil)
-        #expect(dates.first?.authorID == nil)
+        // Was `== nil`, which pinned a bug in place: nothing on any write path
+        // set an author, so the LWW tiebreak (which breaks on `authorID`) had
+        // nothing to break on and two phones could disagree forever.
+        #expect(dates.first?.authorID == LocalAuthor.id())
     }
 
     /// The edit-then-delete round trip the page performs, checked at the store

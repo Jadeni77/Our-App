@@ -3,14 +3,21 @@ import Foundation
 /// A "cloud" that is a folder. Two simulators pointed at the same directory on
 /// the Mac converge for real — no entitlement, no account, no network.
 ///
-/// Deliberately dumb: one JSON file per envelope, names sorted lexicographically
-/// *and* chronologically because the timestamp is fixed-width and zero-padded.
-/// The cursor is simply the last filename consumed.
+/// **Ordering is per writer, never by clock.** The first version stamped each
+/// filename with `Date()` and kept a single high-water cursor. Because a tick
+/// pushes before it pulls, every tick advanced your cursor past your *own*
+/// newest write — so a partner whose clock ran even slightly behind wrote files
+/// that sorted below your cursor and were skipped **forever**, silently, with
+/// no error and no retry. Two simulators hide this completely, because they
+/// share the host's clock.
 ///
-/// This is scaffolding for slice D, but it is not throwaway — it is also the
-/// only way to watch replication happen before there is a CloudKit container.
+/// So each writer keeps its own sequence and the cursor is a map of
+/// writer → last sequence consumed. No clock is involved anywhere.
 struct FileCloudTransport: SyncTransport, SyncAssetTransport {
     let directory: URL
+    /// Whose sequence to advance when pushing. Files from other writers are
+    /// what `pull` returns.
+    let authorID: String
 
     /// Assets live in their own subdirectory so `pull(since:)`, which lists the
     /// records directory, never has to filter megabytes of JPEG out of its way.
@@ -29,14 +36,21 @@ struct FileCloudTransport: SyncTransport, SyncAssetTransport {
         try? Data(contentsOf: assetsDirectory.appendingPathComponent("\(id).jpg"))
     }
 
+    func hasAsset(id: String) async -> Bool {
+        FileManager.default.fileExists(
+            atPath: assetsDirectory.appendingPathComponent("\(id).jpg").path)
+    }
+
     private static let encoder = JSONEncoder()
     private static let decoder = JSONDecoder()
 
     func push(_ envelopes: [SyncEnvelope]) async throws {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        var sequence = highestSequence(for: authorID) + 1
         for envelope in envelopes {
             let data = try Self.encoder.encode(envelope)
-            let name = Self.name(at: Date(), id: envelope.id)
+            let name = Self.name(author: authorID, sequence: sequence, id: envelope.id)
+            sequence += 1
             let final = directory.appendingPathComponent(name)
             // Written aside and renamed in: a reader listing the directory
             // mid-write would otherwise decode a truncated file and drop the
@@ -49,25 +63,57 @@ struct FileCloudTransport: SyncTransport, SyncAssetTransport {
     }
 
     func pull(since token: SyncToken?) async throws -> SyncBatch {
+        var cursor = Self.cursor(from: token)
         let names = ((try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? [])
             .filter { $0.hasSuffix(".json") }
-            .filter { name in token.map { name > $0 } ?? true }
             .sorted()
 
         var envelopes: [SyncEnvelope] = []
         for name in names {
+            guard let (author, sequence) = Self.parse(name) else { continue }
+            // Your own writes are never pulled back. They used to be, and they
+            // were what dragged the cursor past the other phone's files.
+            guard author != authorID, sequence > (cursor[author] ?? 0) else { continue }
             guard let data = try? Data(contentsOf: directory.appendingPathComponent(name)),
                   let envelope = try? Self.decoder.decode(SyncEnvelope.self, from: data)
             else { continue }   // a half-written or foreign file is skipped, never fatal
             envelopes.append(envelope)
+            cursor[author] = sequence
         }
-        return SyncBatch(envelopes: envelopes, token: names.last ?? token ?? "")
+        return SyncBatch(envelopes: envelopes, token: Self.token(from: cursor))
     }
 
-    /// `00000001754700000.123456-<uuid>.json`. Fixed width so string ordering
-    /// is time ordering — the moment it isn't, `pull(since:)` starts skipping
-    /// records or replaying them forever.
-    private static func name(at date: Date, id: UUID) -> String {
-        String(format: "%024.6f", date.timeIntervalSince1970) + "-" + id.uuidString + ".json"
+    private func highestSequence(for author: String) -> Int {
+        ((try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? [])
+            .compactMap(Self.parse)
+            .filter { $0.author == author }
+            .map(\.sequence)
+            .max() ?? 0
+    }
+
+    /// `<author>__<0000000007>__<uuid>.json`. The double underscore is a
+    /// separator a UUID cannot contain, so parsing can't be confused by one.
+    private static func name(author: String, sequence: Int, id: UUID) -> String {
+        "\(author)__\(String(format: "%010d", sequence))__\(id.uuidString).json"
+    }
+
+    private static func parse(_ name: String) -> (author: String, sequence: Int)? {
+        let parts = name.replacingOccurrences(of: ".json", with: "").components(separatedBy: "__")
+        guard parts.count == 3, let sequence = Int(parts[1]) else { return nil }
+        return (parts[0], sequence)
+    }
+
+    /// The token is a map, not a high-water string: one writer falling behind
+    /// must not hide another writer's newer records.
+    private static func cursor(from token: SyncToken?) -> [String: Int] {
+        guard let token, let data = token.data(using: .utf8),
+              let map = try? JSONDecoder().decode([String: Int].self, from: data)
+        else { return [:] }
+        return map
+    }
+
+    private static func token(from cursor: [String: Int]) -> SyncToken {
+        guard let data = try? JSONEncoder().encode(cursor) else { return "{}" }
+        return String(decoding: data, as: UTF8.self)
     }
 }

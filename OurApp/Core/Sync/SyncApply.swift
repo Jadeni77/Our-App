@@ -115,7 +115,29 @@ enum SyncApply {
         row.authorID = envelope.authorID
         row.updatedAt = envelope.updatedAt
         row.deletedAt = envelope.deletedAt
+        if row.isAnniversary { collapseAnniversaries(in: context) }
         return true
+    }
+
+    /// Exactly one anniversary exists (P17), but each phone created its own row
+    /// from its own legacy `couple.anniversary` key — so the first sync leaves
+    /// two. Keep the **earlier** date, which is what the page and Home's day
+    /// counter already pick, and tombstone the rest.
+    ///
+    /// Deterministic on purpose: both phones apply the same rule to the same
+    /// set and reach the same answer without talking about it. Anything
+    /// resolved by "whoever noticed first" would diverge.
+    private static func collapseAnniversaries(in context: ModelContext) {
+        let descriptor = FetchDescriptor<SpecialDate>(
+            predicate: #Predicate { $0.deletedAt == nil && $0.isAnniversary })
+        guard let rows = try? context.fetch(descriptor), rows.count > 1 else { return }
+
+        let keeper = rows.min {
+            $0.date == $1.date ? $0.id.uuidString < $1.id.uuidString : $0.date < $1.date
+        }
+        for row in rows where row.id != keeper?.id {
+            row.deletedAt = .now
+        }
     }
 
     private static func applyQuestionAnswer(_ envelope: SyncEnvelope,

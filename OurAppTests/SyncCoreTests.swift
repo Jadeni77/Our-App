@@ -194,23 +194,47 @@ struct SyncConvergenceTests {
     }
 
     @Test func anEchoOfYourOwnRecordDoesNotOverwriteALocalEdit() async throws {
-        let (a, b) = try pair()
-        let memory = Memory(note: "first", day: .now,
-                            authorID: a.authorID, photoIDs: [])
+        let (a, _) = try pair()
+        let memory = Memory(note: "first", day: .now, authorID: a.authorID, photoIDs: [])
         a.context.insert(memory)
         try a.context.save()
-        try await a.engine.tick()
+        let echo = memory.envelope()          // captured *before* the local edit
 
         memory.note = "edited after pushing"
-        memory.updatedAt = Date().addingTimeInterval(60)
+        memory.updatedAt = memory.updatedAt.addingTimeInterval(60)
         try a.context.save()
 
-        // A's own envelope comes back on the next pull. It must lose to the
-        // newer local edit rather than stamping the old text back.
+        // Applied directly. Driving this through `tick()` proved nothing: the
+        // first tick advanced the pull cursor past the original envelope, so
+        // the stale echo the test is named for never arrived and the assertion
+        // held even with the merge rule removed entirely.
+        let applied = SyncApply.apply(echo, in: a.context, localAuthorID: a.authorID)
+        try a.context.save()
+
+        #expect(applied == false)
+        #expect(try memories(a).first?.note == "edited after pushing")
+    }
+
+    @Test func aLocalWriteIsPushedEvenWhenThePartnersClockRunsAhead() async throws {
+        let (a, b) = try pair()
+        // The watermark used to be max(updatedAt) over *everything* collected,
+        // including rows that arrived from the other phone carrying its clock.
+        // A partner ten minutes fast pushed this phone's watermark into its own
+        // future, and every local write below it was never pushed at all.
+        let fromThem = Memory(note: "theirs, from the future", day: .now,
+                              authorID: b.authorID, photoIDs: [])
+        fromThem.updatedAt = Date().addingTimeInterval(600)
+        a.context.insert(fromThem)
+        try a.context.save()
         try await a.engine.tick()
 
-        #expect(try memories(a).first?.note == "edited after pushing")
-        _ = b
+        a.context.insert(Memory(note: "mine, written now", day: .now,
+                                authorID: a.authorID, photoIDs: []))
+        try a.context.save()
+        try await a.engine.tick()
+        try await b.engine.tick()
+
+        #expect(try memories(b).contains { $0.note == "mine, written now" })
     }
 
     @Test func anUnknownRecordTypeIsDroppedRatherThanGuessedAt() async throws {
@@ -232,70 +256,134 @@ struct FileCloudTransportTests {
         return url
     }
 
-    private func envelope(_ note: String) -> SyncEnvelope {
+    private func envelope(_ note: String, author: String = "author-a") -> SyncEnvelope {
         SyncEnvelope(recordType: Memory.syncTypeName, id: UUID(),
-                     authorID: "author-a", updatedAt: .now, deletedAt: nil,
+                     authorID: author, updatedAt: .now, deletedAt: nil,
                      fields: ["note": .string(note)])
     }
 
-    @Test func envelopesRoundTripThroughARealDirectory() async throws {
-        let transport = FileCloudTransport(directory: try directory())
-        let sent = envelope("Kyoto")
-        try await transport.push([sent])
+    /// Two transports on one folder — which is the whole point, and what the
+    /// first version of these tests never did: they used a single instance and
+    /// always pulled after their own push, so a two-writer directory was never
+    /// exercised at all.
+    private func pair() throws -> (FileCloudTransport, FileCloudTransport) {
+        let folder = try directory()
+        return (FileCloudTransport(directory: folder, authorID: "author-a"),
+                FileCloudTransport(directory: folder, authorID: "author-b"))
+    }
 
-        let batch = try await transport.pull(since: nil)
-        #expect(batch.envelopes == [sent])
+    @Test func envelopesRoundTripThroughARealDirectory() async throws {
+        let (a, b) = try pair()
+        let sent = envelope("Kyoto")
+        try await a.push([sent])
+
+        #expect(try await b.pull(since: nil).envelopes == [sent])
+    }
+
+    @Test func yourOwnWritesAreNotPulledBack() async throws {
+        let (a, _) = try pair()
+        try await a.push([envelope("mine")])
+
+        // They used to be, and pulling them was what dragged the cursor past
+        // the other phone's files.
+        #expect(try await a.pull(since: nil).envelopes.isEmpty)
+    }
+
+    @Test func aWriterWithASlowerClockIsStillDelivered() async throws {
+        let (a, b) = try pair()
+        // The bug this replaces: filenames were stamped with the writer's wall
+        // clock and the cursor was a single high-water string. A pushes (and so
+        // sets its own cursor high), B pushes with a clock a few minutes behind,
+        // and B's file sorts *below* A's cursor — skipped forever, silently.
+        // Sequences are per writer, so no clock can order one writer's records
+        // relative to another's.
+        try await a.push([envelope("from a", author: "author-a")])
+        let first = try await a.pull(since: nil)
+        try await b.push([envelope("from b", author: "author-b")])
+
+        let second = try await a.pull(since: first.token)
+        #expect(second.envelopes.map { $0.string("note") } == ["from b"])
     }
 
     @Test func pullingAgainWithTheCursorReturnsNothing() async throws {
-        let transport = FileCloudTransport(directory: try directory())
-        try await transport.push([envelope("one")])
-        let first = try await transport.pull(since: nil)
+        let (a, b) = try pair()
+        try await a.push([envelope("one")])
+        let first = try await b.pull(since: nil)
 
-        let second = try await transport.pull(since: first.token)
+        let second = try await b.pull(since: first.token)
         // An idle tick must not re-deliver: without this the other phone
         // re-applies the same envelopes on every foreground, forever.
         #expect(second.envelopes.isEmpty)
-        #expect(second.token == first.token)
     }
 
     @Test func onlyEnvelopesAfterTheCursorComeBack() async throws {
-        let transport = FileCloudTransport(directory: try directory())
-        try await transport.push([envelope("one")])
-        let first = try await transport.pull(since: nil)
-        try await transport.push([envelope("two")])
+        let (a, b) = try pair()
+        try await a.push([envelope("one")])
+        let first = try await b.pull(since: nil)
+        try await a.push([envelope("two")])
 
-        let second = try await transport.pull(since: first.token)
+        let second = try await b.pull(since: first.token)
         #expect(second.envelopes.count == 1)
         #expect(second.envelopes.first?.string("note") == "two")
     }
 
     @Test func aHalfWrittenOrForeignFileIsSkippedRatherThanFatal() async throws {
-        let folder = try directory()
-        let transport = FileCloudTransport(directory: folder)
-        try await transport.push([envelope("good")])
+        let (a, b) = try pair()
+        try await a.push([envelope("good")])
         try Data("not json".utf8)
-            .write(to: folder.appendingPathComponent("00000000000000000000.000000-x.json"))
+            .write(to: a.directory.appendingPathComponent("author-a__0000009999__x.json"))
 
         // Principle 7 at the transport layer: one unreadable file must not stop
         // every other record from arriving.
-        let batch = try await transport.pull(since: nil)
+        let batch = try await b.pull(since: nil)
         #expect(batch.envelopes.count == 1)
         #expect(batch.envelopes.first?.string("note") == "good")
     }
 
-    @Test func fileNamesSortChronologically() async throws {
-        let folder = try directory()
-        let transport = FileCloudTransport(directory: folder)
+    @Test func onePushersRecordsArriveInOrderAcrossSeparatePushes() async throws {
+        let (a, b) = try pair()
         for index in 0..<12 {
-            try await transport.push([envelope("note-\(index)")])
+            try await a.push([envelope("note-\(index)")])
         }
-        let batch = try await transport.pull(since: nil)
-        // Fixed-width padding is what makes string order time order. Without
-        // it, "9.0" sorts after "10.0" and pull(since:) silently skips records.
-        #expect(batch.envelopes.map { $0.string("note") }
+        // Sequence continues across pushes — it is recovered from the directory
+        // rather than held in memory, so a relaunched app doesn't restart at 1
+        // and overwrite its own history.
+        #expect(try await b.pull(since: nil).envelopes.map { $0.string("note") }
                 == (0..<12).map { "note-\($0)" })
     }
+
+    @Test func twoWritersInterleaveWithoutHidingEachOther() async throws {
+        let (a, b) = try pair()
+        try await a.push([envelope("a1", author: "author-a")])
+        try await b.push([envelope("b1", author: "author-b")])
+        try await a.push([envelope("a2", author: "author-a")])
+
+        let seen = try await FileCloudTransport(directory: a.directory, authorID: "reader")
+            .pull(since: nil).envelopes.map { $0.string("note") }
+        #expect(Set(seen) == ["a1", "a2", "b1"])
+    }
+}
+
+/// Counts calls, so "it didn't ask" can be asserted rather than inferred from
+/// a nil that several different bugs also produce.
+actor CountingAssetTransport: SyncAssetTransport {
+    private(set) var puts = 0
+    private(set) var gets = 0
+    private var stored: [String: Data] = [:]
+
+    func putAsset(_ data: Data, id: String) async throws {
+        puts += 1
+        stored[id] = data
+    }
+
+    func getAsset(id: String) async throws -> Data? {
+        gets += 1
+        return stored[id]
+    }
+
+    func hasAsset(id: String) async -> Bool { stored[id] != nil }
+
+    func forget(_ id: String) { stored[id] = nil }
 }
 
 @MainActor
@@ -321,6 +409,24 @@ struct SyncAssetTests {
         ModelContext(try Persistence.makeContainer(inMemory: true))
     }
 
+    @Test func anAssetLostFromTheCloudIsUploadedAgain() async throws {
+        let spy = CountingAssetTransport()
+        let store = try photoStore()
+        let id = try store.write(jpeg(), id: UUID().uuidString)
+        let sending = try context()
+        sending.insert(Memory(note: "once", day: .now, authorID: "author-a", photoIDs: [id]))
+        try sending.save()
+
+        await SyncAssetPump.upload(context: sending, transport: spy, photos: store)
+        await spy.forget(id)          // the folder moved, or the asset went
+        await SyncAssetPump.upload(context: sending, transport: spy, photos: store)
+
+        // With a remembered list this never happened again, and the partner's
+        // grid kept its placeholders forever while download retried an id
+        // nobody would ever supply.
+        #expect(await spy.puts == 2)
+    }
+
     private func defaults() -> UserDefaults {
         let suite = "assets.test.\(UUID().uuidString)"
         let store = UserDefaults(suiteName: suite)!
@@ -339,8 +445,7 @@ struct SyncAssetTests {
         sending.insert(Memory(note: "with a picture", day: .now,
                               authorID: "author-a", photoIDs: [id]))
         try sending.save()
-        await SyncAssetPump.upload(context: sending, transport: transport,
-                                   photos: sender, defaults: defaults())
+        await SyncAssetPump.upload(context: sending, transport: transport, photos: sender)
 
         let receiving = try context()
         receiving.insert(Memory(note: "with a picture", day: .now,
@@ -383,7 +488,7 @@ struct SyncAssetTests {
     }
 
     @Test func aPhotoAlreadyOnDiskIsNotFetchedAgain() async throws {
-        let transport = LoopbackTransport(cloud: LoopbackCloud())
+        let spy = CountingAssetTransport()
         let store = try photoStore()
         let id = try store.write(jpeg(), id: UUID().uuidString)
 
@@ -392,14 +497,16 @@ struct SyncAssetTests {
                                 authorID: "author-a", photoIDs: [id]))
         try receiving.save()
 
-        // Nothing was ever uploaded; if this tried to fetch it would fail. It
-        // returning empty is what proves it never asked.
-        #expect(await SyncAssetPump.download(context: receiving,
-                                             transport: transport, photos: store).isEmpty)
+        _ = await SyncAssetPump.download(context: receiving, transport: spy, photos: store)
+
+        // Counted, not inferred. Asserting only that `download` returned empty
+        // proved nothing: an id nobody uploaded also yields nil and an empty
+        // result, so the guard being absent looked identical.
+        #expect(await spy.gets == 0)
     }
 
     @Test func uploadingIsNotRepeatedOnEveryTick() async throws {
-        let transport = LoopbackTransport(cloud: LoopbackCloud())
+        let spy = CountingAssetTransport()
         let store = try photoStore()
         let shared = defaults()
         let id = try store.write(jpeg(), id: UUID().uuidString)
@@ -408,15 +515,14 @@ struct SyncAssetTests {
         sending.insert(Memory(note: "once", day: .now, authorID: "author-a", photoIDs: [id]))
         try sending.save()
 
-        await SyncAssetPump.upload(context: sending, transport: transport,
-                                   photos: store, defaults: shared)
-        // Deleting the local file makes a second upload impossible to fake: if
-        // it re-read and re-sent, this would have nothing to send.
-        store.delete(id)
-        await SyncAssetPump.upload(context: sending, transport: transport,
-                                   photos: store, defaults: shared)
+        for _ in 0..<3 {
+            await SyncAssetPump.upload(context: sending, transport: spy, photos: store)
+        }
 
-        #expect(try await transport.getAsset(id: id) != nil)
+        // Counted. The old version deleted the local file between ticks and
+        // then checked the asset existed — which it did, from the *first*
+        // upload, whether or not the latch worked at all.
+        #expect(await spy.puts == 1)
     }
 
     @Test func aThumbnailCacheForgetsAMissSoAnArrivingPhotoShows() async throws {
@@ -581,5 +687,109 @@ struct CoupleWalletTests {
         // time sync ran — the same mistake as scoping the star pool, made twice.
         let all = try store.fetch(FetchDescriptor<MoonshotMoondustEntry>())
         #expect(all.reduce(0) { $0 + $1.amount } == 50)
+    }
+}
+
+@MainActor
+struct SharedRecordAuthorshipTests {
+    /// Every shared type must carry a real author, because the LWW tiebreak
+    /// breaks on it. A type that ships `""` has no tiebreak at all.
+    @Test func everySharedRecordIsCreatedWithAnAuthor() throws {
+        let store = ModelContext(try Persistence.makeContainer(inMemory: true))
+        let mine = LocalAuthor.id()
+
+        store.insert(SpecialDate(title: "First date", date: .now))
+        store.insert(Memory(note: "", day: .now, authorID: mine, photoIDs: ["a"]))
+        store.insert(CheckIn(day: .now, authorID: mine))
+        DailyQuestionStore.write("x", in: store, questionID: "q01", day: .now, authorID: mine)
+        try store.save()
+
+        #expect(try store.fetch(FetchDescriptor<SpecialDate>()).first?.authorID == mine)
+        #expect(try store.fetch(FetchDescriptor<Memory>()).first?.authorID == mine)
+        #expect(try store.fetch(FetchDescriptor<CheckIn>()).first?.authorID == mine)
+        #expect(try store.fetch(FetchDescriptor<QuestionAnswer>()).first?.authorID == mine)
+    }
+
+    @Test func twoPhonesEditingOneDateAtTheSameInstantStillConverge() throws {
+        func apply(_ order: [SyncEnvelope]) throws -> String? {
+            let store = ModelContext(try Persistence.makeContainer(inMemory: true))
+            for envelope in order {
+                SyncApply.apply(envelope, in: store, localAuthorID: "reader")
+            }
+            try store.save()
+            return try store.fetch(FetchDescriptor<SpecialDate>()).first?.title
+        }
+        let id = UUID()
+        let instant = Date(timeIntervalSinceReferenceDate: 800_000_000)
+        func edit(_ author: String, _ title: String) -> SyncEnvelope {
+            SyncEnvelope(recordType: SpecialDate.syncTypeName, id: id, authorID: author,
+                         updatedAt: instant, deletedAt: nil,
+                         fields: ["title": .string(title), "iconID": .string("heart"),
+                                  "date": .date(instant), "repeatsYearly": .bool(false),
+                                  "isAnniversary": .bool(false)])
+        }
+        let forward = try apply([edit("author-a", "hers"), edit("author-b", "his")])
+        let backward = try apply([edit("author-b", "his"), edit("author-a", "hers")])
+
+        #expect(forward == backward)
+        #expect(forward == "his")
+    }
+}
+
+@MainActor
+struct AnniversaryConvergenceTests {
+    private func anniversary(_ date: Date, author: String, id: UUID = UUID()) -> SyncEnvelope {
+        SyncEnvelope(recordType: SpecialDate.syncTypeName, id: id, authorID: author,
+                     updatedAt: .now, deletedAt: nil,
+                     fields: ["title": .string(""), "iconID": .string("heart"),
+                              "date": .date(date), "repeatsYearly": .bool(true),
+                              "isAnniversary": .bool(true)])
+    }
+
+    @Test func twoPhonesEachMigratingTheirOwnAnniversaryEndUpWithOne() throws {
+        let store = ModelContext(try Persistence.makeContainer(inMemory: true))
+        let earlier = Date(timeIntervalSinceReferenceDate: 700_000_000)
+        let later = Date(timeIntervalSinceReferenceDate: 800_000_000)
+
+        // Each phone made its own row from its own legacy defaults key, so both
+        // exist after the first sync — and the day counter would silently
+        // change on whichever phone held the later one.
+        let mine = SpecialDate(title: "", date: later, repeatsYearly: true, isAnniversary: true)
+        store.insert(mine)
+        SyncApply.apply(anniversary(earlier, author: "them"), in: store, localAuthorID: "me")
+        try store.save()
+
+        let live = try store.fetch(
+            FetchDescriptor<SpecialDate>(predicate: #Predicate { $0.deletedAt == nil }))
+        #expect(live.count == 1)
+        #expect(live.first?.date == earlier)
+    }
+
+    @Test func bothPhonesCollapseToTheSameAnniversary() throws {
+        let earlier = Date(timeIntervalSinceReferenceDate: 700_000_000)
+        let later = Date(timeIntervalSinceReferenceDate: 800_000_000)
+        let mineID = UUID(), theirsID = UUID()
+
+        func survivor(localDate: Date, localID: UUID,
+                      incoming: SyncEnvelope) throws -> Date? {
+            let store = ModelContext(try Persistence.makeContainer(inMemory: true))
+            let row = SpecialDate(title: "", date: localDate,
+                                  repeatsYearly: true, isAnniversary: true)
+            row.id = localID
+            store.insert(row)
+            SyncApply.apply(incoming, in: store, localAuthorID: "me")
+            try store.save()
+            return try store.fetch(FetchDescriptor<SpecialDate>(
+                predicate: #Predicate { $0.deletedAt == nil })).first?.date
+        }
+
+        // Same rule, opposite starting points: the phones must agree without
+        // negotiating. "Whoever noticed first wins" would leave them different.
+        let onMine = try survivor(localDate: later, localID: mineID,
+                                  incoming: anniversary(earlier, author: "them", id: theirsID))
+        let onTheirs = try survivor(localDate: earlier, localID: theirsID,
+                                    incoming: anniversary(later, author: "me", id: mineID))
+        #expect(onMine == onTheirs)
+        #expect(onMine == earlier)
     }
 }

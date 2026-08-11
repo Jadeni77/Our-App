@@ -14,4 +14,8 @@ protocol SyncAssetTransport: Sendable {
     /// `nil` when the other phone hasn't uploaded it yet, which is normal and
     /// not a failure — records outrun their pictures by design.
     func getAsset(id: String) async throws -> Data?
+    /// Whether the cloud already holds it. Asked instead of remembering, so
+    /// "what still needs uploading" is derived state rather than a list that
+    /// can go stale.
+    func hasAsset(id: String) async -> Bool
 }
