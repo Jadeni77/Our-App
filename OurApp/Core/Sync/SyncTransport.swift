@@ -48,6 +48,10 @@ struct LoopbackTransport: SyncTransport, SyncAssetTransport {
         await cloud.asset(id: id)
     }
 
+    func hasAsset(id: String) async -> Bool {
+        await cloud.asset(id: id) != nil
+    }
+
     func push(_ envelopes: [SyncEnvelope]) async throws {
         await cloud.push(envelopes)
     }

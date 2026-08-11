@@ -131,7 +131,8 @@ struct CouplesHomeView: View {
             #if DEBUG
             if let directory = FakeCloudLaunch.directory {
                 syncEngine = SyncEngine(context: modelContext,
-                                        transport: FileCloudTransport(directory: directory),
+                                        transport: FileCloudTransport(directory: directory,
+                                                                      authorID: identity.authorID),
                                         authorID: identity.authorID)
             }
             #endif

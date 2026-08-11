@@ -13,31 +13,26 @@ import SwiftData
 /// could itself get lost.
 @MainActor
 enum SyncAssetPump {
-    /// Ids confirmed to be in the cloud, so a tick doesn't re-upload everything.
-    private static let uploadedKey = "sync.uploadedAssets"
-
     static func upload(context: ModelContext,
                        transport: any SyncAssetTransport,
-                       photos: MemoryPhotoStore = MemoryPhotoStore(),
-                       defaults: UserDefaults = .standard) async {
+                       photos: MemoryPhotoStore = MemoryPhotoStore()) async {
         guard let memories = try? context.fetch(FetchDescriptor<Memory>()) else { return }
-        var confirmed = Set(defaults.stringArray(forKey: uploadedKey) ?? [])
 
         for memory in memories {
-            for id in memory.photoIDs where !confirmed.contains(id) {
+            for id in memory.photoIDs {
                 // Only what this phone actually holds. A photo we are still
                 // waiting to receive is not ours to upload.
                 guard let data = photos.storedData(for: id) else { continue }
-                do {
-                    try await transport.putAsset(data, id: id)
-                    confirmed.insert(id)
-                } catch {
-                    // Left unconfirmed on purpose — the next tick retries it.
-                    continue
-                }
+                // **Asked, not remembered.** This used to consult a growing set
+                // in `UserDefaults`, keyed globally rather than per cloud — so
+                // pointing at a fresh folder, or losing an asset server-side,
+                // meant those ids were never re-uploaded and the partner's grid
+                // kept its placeholders forever. Derived state can't go stale.
+                guard await !transport.hasAsset(id: id) else { continue }
+                // A throw just means the next tick tries again.
+                try? await transport.putAsset(data, id: id)
             }
         }
-        defaults.set(Array(confirmed), forKey: uploadedKey)
     }
 
     /// - Returns: the ids that landed, so a view can drop its cached misses.

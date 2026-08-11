@@ -35,9 +35,18 @@ final class SpecialDate {
     /// Soft-delete tombstone. Set on delete; the row is never removed.
     var deletedAt: Date?
 
+    /// `authorID` defaults to this install (P18) rather than staying nil.
+    ///
+    /// Nothing on any write path used to set it, so every date shipped with a
+    /// nil author — and `SyncEnvelope.supersedes` breaks its tie on `authorID`,
+    /// which means `"" > ""` in both directions. Two phones editing one date at
+    /// the same instant would each reject the other and disagree forever, with
+    /// no conflict either could see. Exactly the failure the tiebreak exists to
+    /// prevent, on the one shared type where two people genuinely edit one row.
     init(title: String, emoji: String = "🎂", date: Date,
          repeatsYearly: Bool = false, isAnniversary: Bool = false,
-         icon: DateIcon? = nil) {
+         icon: DateIcon? = nil, authorID: String = LocalAuthor.id()) {
+        self.authorID = authorID
         self.id = UUID()
         self.title = title
         self.emoji = emoji

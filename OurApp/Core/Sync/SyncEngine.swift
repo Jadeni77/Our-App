@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 import SwiftData
 
 /// Push what changed, pull what arrived, apply it.
@@ -38,7 +39,7 @@ final class SyncEngine {
         // immediately; the picture filling in a moment later is a far better
         // experience than a timeline that waits on megabytes.
         guard let assets = transport as? any SyncAssetTransport else { return [] }
-        await SyncAssetPump.upload(context: context, transport: assets, defaults: defaults)
+        await SyncAssetPump.upload(context: context, transport: assets)
         return await SyncAssetPump.download(context: context, transport: assets,
                                             photos: MemoryPhotoStore())
     }
@@ -50,14 +51,25 @@ final class SyncEngine {
     /// change tokens, which is the correct fix rather than a workaround.
     private func push() async throws {
         let through = defaults.object(forKey: Keys.pushedThrough) as? Date ?? .distantPast
+        // **This phone's clock, not any record's timestamp.**
+        //
+        // The watermark used to be `max(updatedAt)` over everything collected —
+        // including rows that had arrived *from the other phone*, which carry
+        // the other phone's clock. A partner running ten minutes fast therefore
+        // pushed its watermark ten minutes into this phone's future, and every
+        // local write for the next ten minutes fell below it and **was never
+        // pushed at all**. Not delayed: a high-water mark only moves forward and
+        // nothing rescans below it.
+        //
+        // Filtering by author instead would be wrong: shared records can be
+        // edited by whoever didn't create them, and those edits must travel.
+        let stamp = Date()
         var outgoing: [SyncEnvelope] = []
-        var newest = through
 
         func collect<T: PersistentModel & SyncableRecord>(_ type: T.Type) {
             guard let rows = try? context.fetch(FetchDescriptor<T>()) else { return }
             for row in rows where row.syncUpdatedAt > through {
                 outgoing.append(row.envelope())
-                newest = max(newest, row.syncUpdatedAt)
             }
         }
         collect(SpecialDate.self)
@@ -68,7 +80,7 @@ final class SyncEngine {
 
         guard !outgoing.isEmpty else { return }
         try await transport.push(outgoing)
-        defaults.set(newest, forKey: Keys.pushedThrough)
+        defaults.set(stamp, forKey: Keys.pushedThrough)
     }
 
     private func pull() async throws {
@@ -82,9 +94,22 @@ final class SyncEngine {
                 changed = true
             }
         }
-        if changed { try? context.save() }
-        // The cursor advances even on an empty batch, so an idle tick doesn't
-        // re-deliver the same envelopes forever.
+        // **The cursor moves only once the records are durable.** Advancing it
+        // after a failed save left the partner's records in memory only, with
+        // the transport already past them — gone from this phone for good while
+        // still present on the other, and silent. Re-delivery is safe: apply is
+        // idempotent, and there is a test that says so.
+        if changed {
+            do {
+                try context.save()
+            } catch {
+                Logger(subsystem: "OurApp", category: "sync")
+                    .error("sync save failed, cursor held: \(error.localizedDescription)")
+                return
+            }
+        }
+        // Still advances on an empty batch, so an idle tick doesn't re-deliver
+        // the same envelopes forever.
         defaults.set(batch.token, forKey: Keys.pullToken)
     }
 }

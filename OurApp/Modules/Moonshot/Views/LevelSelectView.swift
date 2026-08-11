@@ -50,7 +50,9 @@ struct LevelSelectView: View {
             }
             TabView(selection: $world) {
                 ForEach(1...max(catalog.worldCount, 1), id: \.self) { number in
-                    WorldConstellationView(world: number, results: myResults, theme: equippedTheme)
+                    WorldConstellationView(world: number, results: myResults,
+                                                       pool: MoonshotRewards.starPool(results.map(\.snapshot)),
+                                                       theme: equippedTheme)
                         .tag(number)
                 }
             }
@@ -169,7 +171,12 @@ private struct WorldStyle {
 /// world's finale falls (the gate IS the linear rule — M24).
 private struct WorldConstellationView: View {
     let world: Int
+    /// This phone's rows: node state and per-world star totals are personal.
     let results: [MoonshotLevelResult]
+    /// The **shared** pool, passed in rather than derived from `results` —
+    /// deriving it here put 14★ under the world title while the chip at the top
+    /// of the same screen read 26★.
+    let pool: Int
     let theme: ConstellationTheme?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -228,7 +235,7 @@ private struct WorldConstellationView: View {
             Text("\(stars)★")
                 .font(Theme.display(14))
                 .foregroundStyle(.white.opacity(0.75))
-            NextUnlockStrip(pool: MoonshotRewards.starPool(results.map(\.snapshot)))
+            NextUnlockStrip(pool: pool)
                 .frame(maxWidth: 280)
         }
         .padding(.top, 6)
