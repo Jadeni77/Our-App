@@ -129,7 +129,22 @@ struct CouplesHomeView: View {
             guard !didHandleLaunchArguments else { return }
             didHandleLaunchArguments = true
             #if DEBUG
-            if let directory = FakeCloudLaunch.directory {
+            if FakeCloudLaunch.usesLocalNetwork {
+                // The outbox is this device's own history, so a peer that was
+                // away can still ask for what it missed. It lives in
+                // Application Support, not the shared folder — there isn't one.
+                let outbox = SyncOutbox(
+                    directory: FileManager.default
+                        .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+                        .appendingPathComponent("SyncOutbox", isDirectory: true),
+                    authorID: identity.authorID)
+                syncEngine = SyncEngine(
+                    context: modelContext,
+                    transport: LocalNetworkTransport(outbox: outbox,
+                                                     peers: LocalPeerService(outbox: outbox),
+                                                     photos: MemoryPhotoStore()),
+                    authorID: identity.authorID)
+            } else if let directory = FakeCloudLaunch.directory {
                 syncEngine = SyncEngine(context: modelContext,
                                         transport: FileCloudTransport(directory: directory,
                                                                       authorID: identity.authorID),

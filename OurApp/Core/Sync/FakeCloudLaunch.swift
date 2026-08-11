@@ -8,6 +8,12 @@ import Foundation
 /// DEBUG only, and absent by default — a release build has no transport at all
 /// until slice D.
 enum FakeCloudLaunch {
+    /// `-localNetwork` syncs over Bonjour + TCP instead of a shared folder —
+    /// a real socket between two devices, and still no paid Apple team.
+    static var usesLocalNetwork: Bool {
+        ProcessInfo.processInfo.arguments.contains("-localNetwork")
+    }
+
     static var directory: URL? {
         let arguments = ProcessInfo.processInfo.arguments
         guard let flag = arguments.firstIndex(of: "-fakeCloud"),
