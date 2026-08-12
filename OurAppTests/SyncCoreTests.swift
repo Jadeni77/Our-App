@@ -793,3 +793,122 @@ struct AnniversaryConvergenceTests {
         #expect(onMine == earlier)
     }
 }
+
+@MainActor
+struct SyncOutboxTests {
+    private func outbox(_ author: String = "me") throws -> SyncOutbox {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        return SyncOutbox(directory: url, authorID: author)
+    }
+
+    private func envelope(_ note: String) -> SyncEnvelope {
+        SyncEnvelope(recordType: Memory.syncTypeName, id: UUID(), authorID: "me",
+                     updatedAt: .now, deletedAt: nil, fields: ["note": .string(note)])
+    }
+
+    @Test func entriesComeBackInSequenceOrder() throws {
+        let log = try outbox()
+        try log.append((0..<12).map { envelope("note-\($0)") })
+
+        #expect(log.entries(after: 0).map { $0.envelope.string("note") }
+                == (0..<12).map { "note-\($0)" })
+    }
+
+    @Test func sequenceContinuesAcrossSeparateAppends() throws {
+        let log = try outbox()
+        try log.append([envelope("one")])
+        try log.append([envelope("two")])
+
+        // Recovered from disk rather than held in memory: a relaunched app that
+        // restarted at 1 would overwrite its own history and a peer would never
+        // see the second half of it.
+        #expect(log.highestSequence() == 2)
+        #expect(SyncOutbox(directory: log.directory, authorID: "me").highestSequence() == 2)
+    }
+
+    @Test func onlyEntriesAfterTheCursorAreServed() throws {
+        let log = try outbox()
+        try log.append([envelope("one"), envelope("two"), envelope("three")])
+
+        #expect(log.entries(after: 2).map { $0.envelope.string("note") } == ["three"])
+        #expect(log.entries(after: 99).isEmpty)
+    }
+
+    @Test func anUnreadableEntryIsSkippedRatherThanFatal() throws {
+        let log = try outbox()
+        try log.append([envelope("good")])
+        try Data("not json".utf8)
+            .write(to: log.directory.appendingPathComponent("me__0000009999__x.json"))
+
+        #expect(log.entries(after: 0).count == 1)
+    }
+}
+
+struct SyncFramingTests {
+    @Test func aFramedMessageRoundTrips() {
+        var buffer = SyncFraming.frame(Data("hello".utf8))
+        #expect(SyncFraming.nextMessage(from: &buffer) == Data("hello".utf8))
+        #expect(buffer.isEmpty)
+    }
+
+    @Test func twoMessagesInOneBufferAreSeparated() {
+        // TCP is a stream: two sends can arrive as one buffer. Without framing
+        // neither decodes, and the sync silently does nothing.
+        var buffer = SyncFraming.frame(Data("first".utf8))
+        buffer.append(SyncFraming.frame(Data("second".utf8)))
+
+        #expect(SyncFraming.nextMessage(from: &buffer) == Data("first".utf8))
+        #expect(SyncFraming.nextMessage(from: &buffer) == Data("second".utf8))
+        #expect(SyncFraming.nextMessage(from: &buffer) == nil)
+    }
+
+    @Test func aPartialMessageWaitsRatherThanDecodingRubbish() {
+        let whole = SyncFraming.frame(Data(repeating: 7, count: 5_000))
+        var buffer = whole.prefix(1_200)          // arrived in pieces, as large ones do
+
+        #expect(SyncFraming.nextMessage(from: &buffer) == nil)
+        #expect(buffer.count == 1_200)            // nothing consumed, nothing lost
+
+        buffer.append(whole.dropFirst(1_200))
+        #expect(SyncFraming.nextMessage(from: &buffer)?.count == 5_000)
+    }
+
+    @Test func aWireExchangeRoundTripsThroughJSON() throws {
+        let response = SyncWire.Response.records(
+            authorID: "author-a",
+            entries: [.init(sequence: 3,
+                            envelope: SyncEnvelope(recordType: "Memory", id: UUID(),
+                                                   authorID: "author-a", updatedAt: .now,
+                                                   deletedAt: nil,
+                                                   fields: ["note": .string("Kyoto")]))])
+        let data = try JSONEncoder().encode(response)
+        #expect(try JSONDecoder().decode(SyncWire.Response.self, from: data) == response)
+    }
+
+    @Test func bothRequestKindsSurviveTheWire() throws {
+        for request in [SyncWire.Request.records(cursor: ["a": 3]),
+                        SyncWire.Request.asset(id: "photo-1")] {
+            let data = try JSONEncoder().encode(request)
+            #expect(try JSONDecoder().decode(SyncWire.Request.self, from: data) == request)
+        }
+    }
+
+    @Test func anAssetResponseCarriesBytesLargerThanOneReceiveBuffer() throws {
+        // 400KB is a normal photo and far more than a single `receive` returns,
+        // so this only works if framing reassembles across chunks.
+        let big = Data(repeating: 9, count: 400_000)
+        let encoded = try JSONEncoder().encode(SyncWire.Response.asset(data: big))
+        var buffer = SyncFraming.frame(encoded)
+        let message = SyncFraming.nextMessage(from: &buffer)
+
+        guard case let .asset(data)? = try message.map({
+            try JSONDecoder().decode(SyncWire.Response.self, from: $0)
+        }) else {
+            Issue.record("expected an asset response")
+            return
+        }
+        #expect(data?.count == 400_000)
+    }
+}

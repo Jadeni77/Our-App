@@ -6,6 +6,7 @@
 #
 #   ./scripts/two-phones.sh            # fresh start, phone A seeded
 #   ./scripts/two-phones.sh --keep     # keep whatever is already in the cloud
+#   ./scripts/two-phones.sh --lan      # Bonjour + TCP instead of a folder
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -18,8 +19,18 @@ udid() { xcrun simctl list devices available | grep -m1 "^    $1 (" | sed -E 's/
 A=$(udid "$PHONE_A"); B=$(udid "$PHONE_B")
 [ -n "$A" ] && [ -n "$B" ] || { echo "Couldn't find both simulators. Set OURAPP_PHONE_A / OURAPP_PHONE_B."; exit 1; }
 
-if [ "${1:-}" != "--keep" ]; then rm -rf "$CLOUD"; fi
-mkdir -p "$CLOUD"
+MODE=${1:-}
+if [ "$MODE" = "--lan" ]; then
+  # A real socket between the two simulators. No shared folder is involved,
+  # and it still needs no paid Apple team.
+  TRANSPORT=(-localNetwork)
+  echo "Transport: local network (Bonjour + TCP)"
+else
+  TRANSPORT=(-fakeCloud "$CLOUD")
+  if [ "$MODE" != "--keep" ]; then rm -rf "$CLOUD"; fi
+  mkdir -p "$CLOUD"
+  echo "Transport: shared folder at $CLOUD"
+fi
 
 echo "Building…"
 xcodebuild build -project OurApp.xcodeproj -scheme OurApp \
@@ -36,14 +47,17 @@ for D in "$A" "$B"; do
 done
 
 # A is seeded and pushes; B starts empty and pulls.
-xcrun simctl launch "$A" $BUNDLE -seedMemories -fakeCloud "$CLOUD" >/dev/null
-sleep 6
-xcrun simctl launch "$B" $BUNDLE -fakeCloud "$CLOUD" >/dev/null
+xcrun simctl launch "$A" $BUNDLE -seedMemories "${TRANSPORT[@]}" >/dev/null
+# Bonjour discovery isn't instant; the first tick waits for a peer rather than
+# quietly finding none.
+sleep 8
+xcrun simctl launch "$B" $BUNDLE "${TRANSPORT[@]}" >/dev/null
 
 echo
-echo "Cloud: $CLOUD"
-echo "  records: $(ls "$CLOUD"/*.json 2>/dev/null | wc -l | tr -d ' ')   assets: $(ls "$CLOUD/assets" 2>/dev/null | wc -l | tr -d ' ')"
-echo
+if [ "$MODE" != "--lan" ]; then
+  echo "  records: $(ls "$CLOUD"/*.json 2>/dev/null | wc -l | tr -d ' ')   assets: $(ls "$CLOUD/assets" 2>/dev/null | wc -l | tr -d ' ')"
+  echo
+fi
 echo "$PHONE_A has three memories. On $PHONE_B, open Memories — they're there."
 echo "A tick runs whenever Home is foregrounded, so switching between the two"
 echo "windows is itself the sync trigger. No timers, no background modes."
