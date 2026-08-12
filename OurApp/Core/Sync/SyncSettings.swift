@@ -1,12 +1,12 @@
 import Foundation
 
-/// Whether sync is on, and when it last worked.
+/// When sync last worked.
 ///
-/// Off by default. Sync advertises this phone on the local network and answers
-/// questions about your memories — that is not something to switch on for
-/// somebody without asking, even on a network they own.
+/// There is deliberately no on/off key here any more. Being paired *is* the
+/// switch — a second one would only ever be a way for the two to disagree — and
+/// the privacy question it used to answer is now answered by
+/// `LocalPeerService` refusing to advertise unless paired or pairing.
 enum SyncSettings {
-    static let enabledKey = "sync.localNetworkEnabled"
     static let lastSyncedKey = "sync.lastSyncedAt"
 
     static func lastSynced(_ defaults: UserDefaults = .standard) -> Date? {

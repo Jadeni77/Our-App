@@ -4,7 +4,17 @@ import Foundation
 /// ask, receive, close. Nothing is held open, so a peer disappearing mid-sync
 /// costs one retry rather than a stuck connection.
 enum SyncWire {
+    /// What actually goes on the wire: a request plus proof it came from the
+    /// phone we paired with. `proof` is absent only for `.pair`, which is the
+    /// one request made *before* there is a secret to sign with.
+    struct Message: Codable, Equatable {
+        var request: Request
+        var proof: SyncAuth.Proof?
+    }
+
     enum Request: Codable, Equatable {
+        /// The one-time code, exchanged for a real secret.
+        case pair(code: String)
         /// `cursor` is author → last sequence this device already has.
         case records(cursor: [String: Int])
         /// Photo bytes, asked for only once the record naming them has arrived.
@@ -12,6 +22,11 @@ enum SyncWire {
     }
 
     enum Response: Codable, Equatable {
+        case paired(secret: Data)
+        /// Wrong code, expired offer, or a request that couldn't prove itself.
+        /// Deliberately one answer for all three: telling a caller *why* it was
+        /// refused tells an attacker which part to work on.
+        case denied
         case records(authorID: String, entries: [Entry])
         /// `nil` when the peer doesn't hold it — normal, not a failure.
         case asset(data: Data?)

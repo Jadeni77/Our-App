@@ -18,6 +18,10 @@ struct LocalNetworkTransport: SyncTransport, SyncAssetTransport {
     /// Pushing is purely local: append to our own log. Peers pull from it when
     /// they next ask, so a partner who is away misses nothing — the history is
     /// on the device that wrote it.
+    /// Appending is purely local and happens whether or not we are paired, so
+    /// that pairing later hands the partner our whole history rather than only
+    /// what came after. `start()` decides for itself whether advertising is
+    /// warranted.
     func push(_ envelopes: [SyncEnvelope]) async throws {
         try outbox.append(envelopes)
         await peers.start()

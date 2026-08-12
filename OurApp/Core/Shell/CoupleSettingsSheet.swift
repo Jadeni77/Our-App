@@ -15,7 +15,9 @@ struct CoupleSettingsSheet: View {
     // the picked photo (review ruling — do not merge these).
     @State private var isPickerPresented = false
     @AppStorage(AppLanguage.storageKey) private var languageRaw = AppLanguage.system.rawValue
-    @AppStorage(SyncSettings.enabledKey) private var syncEnabled = false
+    @State private var isPaired = SyncSecretStore.isPaired
+    @State private var pairing = false
+
 
     private var lastSyncedLabel: Text {
         guard let last = SyncSettings.lastSynced() else { return Text("Not yet") }
@@ -29,22 +31,35 @@ struct CoupleSettingsSheet: View {
                 partnerSection(header: "My love", name: $identity.nameTwo, partner: .two)
 
                 Section {
-                    Toggle(isOn: $syncEnabled) {
-                        Text("Sync on this network")
-                    }
-                    if syncEnabled {
+                    if isPaired {
                         LabeledContent {
                             lastSyncedLabel
                         } label: {
                             Text("Last synced")
                         }
+                        Button(role: .destructive) {
+                            SyncSecretStore.clear()
+                            isPaired = false
+                        } label: {
+                            Text("Forget the other phone")
+                        }
+                    } else {
+                        Button {
+                            Haptics.tap()
+                            pairing = true
+                        } label: {
+                            Text("Pair our phones")
+                        }
                     }
                 } header: {
                     Text("Sync")
                 } footer: {
-                    // Said plainly rather than discovered: a sync that only
-                    // works under conditions nobody mentioned reads as broken.
-                    Text("Both phones need to be on the same wi-fi with the app open. Syncing while you're apart needs iCloud, which isn't set up yet.")
+                    // Only what's true right now. There is no transport toggle:
+                    // once paired, syncing is what the app does, and *how* is
+                    // nobody's business but the app's.
+                    Text(isPaired
+                         ? "Your memories keep themselves in step whenever you're on the same wi-fi."
+                         : "Pair once, and your memories keep themselves in step whenever you're on the same wi-fi.")
                 }
 
                 Section("Language") {
