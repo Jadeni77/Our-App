@@ -38,9 +38,6 @@ final class SyncEngine {
         // Records first, always. A memory's note and date are worth having
         // immediately; the picture filling in a moment later is a far better
         // experience than a timeline that waits on megabytes.
-        // Recorded here rather than in the view: "it worked" is something only
-        // the engine knows, and a status line that lies is worse than none.
-        SyncSettings.recordSync(in: defaults)
         guard let assets = transport as? any SyncAssetTransport else { return [] }
         await SyncAssetPump.upload(context: context, transport: assets)
         return await SyncAssetPump.download(context: context, transport: assets,

@@ -17,6 +17,8 @@ struct CouplesHomeView: View {
 
     @State private var tilt = TiltModel()
     @State private var showSettings = false
+    @State private var showPairing = false
+    @State private var isPaired = SyncSecretStore.isPaired
     @State private var pulse = false
     @State private var path = NavigationPath()
     @State private var didHandleLaunchArguments = false
@@ -78,11 +80,26 @@ struct CouplesHomeView: View {
                         // the group is here to absorb.
                         SparkPill()
 
+                        // Setup prompts, one at a time. Both vanish for good
+                        // once done, which is the only reason a permanent line
+                        // on the hero canvas is acceptable at all.
                         if identity.nameOne.isEmpty && identity.nameTwo.isEmpty {
                             Button {
                                 showSettings = true
                             } label: {
                                 Text("Add your names")
+                                    .font(.footnote)
+                                    .foregroundStyle(.white.opacity(0.7))
+                            }
+                        } else if !isPaired {
+                            // Here rather than in Settings: pairing is a
+                            // once-ever setup step, and nobody goes looking in
+                            // Settings for something they have never done.
+                            Button {
+                                Haptics.tap()
+                                showPairing = true
+                            } label: {
+                                Text("Pair with your partner's phone")
                                     .font(.footnote)
                                     .foregroundStyle(.white.opacity(0.7))
                             }
@@ -122,8 +139,14 @@ struct CouplesHomeView: View {
         // exactly how the Daily Question page shipped crashing while the badge,
         // rendered inside the root, worked fine.
         .environment(identity)
-        .sheet(isPresented: $showSettings) {
+        .sheet(isPresented: $showSettings, onDismiss: { isPaired = SyncSecretStore.isPaired }) {
             CoupleSettingsSheet(identity: identity)
+        }
+        .sheet(isPresented: $showPairing, onDismiss: {
+            isPaired = SyncSecretStore.isPaired
+            configureSync()
+        }) {
+            SyncPairingSheet()
         }
         // Ticks on appear and on every foreground — no timers and no background
         // modes, both of which need entitlements this deliberately avoids.
@@ -143,6 +166,7 @@ struct CouplesHomeView: View {
         // The phone that *showed* the code never touched its own settings, so
         // dismissal isn't the signal on that side.
         .onReceive(NotificationCenter.default.publisher(for: .syncDidPair)) { _ in
+            isPaired = true
             Task { _ = try? await syncEngine?.tick() }
         }
         .onAppear {

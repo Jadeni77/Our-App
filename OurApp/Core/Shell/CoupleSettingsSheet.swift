@@ -16,13 +16,8 @@ struct CoupleSettingsSheet: View {
     @State private var isPickerPresented = false
     @AppStorage(AppLanguage.storageKey) private var languageRaw = AppLanguage.system.rawValue
     @State private var isPaired = SyncSecretStore.isPaired
-    @State private var pairing = false
 
 
-    private var lastSyncedLabel: Text {
-        guard let last = SyncSettings.lastSynced() else { return Text("Not yet") }
-        return Text(verbatim: last.formatted(.relative(presentation: .named)))
-    }
 
     var body: some View {
         NavigationStack {
@@ -30,36 +25,22 @@ struct CoupleSettingsSheet: View {
                 partnerSection(header: "Me", name: $identity.nameOne, partner: .one)
                 partnerSection(header: "My love", name: $identity.nameTwo, partner: .two)
 
-                Section {
-                    if isPaired {
-                        LabeledContent {
-                            lastSyncedLabel
-                        } label: {
-                            Text("Last synced")
-                        }
+                // Only what you'd come here to *change*. Pairing lives on Home
+                // where it's actually seen, and "last synced" was status
+                // dressed as a setting — a stale timestamp worries you without
+                // telling you anything you can act on. If sync is working, her
+                // memories are simply there.
+                if isPaired {
+                    Section {
                         Button(role: .destructive) {
                             SyncSecretStore.clear()
                             isPaired = false
                         } label: {
                             Text("Forget the other phone")
                         }
-                    } else {
-                        Button {
-                            Haptics.tap()
-                            pairing = true
-                        } label: {
-                            Text("Pair our phones")
-                        }
+                    } footer: {
+                        Text("You'd pair again from the home screen.")
                     }
-                } header: {
-                    Text("Sync")
-                } footer: {
-                    // Only what's true right now. There is no transport toggle:
-                    // once paired, syncing is what the app does, and *how* is
-                    // nobody's business but the app's.
-                    Text(isPaired
-                         ? "Your memories keep themselves in step whenever you're on the same wi-fi."
-                         : "Pair once, and your memories keep themselves in step whenever you're on the same wi-fi.")
                 }
 
                 Section("Language") {

@@ -257,29 +257,6 @@
         }
       }
     },
-    "Last synced" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Last synced"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "上次同步"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "上次同步"
-          }
-        }
-      }
-    },
     "Longest run" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -299,29 +276,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "最長連續"
-          }
-        }
-      }
-    },
-    "Not yet" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Not yet"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "还没同步过"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "還沒同步過"
           }
         }
       }
@@ -418,29 +372,6 @@
         }
       }
     },
-    "Pair once, and your memories keep themselves in step whenever you're on the same wi-fi." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pair once, and your memories keep themselves in step whenever you're on the same wi-fi."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "配对一次就好，之后只要在同一个 Wi-Fi 下，两边的回忆就自己对上了。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "配對一次就好，之後只要在同一個 Wi-Fi 下，兩邊的回憶就自己對上了。"
-          }
-        }
-      }
-    },
     "Pair our phones" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -464,6 +395,29 @@
         }
       }
     },
+    "Pair with your partner's phone" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pair with your partner's phone"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "和 TA 的手机配对"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "和 TA 的手機配對"
+          }
+        }
+      }
+    },
     "Sometime" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -483,29 +437,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "記不清哪天了"
-          }
-        }
-      }
-    },
-    "Sync" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sync"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "同步"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "同步"
           }
         }
       }
@@ -694,6 +625,29 @@
         }
       }
     },
+    "You'd pair again from the home screen." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You'd pair again from the home screen."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要重新配对的话，回首页就能弄。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要重新配對的話，回首頁就能弄。"
+          }
+        }
+      }
+    },
     "Your code" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -713,29 +667,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "你的配對碼"
-          }
-        }
-      }
-    },
-    "Your memories keep themselves in step whenever you're on the same wi-fi." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your memories keep themselves in step whenever you're on the same wi-fi."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "只要在同一个 Wi-Fi 下，两边的回忆就自己对上了。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "只要在同一個 Wi-Fi 下，兩邊的回憶就自己對上了。"
           }
         }
       }
