@@ -11,11 +11,10 @@ import SwiftUI
 struct CouplesHomeView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var identity = CoupleIdentityStore()
-    #if DEBUG
     /// Held for the life of Home so the pull cursor survives between ticks.
     @State private var syncEngine: SyncEngine?
     @Environment(\.scenePhase) private var scenePhase
-    #endif
+    @AppStorage(SyncSettings.enabledKey) private var syncEnabled = false
     @State private var tilt = TiltModel()
     @State private var showSettings = false
     @State private var pulse = false
@@ -26,6 +25,39 @@ struct CouplesHomeView: View {
     /// the settings sheet. Pushing does NOT unmount Home, so without this the
     /// accelerometer would keep running behind a sub-page.
     private var heroCovered: Bool { showSettings || !path.isEmpty }
+
+    /// Builds the transport the settings ask for, or none at all.
+    ///
+    /// Turning sync off drops the engine, which drops its listener — the phone
+    /// stops advertising rather than merely ignoring what arrives.
+    private func configureSync() {
+        #if DEBUG
+        if let directory = FakeCloudLaunch.directory {
+            syncEngine = SyncEngine(context: modelContext,
+                                    transport: FileCloudTransport(directory: directory,
+                                                                  authorID: identity.authorID),
+                                    authorID: identity.authorID)
+            return
+        }
+        #endif
+        guard syncEnabled || FakeCloudLaunch.usesLocalNetwork else {
+            syncEngine = nil
+            return
+        }
+        // The outbox is this device's own history, so a peer that was away can
+        // still ask for what it missed.
+        let outbox = SyncOutbox(
+            directory: FileManager.default
+                .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+                .appendingPathComponent("SyncOutbox", isDirectory: true),
+            authorID: identity.authorID)
+        syncEngine = SyncEngine(
+            context: modelContext,
+            transport: LocalNetworkTransport(outbox: outbox,
+                                             peers: LocalPeerService(outbox: outbox),
+                                             photos: MemoryPhotoStore()),
+            authorID: identity.authorID)
+    }
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -102,11 +134,9 @@ struct CouplesHomeView: View {
         .sheet(isPresented: $showSettings) {
             CoupleSettingsSheet(identity: identity)
         }
-        #if DEBUG
         // Ticks on appear and on every foreground — no timers and no background
-        // modes, both of which need entitlements this slice avoids. Switching
-        // between two simulators is itself the trigger, which is exactly the
-        // demo.
+        // modes, both of which need entitlements this deliberately avoids.
+        // Opening the app is the trigger.
         .task(id: scenePhase) {
             guard scenePhase == .active else { return }
             let arrived = (try? await syncEngine?.tick()) ?? []
@@ -115,7 +145,7 @@ struct CouplesHomeView: View {
             // until the next launch, which looks exactly like sync failing.
             for id in arrived { MemoryThumbnails.shared.forget(id) }
         }
-        #endif
+        .onChange(of: syncEnabled) { _, _ in configureSync() }
         .onAppear {
             pulse = true
             // Returning from the Apps tab while a sub-page is pushed would
@@ -128,29 +158,7 @@ struct CouplesHomeView: View {
             // unreachable for the rest of the run.
             guard !didHandleLaunchArguments else { return }
             didHandleLaunchArguments = true
-            #if DEBUG
-            if FakeCloudLaunch.usesLocalNetwork {
-                // The outbox is this device's own history, so a peer that was
-                // away can still ask for what it missed. It lives in
-                // Application Support, not the shared folder — there isn't one.
-                let outbox = SyncOutbox(
-                    directory: FileManager.default
-                        .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-                        .appendingPathComponent("SyncOutbox", isDirectory: true),
-                    authorID: identity.authorID)
-                syncEngine = SyncEngine(
-                    context: modelContext,
-                    transport: LocalNetworkTransport(outbox: outbox,
-                                                     peers: LocalPeerService(outbox: outbox),
-                                                     photos: MemoryPhotoStore()),
-                    authorID: identity.authorID)
-            } else if let directory = FakeCloudLaunch.directory {
-                syncEngine = SyncEngine(context: modelContext,
-                                        transport: FileCloudTransport(directory: directory,
-                                                                      authorID: identity.authorID),
-                                        authorID: identity.authorID)
-            }
-            #endif
+            configureSync()
             if launchArguments.contains("-openSettings") { showSettings = true }
             if launchArguments.contains("-specialDates") {
                 path.append(HubRoute(entryID: "special-dates"))

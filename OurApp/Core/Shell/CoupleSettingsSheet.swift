@@ -15,12 +15,37 @@ struct CoupleSettingsSheet: View {
     // the picked photo (review ruling — do not merge these).
     @State private var isPickerPresented = false
     @AppStorage(AppLanguage.storageKey) private var languageRaw = AppLanguage.system.rawValue
+    @AppStorage(SyncSettings.enabledKey) private var syncEnabled = false
+
+    private var lastSyncedLabel: Text {
+        guard let last = SyncSettings.lastSynced() else { return Text("Not yet") }
+        return Text(verbatim: last.formatted(.relative(presentation: .named)))
+    }
 
     var body: some View {
         NavigationStack {
             Form {
                 partnerSection(header: "Me", name: $identity.nameOne, partner: .one)
                 partnerSection(header: "My love", name: $identity.nameTwo, partner: .two)
+
+                Section {
+                    Toggle(isOn: $syncEnabled) {
+                        Text("Sync on this network")
+                    }
+                    if syncEnabled {
+                        LabeledContent {
+                            lastSyncedLabel
+                        } label: {
+                            Text("Last synced")
+                        }
+                    }
+                } header: {
+                    Text("Sync")
+                } footer: {
+                    // Said plainly rather than discovered: a sync that only
+                    // works under conditions nobody mentioned reads as broken.
+                    Text("Both phones need to be on the same wi-fi with the app open. Syncing while you're apart needs iCloud, which isn't set up yet.")
+                }
 
                 Section("Language") {
                     Picker(selection: $languageRaw) {

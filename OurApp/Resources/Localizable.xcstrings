@@ -73,6 +73,29 @@
         }
       }
     },
+    "Both phones need to be on the same wi-fi with the app open. Syncing while you're apart needs iCloud, which isn't set up yet." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Both phones need to be on the same wi-fi with the app open. Syncing while you're apart needs iCloud, which isn't set up yet."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "两台手机要连同一个 Wi-Fi，而且都开着这个 App。分开的时候也能同步，那得用 iCloud，还没弄。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "兩台手機要連同一個 Wi-Fi，而且都開著這個 App。分開的時候也能同步，那得用 iCloud，還沒弄。"
+          }
+        }
+      }
+    },
     "Check in" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -234,6 +257,29 @@
         }
       }
     },
+    "Last synced" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last synced"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上次同步"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上次同步"
+          }
+        }
+      }
+    },
     "Longest run" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -253,6 +299,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "最長連續"
+          }
+        }
+      }
+    },
+    "Not yet" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not yet"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "还没同步过"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "還沒同步過"
           }
         }
       }
@@ -345,6 +414,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "記不清哪天了"
+          }
+        }
+      }
+    },
+    "Sync" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同步"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同步"
+          }
+        }
+      }
+    },
+    "Sync on this network" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync on this network"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在同一网络下同步"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在同一網路下同步"
           }
         }
       }

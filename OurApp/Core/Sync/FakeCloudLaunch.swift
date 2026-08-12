@@ -11,7 +11,11 @@ enum FakeCloudLaunch {
     /// `-localNetwork` syncs over Bonjour + TCP instead of a shared folder —
     /// a real socket between two devices, and still no paid Apple team.
     static var usesLocalNetwork: Bool {
+        #if DEBUG
         ProcessInfo.processInfo.arguments.contains("-localNetwork")
+        #else
+        false
+        #endif
     }
 
     static var directory: URL? {
