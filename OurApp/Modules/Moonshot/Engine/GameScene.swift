@@ -203,6 +203,34 @@ final class GameScene: SKScene {
     /// Handed the finished clip when the board settles.
     var onCoopTurnRecorded: ((FlingClip) -> Void)?
     private var coopRecorder: FlingRecorder?
+
+    /// Puts the world back where a previous co-op turn left it.
+    ///
+    /// Called after the scene has built itself from the level, because turn two
+    /// must start from where turn one finished — otherwise each turn replays a
+    /// pristine level and the two of you are demolishing the same building over
+    /// and over.
+    func restoreCoopBoard(_ snapshot: BoardSnapshot) {
+        var byID: [String: SKNode] = [:]
+        for case let piece as PieceNode in worldNode.children { byID[piece.coopBodyID] = piece }
+        for case let gloom as GloomNode in worldNode.children { byID[gloom.coopBodyID] = gloom }
+
+        for body in snapshot.bodies {
+            guard let node = byID[body.id] else { continue }
+            guard body.alive else {
+                // Destroyed on an earlier turn. Removing rather than hiding, so
+                // it can't take part in physics it shouldn't be in.
+                node.removeFromParent()
+                continue
+            }
+            node.position = CGPoint(x: body.x, y: body.y)
+            node.zRotation = body.angle
+            // Restored bodies start at rest: carrying velocity across a turn
+            // boundary would make the board move before anybody flung anything.
+            node.physicsBody?.velocity = .zero
+            node.physicsBody?.angularVelocity = 0
+        }
+    }
     /// The view configures the scene BEFORE presentation, but the slingshot
     /// only exists after buildWorld — park the request until then.
     private var pendingDragHint: Bool?

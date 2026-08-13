@@ -14,6 +14,7 @@ struct CoopMatchView: View {
     @Environment(CoupleIdentityStore.self) private var identity
     @Query(filter: CoopMatch.live) private var matches: [CoopMatch]
     @State private var watchedNow = false
+    @State private var playing = false
 
     private var match: CoopMatch? { matches.first { $0.levelID == level.id } }
 
@@ -34,7 +35,14 @@ struct CoopMatchView: View {
             if let turn = watchableTurn(in: match) {
                 replay(of: turn, in: match)
             } else if CoopTurnRules.mayFling(identity.authorID, in: match) {
-                yourTurn
+                if playing {
+                    CoopTurnGameView(level: level, match: match) {
+                        playing = false
+                        watchedNow = false
+                    }
+                } else {
+                    yourTurn
+                }
             } else {
                 waiting
             }
@@ -69,8 +77,21 @@ struct CoopMatchView: View {
     }
 
     private var yourTurn: some View {
-        message(icon: "🎯", title: Text("Your turn"),
-                detail: Text("Take your shot — she'll see it when she next opens this."))
+        VStack(spacing: 20) {
+            message(icon: "🎯", title: Text("Your turn"),
+                    detail: Text("Take your shot — she'll see it when she next opens this."))
+            Button {
+                Haptics.tap()
+                playing = true
+            } label: {
+                Text("Take your shot")
+                    .font(.system(.body, design: .rounded).weight(.semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 26)
+                    .padding(.vertical, 13)
+            }
+            .glassCard(cornerRadius: 22)
+        }
     }
 
     private var waiting: some View {

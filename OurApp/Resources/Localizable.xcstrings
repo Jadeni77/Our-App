@@ -4941,6 +4941,29 @@
         }
       }
     },
+    "Take your shot" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Take your shot"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "来一发"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "來一發"
+          }
+        }
+      }
+    },
     "Take your shot — she'll see it when she next opens this." : {
       "extractionState" : "manual",
       "localizations" : {

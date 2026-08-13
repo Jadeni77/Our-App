@@ -135,3 +135,70 @@ struct GameSceneCoopRecordingTests {
         #expect(ids == CoopSceneBridge.orderedIDs(for: level))
     }
 }
+
+@MainActor
+struct CoopBoardRestoreTests {
+    private var level: MoonshotLevel { CampaignCatalog.bundled.levels[0] }
+
+    private func scene() -> GameScene {
+        let scene = GameScene(level: level, session: LevelSession(level: level))
+        scene.didMove(to: SKView(frame: CGRect(origin: .zero, size: scene.size)))
+        return scene
+    }
+
+    private func worldNode(of scene: GameScene) -> SKNode? {
+        scene.children.first { node in node.children.contains { $0 is PieceNode } }
+    }
+
+    @Test func restoringMovesBodiesToWhereTheLastTurnLeftThem() throws {
+        let game = scene()
+        let world = try #require(worldNode(of: game))
+        var snapshot = CoopSceneBridge.snapshot(of: world, level: level)
+        snapshot.bodies[0].x = 321
+        snapshot.bodies[0].y = 210
+        snapshot.bodies[0].angle = 1.25
+
+        game.restoreCoopBoard(snapshot)
+
+        // Turn two must start where turn one finished, or the pair spend the
+        // whole match demolishing a building that keeps standing back up.
+        let after = CoopSceneBridge.snapshot(of: world, level: level)
+        #expect(abs(after.bodies[0].x - 321) < 0.001)
+        #expect(abs(after.bodies[0].angle - 1.25) < 0.001)
+    }
+
+    @Test func restoringRemovesBodiesDestroyedOnAnEarlierTurn() throws {
+        let game = scene()
+        let world = try #require(worldNode(of: game))
+        var snapshot = CoopSceneBridge.snapshot(of: world, level: level)
+        let doomed = snapshot.bodies[0].id
+        snapshot.bodies[0].alive = false
+
+        game.restoreCoopBoard(snapshot)
+
+        // Removed rather than hidden: a hidden body still takes part in physics
+        // it has no business being in.
+        let after = CoopSceneBridge.snapshot(of: world, level: level)
+        #expect(after.bodies.first { $0.id == doomed }?.alive == false)
+        #expect(CoopSceneBridge.bodies(in: world, level: level)
+            .contains { $0.recordingID == doomed } == false)
+    }
+
+    @Test func restoredBodiesStartAtRest() throws {
+        let game = scene()
+        let world = try #require(worldNode(of: game))
+        for case let piece as PieceNode in world.children {
+            piece.physicsBody?.velocity = CGVector(dx: 500, dy: 500)
+        }
+
+        game.restoreCoopBoard(CoopSceneBridge.snapshot(of: world, level: level))
+
+        // Carrying velocity across a turn boundary would make the board move
+        // before anyone flung anything.
+        let moving = world.children.contains { node in
+            guard let body = node.physicsBody else { return false }
+            return abs(body.velocity.dx) > 0.001 || abs(body.velocity.dy) > 0.001
+        }
+        #expect(moving == false)
+    }
+}
