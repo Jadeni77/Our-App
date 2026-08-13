@@ -284,7 +284,26 @@ struct MoonshotHomeView: View {
             }
             .buttonStyle(.plain)
             .glassCard(cornerRadius: 14)
-            ForEach([("🤝", Text("Co-op")), ("⚔️", Text("1v1"))], id: \.0) { icon, name in
+            NavigationLink {
+                CoopLobbyView()
+            } label: {
+                HStack(spacing: 8) {
+                    Text(verbatim: "🤝").font(.system(size: 15))
+                    Text("Co-op")
+                        .font(Theme.display(14))
+                        .foregroundStyle(.white)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.7))
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
+            }
+            .buttonStyle(.plain)
+            .glassCard(cornerRadius: 14)
+            // 1v1 stays on the roadmap; co-op is the slice that landed.
+            ForEach([("⚔️", Text("1v1"))], id: \.0) { icon, name in
                 HStack(spacing: 8) {
                     Text(icon).font(.system(size: 15)).grayscale(1)
                     name
