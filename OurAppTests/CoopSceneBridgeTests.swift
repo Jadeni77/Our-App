@@ -97,3 +97,41 @@ struct CoopSceneBridgeTests {
         #expect(clip.frames[1].present[0] == false)
     }
 }
+
+/// The recording hooks on the live scene, exercised without playing a level.
+@MainActor
+struct GameSceneCoopRecordingTests {
+    private var level: MoonshotLevel { CampaignCatalog.bundled.levels[0] }
+
+    private func scene() -> GameScene {
+        let scene = GameScene(level: level, session: LevelSession(level: level))
+        scene.didMove(to: SKView(frame: CGRect(origin: .zero, size: scene.size)))
+        return scene
+    }
+
+    @Test func aSoloTurnRecordsNothing() {
+        let game = scene()
+        var recorded: FlingClip?
+        game.onCoopTurnRecorded = { recorded = $0 }
+        // recordsCoopTurns defaults false: a co-op concern must cost a solo
+        // player nothing, not even an unused recorder allocation.
+        game.update(0)
+        game.update(1.0 / 60)
+        #expect(recorded == nil)
+    }
+
+    @Test func theSceneExposesItsBodiesInLevelOrder() {
+        let game = scene()
+        guard let world = game.children.compactMap({ $0 as? SKNode })
+            .first(where: { node in node.children.contains { $0 is PieceNode } })
+        else {
+            Issue.record("no world node with pieces")
+            return
+        }
+        let ids = CoopSceneBridge.bodies(in: world, level: level).map(\.recordingID)
+        // Every id the level declares, in the level's order — the property the
+        // whole clip design rests on, checked against a scene the real
+        // `buildWorld` produced rather than a hand-made one.
+        #expect(ids == CoopSceneBridge.orderedIDs(for: level))
+    }
+}
