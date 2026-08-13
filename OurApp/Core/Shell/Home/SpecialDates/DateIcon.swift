@@ -60,7 +60,8 @@ enum DateIcon: String, CaseIterable {
         DateIcon(rawValue: id) ?? .heart
     }
 
-    /// The retired emoji palette → an icon. Used once, by `DateIconMigration`.
+    /// The retired emoji palette → an icon. Used once, by the V1→V2 migration
+    /// that drops `SpecialDate.emoji`; nothing writes emoji any more.
     /// `camera` appears nowhere here: it is a new option the palette never had.
     static func matching(emoji: String) -> DateIcon {
         switch emoji {

@@ -6,18 +6,13 @@ import SwiftData
 /// their own containers.
 enum Persistence {
     static func makeContainer(inMemory: Bool = false) throws -> ModelContainer {
-        let schema = Schema([
-            DecisionRecord.self,
-            SpecialDate.self,
-            QuestionAnswer.self,
-            Memory.self,
-            CheckIn.self,
-            MoonshotLevelResult.self,
-            MoonshotCosmeticSetting.self,
-            MoonshotCoachSeen.self,
-            MoonshotMoondustEntry.self,
-        ])
+        // The schema is whatever the newest version says it is, and the plan
+        // is how a store written by an older build gets there. Adding a model
+        // type means adding it to `SchemaV2`, not here.
+        let schema = Schema(versionedSchema: SchemaV2.self)
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: inMemory)
-        return try ModelContainer(for: schema, configurations: [configuration])
+        return try ModelContainer(for: schema,
+                                  migrationPlan: AppMigrationPlan.self,
+                                  configurations: [configuration])
     }
 }

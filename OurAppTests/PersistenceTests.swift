@@ -21,7 +21,6 @@ struct PersistenceTests {
         let context = ModelContext(container)
 
         context.insert(SpecialDate(title: "Her birthday",
-                                   emoji: "🎂",
                                    date: Date(timeIntervalSinceReferenceDate: 800_000_000),
                                    repeatsYearly: true))
         try context.save()
@@ -47,7 +46,7 @@ struct PersistenceTests {
         let context = ModelContext(container)
         let anchor = Date(timeIntervalSinceReferenceDate: 800_000_000)
 
-        let date = SpecialDate(title: "Kyoto trip", emoji: "✈️", date: anchor)
+        let date = SpecialDate(title: "Kyoto trip", date: anchor)
         context.insert(date)
         try context.save()
 
