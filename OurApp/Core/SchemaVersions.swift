@@ -49,8 +49,8 @@ enum SchemaV1: VersionedSchema {
     }
 }
 
-/// Current. `SpecialDate.emoji` is gone: it was superseded by `iconID` and has
-/// been unread by the UI for several slices.
+/// `SpecialDate.emoji` is gone: it was superseded by `iconID` and has been
+/// unread by the UI for several slices.
 enum SchemaV2: VersionedSchema {
     static var versionIdentifier: Schema.Version { Schema.Version(2, 0, 0) }
 
@@ -62,9 +62,27 @@ enum SchemaV2: VersionedSchema {
     }
 }
 
+/// Current. Adds co-op: `CoopMatch` and `CoopTurn`.
+///
+/// Purely additive, so the stage is lightweight — but it is declared rather
+/// than left implicit, because a plan that doesn't name a version refuses any
+/// store carrying it (P30), and the next build would refuse this one.
+enum SchemaV3: VersionedSchema {
+    static var versionIdentifier: Schema.Version { Schema.Version(3, 0, 0) }
+
+    static var models: [any PersistentModel.Type] {
+        SchemaV2.models + [CoopMatch.self, CoopTurn.self]
+    }
+}
+
 enum AppMigrationPlan: SchemaMigrationPlan {
-    static var schemas: [any VersionedSchema.Type] { [SchemaV1.self, SchemaV2.self] }
-    static var stages: [MigrationStage] { [dropRetiredEmoji] }
+    static var schemas: [any VersionedSchema.Type] {
+        [SchemaV1.self, SchemaV2.self, SchemaV3.self]
+    }
+    static var stages: [MigrationStage] { [dropRetiredEmoji, addCoop] }
+
+    static let addCoop = MigrationStage.lightweight(fromVersion: SchemaV2.self,
+                                                    toVersion: SchemaV3.self)
 
     /// Fills `iconID` from `emoji` for anything the old `DateIconMigration`
     /// hadn't reached, *then* lets the column go.

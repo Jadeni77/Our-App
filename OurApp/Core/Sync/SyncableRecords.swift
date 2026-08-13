@@ -126,3 +126,45 @@ extension MoonshotLevelResult: SyncableRecord {
          "featCleanSweep": .bool(featCleanSweep)]
     }
 }
+
+/// Co-op is **shared**: one match, both people writing into it.
+extension CoopMatch: SyncableRecord {
+    static var syncTypeName: String { "CoopMatch" }
+    static var syncCategory: SyncCategory { .shared }
+
+    var syncID: UUID { id }
+    /// The turn holder is who last moved it, which is what LWW should break on.
+    var syncAuthorID: String { turnHolder }
+    var syncUpdatedAt: Date { updatedAt }
+    var syncDeletedAt: Date? { deletedAt }
+
+    func syncFields() -> [String: SyncValue] {
+        var fields: [String: SyncValue] = [
+            "levelID": .string(levelID.uuidString),
+            "participants": .stringArray(participants),
+            "turnHolder": .string(turnHolder),
+            "turnIndex": .int(turnIndex),
+            "boardState": .string(boardState.base64EncodedString()),
+        ]
+        if let finishedAt { fields["finishedAt"] = .date(finishedAt) }
+        return fields
+    }
+}
+
+/// Append-only, so it never conflicts — a union, not a merge.
+extension CoopTurn: SyncableRecord {
+    static var syncTypeName: String { "CoopTurn" }
+    static var syncCategory: SyncCategory { .shared }
+
+    var syncID: UUID { id }
+    var syncAuthorID: String { authorID }
+    var syncUpdatedAt: Date { updatedAt }
+    var syncDeletedAt: Date? { deletedAt }
+
+    func syncFields() -> [String: SyncValue] {
+        ["matchID": .string(matchID.uuidString),
+         "index": .int(index),
+         "clip": .string(clip.base64EncodedString()),
+         "resultingState": .string(resultingState.base64EncodedString())]
+    }
+}
