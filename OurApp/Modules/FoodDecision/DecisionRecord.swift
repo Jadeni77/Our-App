@@ -5,8 +5,8 @@ import SwiftData
 /// No UI reads this in v1 — it seeds the future history module and smarter picks.
 @Model
 final class DecisionRecord {
-    var date: Date
-    var cuisineChosen: String
+    var date: Date = Date.now
+    var cuisineChosen: String = ""
     /// Stable pool id (F6) so history survives language switches; nil for
     /// free-form typed cuisines and for all v1-era records (additive migration).
     var cuisineID: String?
