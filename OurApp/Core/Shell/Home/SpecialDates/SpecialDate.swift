@@ -15,11 +15,6 @@ final class SpecialDate {
     var id: UUID = UUID()
     /// User data — stored verbatim, never translated.
     var title: String = ""
-    /// **Retired.** Superseded by `iconID`; kept only so `DateIconMigration`
-    /// can read it, because dropping the column in the same change that
-    /// consumes it would destroy every existing pick. Removed in a later slice
-    /// once the migration has run on both phones. Nothing reads it in the UI.
-    var emoji: String = "🎂"
     /// The drawn icon's stable id. `""` means "not migrated yet" — deliberately
     /// distinct from `heart`, so migrating can't be confused with choosing.
     var iconID: String = ""
@@ -43,13 +38,12 @@ final class SpecialDate {
     /// the same instant would each reject the other and disagree forever, with
     /// no conflict either could see. Exactly the failure the tiebreak exists to
     /// prevent, on the one shared type where two people genuinely edit one row.
-    init(title: String, emoji: String = "🎂", date: Date,
+    init(title: String, date: Date,
          repeatsYearly: Bool = false, isAnniversary: Bool = false,
          icon: DateIcon? = nil, authorID: String = LocalAuthor.id()) {
         self.authorID = authorID
         self.id = UUID()
         self.title = title
-        self.emoji = emoji
         self.date = date
         self.repeatsYearly = repeatsYearly
         self.isAnniversary = isAnniversary

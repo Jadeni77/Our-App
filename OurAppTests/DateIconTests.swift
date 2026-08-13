@@ -42,92 +42,31 @@ struct DateIconTests {
     }
 }
 
-@MainActor
-struct DateIconMigrationTests {
-    private func rows(_ context: ModelContext) throws -> [SpecialDate] {
-        try context.fetch(FetchDescriptor<SpecialDate>())
+/// The backfill that runs once, on the way to schema V2, as `emoji` is dropped.
+/// Was a launch-time `DateIconMigration`; the rule is unchanged, its home isn't.
+struct RetiredEmojiBackfillTests {
+    @Test func anEmptyIDIsFilledFromTheRetiredEmoji() {
+        #expect(AppMigrationPlan.backfilledIconID(existing: "", emoji: "🎂")
+                == DateIcon.cake.rawValue)
+        #expect(AppMigrationPlan.backfilledIconID(existing: "", emoji: "✈️")
+                == DateIcon.plane.rawValue)
     }
 
-    @Test func fillsEmptyIDsFromTheRetiredEmoji() throws {
-        let container = try Persistence.makeContainer(inMemory: true)
-        let context = ModelContext(container)
-        context.insert(SpecialDate(title: "Birthday", emoji: "🎂", date: .now))
-        context.insert(SpecialDate(title: "Trip", emoji: "✈️", date: .now))
-        context.insert(SpecialDate(title: "Odd", emoji: "🦕", date: .now))
-        try context.save()
-
-        DateIconMigration.runIfNeeded(in: container)
-
-        let byTitle = Dictionary(uniqueKeysWithValues: try rows(ModelContext(container))
-            .map { ($0.title, $0.icon) })
-        #expect(byTitle["Birthday"] == .cake)
-        #expect(byTitle["Trip"] == .plane)
-        #expect(byTitle["Odd"] == .heart)
+    @Test func anUnrecognisedEmojiFallsBackToTheHeart() {
+        #expect(AppMigrationPlan.backfilledIconID(existing: "", emoji: "🦕")
+                == DateIcon.heart.rawValue)
     }
 
-    @Test func leavesAChosenIconAlone() throws {
-        let container = try Persistence.makeContainer(inMemory: true)
-        let context = ModelContext(container)
-        // Emoji says cake, but the id says star — the id is the user's choice
-        // and must win, or migrating twice would overwrite real picks.
-        context.insert(SpecialDate(title: "Chosen", emoji: "🎂", date: .now, icon: .star))
-        try context.save()
-
-        DateIconMigration.runIfNeeded(in: container)
-
-        #expect(try rows(ModelContext(container)).first?.icon == .star)
+    @Test func aChosenIconIsLeftAlone() {
+        // The emoji says cake and the id says star. The id is the owner's
+        // actual pick; letting a stale emoji overwrite it would silently
+        // change art somebody deliberately chose.
+        #expect(AppMigrationPlan.backfilledIconID(existing: DateIcon.star.rawValue,
+                                                  emoji: "🎂") == nil)
     }
 
-    @Test func isIdempotent() throws {
-        let container = try Persistence.makeContainer(inMemory: true)
-        let context = ModelContext(container)
-        context.insert(SpecialDate(title: "Birthday", emoji: "🎂", date: .now))
-        try context.save()
-
-        DateIconMigration.runIfNeeded(in: container)
-        DateIconMigration.runIfNeeded(in: container)
-
-        let all = try rows(ModelContext(container))
-        #expect(all.count == 1)
-        #expect(all.first?.icon == .cake)
-    }
-
-    @Test func aRepickAfterMigratingSurvivesTheNextRun() throws {
-        // The real idempotency risk: migrate, the user changes the icon, the
-        // app relaunches. `isIdempotent` can't catch this — there the emoji and
-        // the migrated icon agree, so a wrongful re-run is invisible.
-        let container = try Persistence.makeContainer(inMemory: true)
-        let context = ModelContext(container)
-        context.insert(SpecialDate(title: "Birthday", emoji: "🎂", date: .now))
-        try context.save()
-
-        DateIconMigration.runIfNeeded(in: container)
-        let migrated = try rows(context)
-        #expect(migrated.first?.icon == .cake)
-
-        migrated.first?.icon = .flower          // exercises the setter, too
-        try context.save()
-
-        DateIconMigration.runIfNeeded(in: container)
-
-        #expect(try rows(ModelContext(container)).first?.icon == .flower)
-    }
-
-    @Test func theIconSetterWritesThroughToTheStoredID() throws {
-        let container = try Persistence.makeContainer(inMemory: true)
-        let context = ModelContext(container)
-        let date = SpecialDate(title: "Trip", date: .now)
-        context.insert(date)
-        date.icon = .plane
-        try context.save()
-        #expect(date.iconID == DateIcon.plane.rawValue)
-    }
-
-    @Test func aNewDateKeepsTheIconItWasGiven() throws {
-        let container = try Persistence.makeContainer(inMemory: true)
-        let context = ModelContext(container)
-        context.insert(SpecialDate(title: "Fresh", date: .now, icon: .wave))
-        try context.save()
-        #expect(try rows(ModelContext(container)).first?.icon == .wave)
+    @Test func aFilledRowIsNotTouchedASecondTime() {
+        let once = AppMigrationPlan.backfilledIconID(existing: "", emoji: "🎂")!
+        #expect(AppMigrationPlan.backfilledIconID(existing: once, emoji: "🎂") == nil)
     }
 }
