@@ -169,9 +169,11 @@ actor LocalPeerService {
         await awaitPeers()
         SyncTrace.write("pairing against \(peers.count) peer(s)")
         for peer in peers {
-            if case let .paired(secret)? =
-                await send(.pair(code: code), to: peer, signed: false) {
+            if case let .paired(secret, theirID)? =
+                await send(.pair(code: code, authorID: outbox.authorID),
+                           to: peer, signed: false) {
                 SyncSecretStore.save(secret)
+                SyncSecretStore.savePartner(theirID)
                 return true
             }
         }
@@ -181,7 +183,7 @@ actor LocalPeerService {
     private func response(for message: SyncWire.Message) -> SyncWire.Response {
         // Pairing is the one request made before a secret exists, so it is the
         // one request that carries no proof. Everything else must prove itself.
-        if case let .pair(code) = message.request {
+        if case let .pair(code, theirID) = message.request {
             SyncTrace.write("pair request \(code), offer live: \(offer?.isLive() ?? false)")
             guard var live = offer, let secret = live.claim(code) else {
                 offer?.burnAttempt()
@@ -189,6 +191,7 @@ actor LocalPeerService {
             }
             offer = live
             SyncSecretStore.save(secret)
+            SyncSecretStore.savePartner(theirID)
             offer = nil
             SyncTrace.write("paired")
             // The other phone has our secret now, but *this* phone has never
@@ -196,7 +199,7 @@ actor LocalPeerService {
             // rather than polled: without this, the phone that showed the code
             // has an empty outbox and its partner syncs nothing at all.
             NotificationCenter.default.post(name: .syncDidPair, object: nil)
-            return .paired(secret: secret)
+            return .paired(secret: secret, authorID: outbox.authorID)
         }
         guard let secret = SyncSecretStore.load(),
               let proof = message.proof,

@@ -37,7 +37,39 @@ enum SyncSecretStore {
 
     static func clear() {
         SecItemDelete(baseQuery as CFDictionary)
+        SecItemDelete(partnerQuery as CFDictionary)
     }
 
     static var isPaired: Bool { load() != nil }
+
+    // MARK: - Who we paired with
+
+    /// The partner's `authorID`, kept beside the secret rather than in
+    /// `UserDefaults`: the two are only meaningful together, and a phone that
+    /// kept the secret through a reinstall but forgot who it belonged to would
+    /// be paired with nobody.
+    private static let partnerAccount = "couple.partnerAuthorID"
+
+    private static var partnerQuery: [String: Any] {
+        [kSecClass as String: kSecClassGenericPassword,
+         kSecAttrAccount as String: partnerAccount]
+    }
+
+    static func partnerAuthorID() -> String? {
+        var query = partnerQuery
+        query[kSecReturnData as String] = true
+        query[kSecMatchLimit as String] = kSecMatchLimitOne
+        var item: CFTypeRef?
+        guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
+              let data = item as? Data else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
+    static func savePartner(_ authorID: String) {
+        SecItemDelete(partnerQuery as CFDictionary)
+        var query = partnerQuery
+        query[kSecValueData as String] = Data(authorID.utf8)
+        query[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
+        SecItemAdd(query as CFDictionary, nil)
+    }
 }

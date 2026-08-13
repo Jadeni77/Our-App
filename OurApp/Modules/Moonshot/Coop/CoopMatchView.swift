@@ -1,3 +1,4 @@
+import SpriteKit
 import SwiftData
 import SwiftUI
 
@@ -51,6 +52,24 @@ struct CoopMatchView: View {
         }
     }
 
+    /// Starts the match. The board is the level, untouched, because nobody has
+    /// flung yet — and whoever taps first takes the first turn, which needs no
+    /// negotiation: the other phone learns it from the record.
+    private func startMatch() {
+        guard let partner = SyncSecretStore.partnerAuthorID() else { return }
+        let scene = GameScene(level: level, session: LevelSession(level: level))
+        scene.didMove(to: SKView(frame: CGRect(origin: .zero, size: scene.size)))
+        guard let world = scene.children.first(where: { node in
+            node.children.contains { $0 is PieceNode }
+        }) else { return }
+
+        CoopMatchStore.start(levelID: level.id,
+                             participants: [identity.authorID, partner],
+                             firstTurn: identity.authorID,
+                             board: CoopSceneBridge.snapshot(of: world, level: level),
+                             in: context)
+    }
+
     private func watchableTurn(in match: CoopMatch) -> CoopTurn? {
         guard !watchedNow,
               CoopWatchedTurns.hasUnwatchedTurn(in: match, viewer: identity.authorID)
@@ -100,8 +119,21 @@ struct CoopMatchView: View {
     }
 
     private var start: some View {
-        message(icon: "🤝", title: Text("Start together"),
-                detail: Text("One of you flings, then the other. It keeps its place between you."))
+        VStack(spacing: 20) {
+            message(icon: "🤝", title: Text("Start together"),
+                    detail: Text("One of you flings, then the other. It keeps its place between you."))
+            Button {
+                Haptics.tap()
+                startMatch()
+            } label: {
+                Text("Start")
+                    .font(.system(.body, design: .rounded).weight(.semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 30)
+                    .padding(.vertical, 13)
+            }
+            .glassCard(cornerRadius: 22)
+        }
     }
 
     private func message(icon: String, title: Text, detail: Text) -> some View {

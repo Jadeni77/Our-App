@@ -181,3 +181,41 @@ struct CoopWatchedTurnsTests {
         #expect(CoopWatchedTurns.lastWatchedIndex(id, defaults: store) == 5)
     }
 }
+
+@MainActor
+struct PairedPartnerTests {
+    @Test func pairingRecordsWhoYouPairedWith() {
+        SyncSecretStore.clear()
+        defer { SyncSecretStore.clear() }
+
+        // Without this, both phones hold a shared secret and still cannot name
+        // the person on the other end — which makes a two-participant match
+        // impossible to create. Co-op was unbuildable until pairing carried an
+        // identity as well as a secret.
+        #expect(SyncSecretStore.partnerAuthorID() == nil)
+        SyncSecretStore.savePartner("her-install-id")
+        #expect(SyncSecretStore.partnerAuthorID() == "her-install-id")
+    }
+
+    @Test func forgettingThePhoneForgetsThePartnerToo() {
+        SyncSecretStore.save(Data([1, 2, 3]))
+        SyncSecretStore.savePartner("her-install-id")
+        SyncSecretStore.clear()
+
+        // A phone that kept the secret but forgot who it belonged to would be
+        // paired with nobody, and every match it created would name a stranger.
+        #expect(SyncSecretStore.partnerAuthorID() == nil)
+        #expect(SyncSecretStore.isPaired == false)
+    }
+
+    @Test func bothPairMessageKindsSurviveTheWire() throws {
+        for request in [SyncWire.Request.pair(code: "123456", authorID: "me"),
+                        SyncWire.Request.records(cursor: ["a": 1])] {
+            let data = try JSONEncoder().encode(request)
+            #expect(try JSONDecoder().decode(SyncWire.Request.self, from: data) == request)
+        }
+        let response = SyncWire.Response.paired(secret: Data([9]), authorID: "her")
+        let data = try JSONEncoder().encode(response)
+        #expect(try JSONDecoder().decode(SyncWire.Response.self, from: data) == response)
+    }
+}
