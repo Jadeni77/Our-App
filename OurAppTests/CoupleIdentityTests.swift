@@ -64,27 +64,61 @@ struct CoupleIdentityTests {
         #expect(reloaded.nameTwo == "Mei")
     }
 
+    /// The Keychain is process-wide, so each test brings its own storage —
+    /// passed in, never swapped globally, because these suites run in parallel.
+    private func isolated() -> InMemoryAuthorIDStorage { InMemoryAuthorIDStorage() }
+
+    @Test func anIdentityFromBeforeTheKeychainIsCarriedOver() throws {
+        let storage = isolated()
+        let suite = "test.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        defaults.set("id-from-an-older-build", forKey: LocalAuthor.legacyDefaultsKey)
+
+        // Regenerating here would orphan every record the install had written.
+        #expect(LocalAuthor.id(defaults: defaults, storage: storage) == "id-from-an-older-build")
+        #expect(storage.load() == "id-from-an-older-build")
+    }
+
+    @Test func anIdentitySurvivesTheAppBeingDeleted() throws {
+        let storage = isolated()
+        let first = LocalAuthor.id(defaults: UserDefaults(suiteName: "test.\(UUID().uuidString)")!,
+                                   storage: storage)
+
+        // Deleting the app takes the container — defaults, database, files —
+        // and leaves the Keychain. A fresh, empty defaults stands in for that.
+        let afterReinstall = UserDefaults(suiteName: "test.\(UUID().uuidString)")!
+        afterReinstall.removePersistentDomain(forName: "test")
+        #expect(LocalAuthor.id(defaults: afterReinstall, storage: storage) == first)
+    }
+
     @Test func theAuthorIDIsGeneratedOnceAndThenStable() throws {
+        let storage = isolated()
         let suite = "test.\(UUID().uuidString)"
         let dir = try tempDirectory()
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
 
         // Nobody is asked for it — a fresh install simply has one.
-        let store = CoupleIdentityStore(defaults: defaults, directory: dir)
+        let store = CoupleIdentityStore(defaults: defaults, directory: dir,
+                                        authorStorage: storage)
         #expect(!store.authorID.isEmpty)
 
-        let reloaded = CoupleIdentityStore(defaults: defaults, directory: dir)
+        let reloaded = CoupleIdentityStore(defaults: defaults, directory: dir,
+                                           authorStorage: storage)
         #expect(reloaded.authorID == store.authorID)
     }
 
     @Test func twoInstallsGetDifferentAuthorIDs() throws {
         let dir = try tempDirectory()
         func freshInstall() throws -> String {
+            // A genuinely separate phone: its own Keychain as well as its own
+            // defaults. Sharing either would make this pass for the wrong reason.
             let suite = "test.\(UUID().uuidString)"
             let defaults = UserDefaults(suiteName: suite)!
             defaults.removePersistentDomain(forName: suite)
-            return CoupleIdentityStore(defaults: defaults, directory: dir).authorID
+            return CoupleIdentityStore(defaults: defaults, directory: dir,
+                                       authorStorage: isolated()).authorID
         }
         // The whole point: two phones can't collide the way two picks of the
         // same half could.
@@ -92,12 +126,14 @@ struct CoupleIdentityTests {
     }
 
     @Test func myOwnRecordsReadAsMineAndEverythingElseAsMyLove() throws {
+        let storage = isolated()
         let suite = "test.\(UUID().uuidString)"
         let dir = try tempDirectory()
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
 
-        let store = CoupleIdentityStore(defaults: defaults, directory: dir)
+        let store = CoupleIdentityStore(defaults: defaults, directory: dir,
+                                        authorStorage: storage)
         #expect(store.slot(for: store.authorID) == .one)
         #expect(store.slot(for: UUID().uuidString) == .two)
         // Legacy values are somebody else until the migration rewrites them,
@@ -120,5 +156,21 @@ struct CoupleIdentityTests {
         let reloaded = makeStore(suite: suite, directory: dir)
         #expect(reloaded.avatars[.one] != nil)
         #expect(reloaded.avatars[.two] == nil)
+    }
+}
+
+/// Stands in for the Keychain, which is shared by the whole test process.
+final class InMemoryAuthorIDStorage: AuthorIDStorage, @unchecked Sendable {
+    private let lock = NSLock()
+    private var id: String?
+
+    func load() -> String? {
+        lock.lock(); defer { lock.unlock() }
+        return id
+    }
+
+    func save(_ id: String) {
+        lock.lock(); defer { lock.unlock() }
+        self.id = id
     }
 }

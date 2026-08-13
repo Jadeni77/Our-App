@@ -43,7 +43,9 @@ final class CoupleIdentityStore {
 
     /// `directory` is injectable for tests; the default is Application Support,
     /// which unlike Documents isn't user-visible in the Files app.
-    init(defaults: UserDefaults = .standard, directory: URL? = nil) {
+    init(defaults: UserDefaults = .standard,
+         directory: URL? = nil,
+         authorStorage: AuthorIDStorage = KeychainAuthorIDStorage()) {
         self.defaults = defaults
         self.directory = directory ?? FileManager.default
             .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -51,7 +53,7 @@ final class CoupleIdentityStore {
 
         nameOne = defaults.string(forKey: Keys.nameOne) ?? ""
         nameTwo = defaults.string(forKey: Keys.nameTwo) ?? ""
-        authorID = LocalAuthor.id(defaults: defaults)
+        authorID = LocalAuthor.id(defaults: defaults, storage: authorStorage)
         for partner in Partner.allCases {
             if let image = UIImage(contentsOfFile: avatarURL(for: partner).path) {
                 avatars[partner] = image
