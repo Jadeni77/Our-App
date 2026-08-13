@@ -9,16 +9,16 @@ final class MoonshotLevelResult {
     // No `@Attribute(.unique)`: SwiftData's CloudKit mirroring rejects it
     // outright, and under mirroring a uniqueness constraint turns the other
     // phone's row into a collision rather than a separate record (§7).
-    var id: UUID
-    var partnerID: String
-    var levelID: UUID
-    var modeRaw: String
-    var cleared: Bool
-    var bestStars: Int
-    var bestFlings: Int
+    var id: UUID = UUID()
+    var partnerID: String = ""
+    var levelID: UUID = UUID()
+    var modeRaw: String = ""
+    var cleared: Bool = false
+    var bestStars: Int = 0
+    var bestFlings: Int = 0
     /// Slice (d): the helper's partner id on "cleared — assist" rows (M12).
     var assistedBy: String?
-    var updatedAt: Date
+    var updatedAt: Date = Date.now
     /// Feat badges (M23) — or-merged like `cleared`; never currency.
     var featOneFling: Bool = false
     var featNoAbility: Bool = false
@@ -52,11 +52,11 @@ final class MoonshotCosmeticSetting {
     // in the entire store. Wrong twice over: mirroring rejects unique
     // constraints, and the other phone's row is a *different* record rather
     // than a duplicate of ours.
-    var partnerID: String
+    var partnerID: String = ""
     var trailRaw: String?
     var themeRaw: String?
     var skinRaw: String?
-    var updatedAt: Date
+    var updatedAt: Date = Date.now
 
     init(partnerID: String, trail: TrailID?) {
         self.partnerID = partnerID

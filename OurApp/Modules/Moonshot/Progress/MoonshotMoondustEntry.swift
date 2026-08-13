@@ -11,11 +11,11 @@ import SwiftData
 /// owns that reconciliation.
 @Model
 final class MoonshotMoondustEntry {
-    var id: UUID
-    var partnerID: String
-    var amount: Int
-    var reason: String
-    var at: Date
+    var id: UUID = UUID()
+    var partnerID: String = ""
+    var amount: Int = 0
+    var reason: String = ""
+    var at: Date = Date.now
 
     init(partnerID: String, amount: Int, reason: String) {
         id = UUID()
