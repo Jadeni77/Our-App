@@ -73,29 +73,6 @@
         }
       }
     },
-    "Both phones need to be on the same wi-fi with the app open. Syncing while you're apart needs iCloud, which isn't set up yet." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Both phones need to be on the same wi-fi with the app open. Syncing while you're apart needs iCloud, which isn't set up yet."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "两台手机要连同一个 Wi-Fi，而且都开着这个 App。分开的时候也能同步，那得用 iCloud，还没弄。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "兩台手機要連同一個 Wi-Fi，而且都開著這個 App。分開的時候也能同步，那得用 iCloud，還沒弄。"
-          }
-        }
-      }
-    },
     "Check in" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -211,6 +188,29 @@
         }
       }
     },
+    "Forget the other phone" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forget the other phone"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解除配对"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解除配對"
+          }
+        }
+      }
+    },
     "I remember the date" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -257,29 +257,6 @@
         }
       }
     },
-    "Last synced" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Last synced"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "上次同步"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "上次同步"
-          }
-        }
-      }
-    },
     "Longest run" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -299,29 +276,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "最長連續"
-          }
-        }
-      }
-    },
-    "Not yet" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Not yet"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "还没同步过"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "還沒同步過"
           }
         }
       }
@@ -395,6 +349,75 @@
         }
       }
     },
+    "Or enter theirs" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Or enter theirs"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "或者输入 TA 的"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "或者輸入 TA 的"
+          }
+        }
+      }
+    },
+    "Pair our phones" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pair our phones"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "配对两台手机"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "配對兩台手機"
+          }
+        }
+      }
+    },
+    "Pair with your partner's phone" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pair with your partner's phone"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "和 TA 的手机配对"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "和 TA 的手機配對"
+          }
+        }
+      }
+    },
     "Sometime" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -418,48 +441,48 @@
         }
       }
     },
-    "Sync" : {
+    "That didn't work. Check the code and that both phones are on the same wi-fi." : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sync"
+            "value" : "That didn't work. Check the code and that both phones are on the same wi-fi."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "同步"
+            "value" : "没成功。看看数字对不对，两台手机是不是连着同一个 Wi-Fi。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "同步"
+            "value" : "沒成功。看看數字對不對，兩台手機是不是連著同一個 Wi-Fi。"
           }
         }
       }
     },
-    "Sync on this network" : {
+    "Their code" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sync on this network"
+            "value" : "Their code"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在同一网络下同步"
+            "value" : "对方的配对码"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在同一網路下同步"
+            "value" : "對方的配對碼"
           }
         }
       }
@@ -533,6 +556,29 @@
         }
       }
     },
+    "Type this on the other phone. It works for two minutes." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type this on the other phone. It works for two minutes."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在另一台手机上输入这串数字，两分钟内有效。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在另一台手機上輸入這串數字，兩分鐘內有效。"
+          }
+        }
+      }
+    },
     "Undated memory" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -575,6 +621,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "你"
+          }
+        }
+      }
+    },
+    "You'd pair again from the home screen." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You'd pair again from the home screen."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要重新配对的话，回首页就能弄。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要重新配對的話，回首頁就能弄。"
+          }
+        }
+      }
+    },
+    "Your code" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your code"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的配对码"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的配對碼"
           }
         }
       }

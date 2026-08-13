@@ -14,9 +14,11 @@ struct CouplesHomeView: View {
     /// Held for the life of Home so the pull cursor survives between ticks.
     @State private var syncEngine: SyncEngine?
     @Environment(\.scenePhase) private var scenePhase
-    @AppStorage(SyncSettings.enabledKey) private var syncEnabled = false
+
     @State private var tilt = TiltModel()
     @State private var showSettings = false
+    @State private var showPairing = false
+    @State private var isPaired = SyncSecretStore.isPaired
     @State private var pulse = false
     @State private var path = NavigationPath()
     @State private var didHandleLaunchArguments = false
@@ -40,23 +42,14 @@ struct CouplesHomeView: View {
             return
         }
         #endif
-        guard syncEnabled || FakeCloudLaunch.usesLocalNetwork else {
-            syncEngine = nil
-            return
-        }
-        // The outbox is this device's own history, so a peer that was away can
-        // still ask for what it missed.
-        let outbox = SyncOutbox(
-            directory: FileManager.default
-                .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-                .appendingPathComponent("SyncOutbox", isDirectory: true),
-            authorID: identity.authorID)
-        syncEngine = SyncEngine(
-            context: modelContext,
-            transport: LocalNetworkTransport(outbox: outbox,
-                                             peers: LocalPeerService(outbox: outbox),
-                                             photos: MemoryPhotoStore()),
-            authorID: identity.authorID)
+        // The engine always exists; **pairing gates the network, not the
+        // engine**. Pushing appends to our own outbox, which is a local file,
+        // so an unpaired phone builds its history and hands the whole of it
+        // over the moment it pairs. `LocalPeerService` refuses to advertise
+        // until there is a reason to, which is where the privacy line sits.
+        syncEngine = SyncEngine(context: modelContext,
+                                transport: SyncStack.transport,
+                                authorID: identity.authorID)
     }
 
     var body: some View {
@@ -87,11 +80,26 @@ struct CouplesHomeView: View {
                         // the group is here to absorb.
                         SparkPill()
 
+                        // Setup prompts, one at a time. Both vanish for good
+                        // once done, which is the only reason a permanent line
+                        // on the hero canvas is acceptable at all.
                         if identity.nameOne.isEmpty && identity.nameTwo.isEmpty {
                             Button {
                                 showSettings = true
                             } label: {
                                 Text("Add your names")
+                                    .font(.footnote)
+                                    .foregroundStyle(.white.opacity(0.7))
+                            }
+                        } else if !isPaired {
+                            // Here rather than in Settings: pairing is a
+                            // once-ever setup step, and nobody goes looking in
+                            // Settings for something they have never done.
+                            Button {
+                                Haptics.tap()
+                                showPairing = true
+                            } label: {
+                                Text("Pair with your partner's phone")
                                     .font(.footnote)
                                     .foregroundStyle(.white.opacity(0.7))
                             }
@@ -131,21 +139,36 @@ struct CouplesHomeView: View {
         // exactly how the Daily Question page shipped crashing while the badge,
         // rendered inside the root, worked fine.
         .environment(identity)
-        .sheet(isPresented: $showSettings) {
+        .sheet(isPresented: $showSettings, onDismiss: { isPaired = SyncSecretStore.isPaired }) {
             CoupleSettingsSheet(identity: identity)
+        }
+        .sheet(isPresented: $showPairing, onDismiss: {
+            isPaired = SyncSecretStore.isPaired
+            configureSync()
+        }) {
+            SyncPairingSheet()
         }
         // Ticks on appear and on every foreground — no timers and no background
         // modes, both of which need entitlements this deliberately avoids.
         // Opening the app is the trigger.
         .task(id: scenePhase) {
             guard scenePhase == .active else { return }
+            #if DEBUG
+            await SyncDebugLaunch.runIfRequested()
+            configureSync()   // pairing may have just happened
+            #endif
             let arrived = (try? await syncEngine?.tick()) ?? []
             // Photos that just landed were cached as misses while they were
             // absent; without forgetting them the grid keeps its placeholders
             // until the next launch, which looks exactly like sync failing.
             for id in arrived { MemoryThumbnails.shared.forget(id) }
         }
-        .onChange(of: syncEnabled) { _, _ in configureSync() }
+        // The phone that *showed* the code never touched its own settings, so
+        // dismissal isn't the signal on that side.
+        .onReceive(NotificationCenter.default.publisher(for: .syncDidPair)) { _ in
+            isPaired = true
+            Task { _ = try? await syncEngine?.tick() }
+        }
         .onAppear {
             pulse = true
             // Returning from the Apps tab while a sub-page is pushed would

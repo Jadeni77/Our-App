@@ -11,6 +11,11 @@ import OSLog
 /// Each device serves its own outbox and asks peers for theirs. There is no
 /// server holding the history, so a device is the only authority on what it
 /// wrote — which is why the outbox is durable rather than in memory.
+extension Notification.Name {
+    /// Posted on the phone that *showed* the code, the moment the other accepts.
+    static let syncDidPair = Notification.Name("sync.didPair")
+}
+
 actor LocalPeerService {
     static let serviceType = "_ourapp-sync._tcp"
 
@@ -23,7 +28,9 @@ actor LocalPeerService {
     private var listener: NWListener?
     private var browser: NWBrowser?
     private var peers: [NWEndpoint] = []
-    private var waitingForPeers: [CheckedContinuation<Void, Never>] = []
+    /// The code this phone is currently offering, if any. One at a time: two
+    /// live codes would double an attacker's chances for no benefit.
+    private var offer: SyncPairing.Offer?
 
     init(outbox: SyncOutbox, photos: MemoryPhotoStore = MemoryPhotoStore()) {
         self.outbox = outbox
@@ -33,29 +40,27 @@ actor LocalPeerService {
     /// Discovery is not instant, and a tick fires the moment Home appears. The
     /// first exchange after launch would otherwise find an empty peer list and
     /// quietly do nothing — which looks exactly like sync being broken.
-    private func awaitPeers(timeout: Duration = .seconds(6)) async {
-        guard peers.isEmpty else { return }
-        await withTaskGroup(of: Void.self) { group in
-            group.addTask { try? await Task.sleep(for: timeout) }
-            group.addTask { [self] in
-                await withCheckedContinuation { continuation in
-                    Task { await self.enqueue(continuation) }
-                }
-            }
-            await group.next()
-            group.cancelAll()
+    ///
+    /// **Polled, not signalled.** The first version raced a sleep against a
+    /// `withCheckedContinuation` inside a task group and cancelled the loser —
+    /// but cancelling a task does not resume a continuation, so whenever the
+    /// timeout won, the group waited forever for a child that could never
+    /// finish. It never showed up until a run where discovery genuinely failed,
+    /// and then it hung the whole sync silently. Sleeping in a loop inside an
+    /// actor yields between iterations, so `updatePeers` still gets in.
+    private func awaitPeers(timeout: Duration = .seconds(8)) async {
+        let deadline = ContinuousClock.now.advanced(by: timeout)
+        while peers.isEmpty, ContinuousClock.now < deadline {
+            try? await Task.sleep(for: .milliseconds(200))
         }
     }
 
-    private func enqueue(_ continuation: CheckedContinuation<Void, Never>) {
-        if peers.isEmpty {
-            waitingForPeers.append(continuation)
-        } else {
-            continuation.resume()
-        }
-    }
-
+    /// Advertises **only** when there is a reason to: paired, or showing a code
+    /// right now. An unpaired phone that never intends to pair stays invisible
+    /// on every network it joins, which is what the old on/off toggle was
+    /// really protecting and what replaced it had to keep protecting.
     func start() {
+        guard SyncSecretStore.isPaired || offer != nil else { return }
         guard listener == nil else { return }
         do {
             let listener = try NWListener(using: .tcp)
@@ -82,14 +87,7 @@ actor LocalPeerService {
     }
 
     private func updatePeers(_ endpoints: [NWEndpoint]) {
-        defer {
-            if !peers.isEmpty {
-                let waiting = waitingForPeers
-                waitingForPeers = []
-                for continuation in waiting { continuation.resume() }
-            }
-            SyncTrace.write("peers: \(peers.count)")
-        }
+        defer { SyncTrace.write("peers: \(peers.count)") }
         // Drop ourselves: we advertise under our own author id.
         peers = endpoints.filter { endpoint in
             if case let .service(name, _, _, _) = endpoint { return name != outbox.authorID }
@@ -138,11 +136,11 @@ actor LocalPeerService {
         connection.start(queue: .global(qos: .utility))
         receiveMessage(on: connection) { [weak self] data in
             guard let self, let data,
-                  let request = try? JSONDecoder().decode(SyncWire.Request.self, from: data)
+                  let message = try? JSONDecoder().decode(SyncWire.Message.self, from: data)
             else { connection.cancel(); return }
 
             Task {
-                let response = await self.response(for: request)
+                let response = await self.response(for: message)
                 guard let payload = try? JSONEncoder().encode(response) else {
                     connection.cancel(); return
                 }
@@ -152,8 +150,68 @@ actor LocalPeerService {
         }
     }
 
-    private func response(for request: SyncWire.Request) -> SyncWire.Response {
+    /// Shows a code for the other phone to type. Replaces any previous offer.
+    func beginPairing() -> String {
+        let fresh = SyncPairing.Offer()
+        offer = fresh
+        start()
+        return fresh.code
+    }
+
+    func cancelPairing() {
+        offer = nil
+    }
+
+    /// Types a code the other phone is showing. On success both ends hold the
+    /// same secret and never use the code again.
+    func pair(withCode code: String) async -> Bool {
+        start()
+        await awaitPeers()
+        SyncTrace.write("pairing against \(peers.count) peer(s)")
+        for peer in peers {
+            if case let .paired(secret)? =
+                await send(.pair(code: code), to: peer, signed: false) {
+                SyncSecretStore.save(secret)
+                return true
+            }
+        }
+        return false
+    }
+
+    private func response(for message: SyncWire.Message) -> SyncWire.Response {
+        // Pairing is the one request made before a secret exists, so it is the
+        // one request that carries no proof. Everything else must prove itself.
+        if case let .pair(code) = message.request {
+            SyncTrace.write("pair request \(code), offer live: \(offer?.isLive() ?? false)")
+            guard var live = offer, let secret = live.claim(code) else {
+                offer?.burnAttempt()
+                return .denied
+            }
+            offer = live
+            SyncSecretStore.save(secret)
+            offer = nil
+            SyncTrace.write("paired")
+            // The other phone has our secret now, but *this* phone has never
+            // built a sync engine — it wasn't paired when Home appeared. Told
+            // rather than polled: without this, the phone that showed the code
+            // has an empty outbox and its partner syncs nothing at all.
+            NotificationCenter.default.post(name: .syncDidPair, object: nil)
+            return .paired(secret: secret)
+        }
+        guard let secret = SyncSecretStore.load(),
+              let proof = message.proof,
+              let body = try? JSONEncoder().encode(message.request),
+              SyncAuth.verify(proof, body: body, secret: secret) else {
+            SyncTrace.write("denied an unproven request")
+            return .denied
+        }
+        return served(message.request)
+    }
+
+    private func served(_ request: SyncWire.Request) -> SyncWire.Response {
         switch request {
+        case .pair:
+            return .denied
         case let .records(cursor):
             let since = cursor[outbox.authorID] ?? 0
             SyncTrace.write("serving from \(since), have \(outbox.highestSequence())")
@@ -171,8 +229,16 @@ actor LocalPeerService {
     // MARK: - Asking
 
     private func send(_ request: SyncWire.Request,
-                      to peer: NWEndpoint) async -> SyncWire.Response? {
-        guard let payload = try? JSONEncoder().encode(request) else { return nil }
+                      to peer: NWEndpoint,
+                      signed: Bool = true) async -> SyncWire.Response? {
+        guard let body = try? JSONEncoder().encode(request) else { return nil }
+        var proof: SyncAuth.Proof?
+        if signed {
+            guard let secret = SyncSecretStore.load() else { return nil }
+            proof = SyncAuth.sign(body, secret: secret)
+        }
+        guard let payload = try? JSONEncoder()
+            .encode(SyncWire.Message(request: request, proof: proof)) else { return nil }
         let connection = NWConnection(to: peer, using: .tcp)
         defer { connection.cancel() }
 
