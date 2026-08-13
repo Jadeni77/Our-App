@@ -3975,6 +3975,29 @@
         }
       }
     },
+    "Pair your phones first — co-op needs both of you" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pair your phones first — co-op needs both of you"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "先把两台手机配对吧，合作模式要两个人才行"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "先把兩台手機配對吧，合作模式要兩個人才行"
+          }
+        }
+      }
+    },
     "Par %lld" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4753,6 +4776,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "星塵"
+          }
+        }
+      }
+    },
+    "Start" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开始"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開始"
           }
         }
       }
