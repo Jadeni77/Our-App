@@ -15,6 +15,7 @@ enum SyncApply {
         case QuestionAnswer.syncTypeName: applyQuestionAnswer(envelope, in: context)
         case Memory.syncTypeName: applyMemory(envelope, in: context)
         case CheckIn.syncTypeName: applyCheckIn(envelope, in: context)
+        case CoopLevelResult.syncTypeName: applyCoopLevelResult(envelope, in: context)
         case CoopMatch.syncTypeName: applyCoopMatch(envelope, in: context)
         case CoopTurn.syncTypeName: applyCoopTurn(envelope, in: context)
         case MoonshotLevelResult.syncTypeName:
@@ -90,6 +91,43 @@ enum SyncApply {
         row.featCleanSweep = envelope.bool("featCleanSweep") ?? row.featCleanSweep
         row.partnerID = envelope.authorID
         row.updatedAt = envelope.updatedAt
+        return true
+    }
+
+    /// **Merged, not overwritten.** Every other shared type takes the newer
+    /// write; this one takes the *better* run. LWW here would let a two-star
+    /// attempt clobber a three-star clear purely by being saved later, and the
+    /// couple's record would go backwards.
+    ///
+    /// Max-merge is also strictly better behaved: commutative, associative and
+    /// idempotent, so both phones converge in any delivery order with no
+    /// tiebreak at all — unlike LWW, which needs `authorID` to converge (P21).
+    private static func applyCoopLevelResult(_ envelope: SyncEnvelope,
+                                             in context: ModelContext) -> Bool {
+        let id = envelope.id
+        let existing = try? context.fetch(
+            FetchDescriptor<CoopLevelResult>(predicate: #Predicate { $0.id == id })).first
+        // Sticky tombstone, as everywhere else (P21).
+        if existing?.deletedAt != nil { return false }
+
+        let incoming = CoopLedger.Snapshot(
+            cleared: envelope.bool("cleared") ?? false,
+            bestStars: envelope.int("bestStars") ?? 0,
+            bestFlings: envelope.int("bestFlings") ?? 0,
+            featOneFling: envelope.bool("featOneFling") ?? false,
+            featNoAbility: envelope.bool("featNoAbility") ?? false,
+            featCleanSweep: envelope.bool("featCleanSweep") ?? false)
+
+        let row = existing ?? {
+            let created = CoopLevelResult(levelID: envelope.id)
+            context.insert(created)
+            return created
+        }()
+        let merged = CoopLedger.merged(row.snapshot, incoming)
+        guard merged != row.snapshot || existing == nil else { return false }
+        row.apply(merged)
+        row.updatedAt = max(row.updatedAt, envelope.updatedAt)
+        row.deletedAt = envelope.deletedAt
         return true
     }
 

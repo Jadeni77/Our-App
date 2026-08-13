@@ -22,7 +22,7 @@ struct CloudKitSchemaTests {
             .appendingPathComponent("cloudkit-check-\(UUID().uuidString).store")
         defer { try? FileManager.default.removeItem(at: url) }
 
-        let schema = Schema(versionedSchema: SchemaV3.self)
+        let schema = Schema(versionedSchema: SchemaV4.self)
         let configuration = ModelConfiguration(schema: schema, url: url,
                                                cloudKitDatabase: .automatic)
         // Throws if any attribute is non-optional without a default. Not
