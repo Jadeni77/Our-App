@@ -8,7 +8,6 @@ struct CoopTurnGameView: View {
     var onTurnTaken: () -> Void
 
     @Environment(\.modelContext) private var context
-    @Environment(CoupleIdentityStore.self) private var identity
     @State private var scene: GameScene?
 
     var body: some View {
@@ -29,7 +28,7 @@ struct CoopTurnGameView: View {
             // The store decides whether this counts: it re-checks the turn
             // holder, so a fling taken while her turn was already arriving is
             // refused rather than silently overwriting it.
-            CoopMatchStore.takeTurn(clip: clip, by: identity.authorID,
+            CoopMatchStore.takeTurn(clip: clip, by: LocalAuthor.id(),
                                     in: match, context: context)
             onTurnTaken()
         }

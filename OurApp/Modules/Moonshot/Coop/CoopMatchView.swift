@@ -11,8 +11,14 @@ import SwiftUI
 struct CoopMatchView: View {
     let level: MoonshotLevel
 
+    /// **`LocalAuthor.id()`, never `@Environment(CoupleIdentityStore.self)`.**
+    /// That store is declared on Home's `NavigationStack`; the Moonshot module
+    /// mounts from the springboard and is not a child of it, so reading it here
+    /// traps at launch. Daily Question shipped that crash once, I wrote a
+    /// comment in `MoonshotHomeView` warning about it, and then wrote it again
+    /// here anyway — hence this note, at the place someone would repeat it.
+
     @Environment(\.modelContext) private var context
-    @Environment(CoupleIdentityStore.self) private var identity
     @Query(filter: CoopMatch.live) private var matches: [CoopMatch]
     @State private var watchedNow = false
     @State private var playing = false
@@ -35,7 +41,7 @@ struct CoopMatchView: View {
         if let match {
             if let turn = watchableTurn(in: match) {
                 replay(of: turn, in: match)
-            } else if CoopTurnRules.mayFling(identity.authorID, in: match) {
+            } else if CoopTurnRules.mayFling(LocalAuthor.id(), in: match) {
                 if playing {
                     CoopTurnGameView(level: level, match: match) {
                         playing = false
@@ -64,17 +70,17 @@ struct CoopMatchView: View {
         }) else { return }
 
         CoopMatchStore.start(levelID: level.id,
-                             participants: [identity.authorID, partner],
-                             firstTurn: identity.authorID,
+                             participants: [LocalAuthor.id(), partner],
+                             firstTurn: LocalAuthor.id(),
                              board: CoopSceneBridge.snapshot(of: world, level: level),
                              in: context)
     }
 
     private func watchableTurn(in match: CoopMatch) -> CoopTurn? {
         guard !watchedNow,
-              CoopWatchedTurns.hasUnwatchedTurn(in: match, viewer: identity.authorID)
+              CoopWatchedTurns.hasUnwatchedTurn(in: match, viewer: LocalAuthor.id())
         else { return nil }
-        return CoopMatchStore.turnToWatch(in: match, viewer: identity.authorID, context: context)
+        return CoopMatchStore.turnToWatch(in: match, viewer: LocalAuthor.id(), context: context)
     }
 
     @ViewBuilder
