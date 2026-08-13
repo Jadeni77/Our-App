@@ -2251,6 +2251,29 @@
         }
       }
     },
+    "Her turn" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Her turn"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TA 的回合"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TA 的回合"
+          }
+        }
+      }
+    },
     "Home" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7341,6 +7364,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "你們的火花"
+          }
+        }
+      }
+    },
+    "Your turn" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your turn"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "到你了"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "到你了"
           }
         }
       }

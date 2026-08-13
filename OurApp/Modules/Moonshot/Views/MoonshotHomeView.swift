@@ -23,6 +23,7 @@ struct MoonshotHomeView: View {
     @State private var debugShowConstellation = false
     @State private var debugShowRewards = false
     @State private var debugShowAbilities = false
+    @State private var debugShowCoopReplay = false
 
     init() {
         #if DEBUG
@@ -35,6 +36,7 @@ struct MoonshotHomeView: View {
         _debugShowConstellation = State(initialValue: arguments.contains("-moonshotConstellation"))
         _debugShowRewards = State(initialValue: arguments.contains("-moonshotRewards"))
         _debugShowAbilities = State(initialValue: arguments.contains("-moonshotAbilities"))
+        _debugShowCoopReplay = State(initialValue: arguments.contains("-coopReplay"))
         #endif
     }
 
@@ -160,6 +162,11 @@ struct MoonshotHomeView: View {
             .navigationDestination(isPresented: $debugShowConstellation) { LevelSelectView() }
             .navigationDestination(isPresented: $debugShowRewards) { RewardTrackView() }
             .navigationDestination(isPresented: $debugShowAbilities) { AbilityDashboardView() }
+            #if DEBUG
+            .navigationDestination(isPresented: $debugShowCoopReplay) {
+                CoopReplayDebugHost()
+            }
+            #endif
             .onAppear(perform: seedStarsIfAsked)
         }
     }

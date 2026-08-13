@@ -75,11 +75,20 @@ enum SchemaV3: VersionedSchema {
     }
 }
 
+/// Current. Adds the co-op ledger.
+enum SchemaV4: VersionedSchema {
+    static var versionIdentifier: Schema.Version { Schema.Version(4, 0, 0) }
+    static var models: [any PersistentModel.Type] { SchemaV3.models + [CoopLevelResult.self] }
+}
+
 enum AppMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
-        [SchemaV1.self, SchemaV2.self, SchemaV3.self]
+        [SchemaV1.self, SchemaV2.self, SchemaV3.self, SchemaV4.self]
     }
-    static var stages: [MigrationStage] { [dropRetiredEmoji, addCoop] }
+    static var stages: [MigrationStage] { [dropRetiredEmoji, addCoop, addCoopLedger] }
+
+    static let addCoopLedger = MigrationStage.lightweight(fromVersion: SchemaV3.self,
+                                                          toVersion: SchemaV4.self)
 
     static let addCoop = MigrationStage.lightweight(fromVersion: SchemaV2.self,
                                                     toVersion: SchemaV3.self)

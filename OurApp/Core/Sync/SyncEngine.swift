@@ -76,6 +76,7 @@ final class SyncEngine {
         collect(QuestionAnswer.self)
         collect(Memory.self)
         collect(CheckIn.self)
+        collect(CoopLevelResult.self)
         collect(CoopMatch.self)
         collect(CoopTurn.self)
         collect(MoonshotLevelResult.self)

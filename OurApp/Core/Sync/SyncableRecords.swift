@@ -168,3 +168,28 @@ extension CoopTurn: SyncableRecord {
          "resultingState": .string(resultingState.base64EncodedString())]
     }
 }
+
+/// **Shared, and merged toward the best run rather than last-writer-wins.**
+/// One row per level for the couple — its id *is* the level id, so two phones
+/// finishing independently converge instead of creating two rows.
+extension CoopLevelResult: SyncableRecord {
+    static var syncTypeName: String { "CoopLevelResult" }
+    static var syncCategory: SyncCategory { .shared }
+
+    var syncID: UUID { id }
+    /// No single author: the row belongs to the couple. Constant so the LWW
+    /// tiebreak can never pick a winner on it — the merge below is what
+    /// decides, and it does so without needing one.
+    var syncAuthorID: String { "couple" }
+    var syncUpdatedAt: Date { updatedAt }
+    var syncDeletedAt: Date? { deletedAt }
+
+    func syncFields() -> [String: SyncValue] {
+        ["cleared": .bool(cleared),
+         "bestStars": .int(bestStars),
+         "bestFlings": .int(bestFlings),
+         "featOneFling": .bool(featOneFling),
+         "featNoAbility": .bool(featNoAbility),
+         "featCleanSweep": .bool(featCleanSweep)]
+    }
+}
