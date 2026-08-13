@@ -15,6 +15,8 @@ enum SyncApply {
         case QuestionAnswer.syncTypeName: applyQuestionAnswer(envelope, in: context)
         case Memory.syncTypeName: applyMemory(envelope, in: context)
         case CheckIn.syncTypeName: applyCheckIn(envelope, in: context)
+        case CoopMatch.syncTypeName: applyCoopMatch(envelope, in: context)
+        case CoopTurn.syncTypeName: applyCoopTurn(envelope, in: context)
         case MoonshotLevelResult.syncTypeName:
             applyProgress(envelope, in: context, localAuthorID: localAuthorID)
         // An unknown type is a newer build's record. Dropping it is right:
@@ -88,6 +90,62 @@ enum SyncApply {
         row.featCleanSweep = envelope.bool("featCleanSweep") ?? row.featCleanSweep
         row.partnerID = envelope.authorID
         row.updatedAt = envelope.updatedAt
+        return true
+    }
+
+    private static func applyCoopMatch(_ envelope: SyncEnvelope,
+                                       in context: ModelContext) -> Bool {
+        let id = envelope.id
+        let existing = try? context.fetch(
+            FetchDescriptor<CoopMatch>(predicate: #Predicate { $0.id == id })).first
+        guard verdict(for: envelope,
+                      existingUpdatedAt: existing?.updatedAt,
+                      existingAuthorID: existing?.turnHolder,
+                      existingDeletedAt: existing?.deletedAt) else { return false }
+
+        let row = existing ?? {
+            let created = CoopMatch(levelID: UUID(), participants: [], turnHolder: "")
+            created.id = envelope.id
+            context.insert(created)
+            return created
+        }()
+        row.levelID = envelope.string("levelID").flatMap(UUID.init(uuidString:)) ?? row.levelID
+        row.participants = envelope.strings("participants") ?? row.participants
+        row.turnHolder = envelope.string("turnHolder") ?? row.turnHolder
+        row.turnIndex = envelope.int("turnIndex") ?? row.turnIndex
+        row.boardState = envelope.string("boardState")
+            .flatMap { Data(base64Encoded: $0) } ?? row.boardState
+        // Assigned unconditionally: absent means *not finished*, and a match
+        // that can't be un-finished would strand a level forever.
+        row.finishedAt = envelope.date("finishedAt")
+        row.updatedAt = envelope.updatedAt
+        row.deletedAt = envelope.deletedAt
+        return true
+    }
+
+    /// Append-only: an existing turn is never rewritten, so a redelivery is a
+    /// no-op rather than a merge.
+    private static func applyCoopTurn(_ envelope: SyncEnvelope,
+                                      in context: ModelContext) -> Bool {
+        let id = envelope.id
+        let existing = try? context.fetch(
+            FetchDescriptor<CoopTurn>(predicate: #Predicate { $0.id == id })).first
+        guard existing == nil else { return false }
+        guard let matchID = envelope.string("matchID").flatMap(UUID.init(uuidString:)) else {
+            return false
+        }
+
+        let created = CoopTurn(matchID: matchID,
+                               index: envelope.int("index") ?? 0,
+                               authorID: envelope.authorID,
+                               clip: envelope.string("clip")
+                                   .flatMap { Data(base64Encoded: $0) } ?? Data(),
+                               resultingState: envelope.string("resultingState")
+                                   .flatMap { Data(base64Encoded: $0) } ?? Data())
+        created.id = envelope.id
+        created.updatedAt = envelope.updatedAt
+        created.deletedAt = envelope.deletedAt
+        context.insert(created)
         return true
     }
 
