@@ -1,11 +1,15 @@
 import Foundation
+import OSLog
 import SwiftData
 
 /// Core persistence: the one place the app assembles its SwiftData container.
 /// Modules contribute their @Model types to the schema here — they never build
 /// their own containers.
 enum Persistence {
-    static func makeContainer(inMemory: Bool = false) throws -> ModelContainer {
+    /// `url` is injectable so a test can hand it a store written by an older
+    /// schema — which is the only way to reproduce the failure below without a
+    /// phone that has been carrying one since July.
+    static func makeContainer(inMemory: Bool = false, url: URL? = nil) throws -> ModelContainer {
         // The schema is whatever the newest version says it is, and the plan
         // is how a store written by an older build gets there. Adding a model
         // type means adding it to `SchemaV2`, not here.
@@ -27,11 +31,33 @@ enum Persistence {
         // In-memory stores get `.none` because mirroring needs a real store —
         // which is also why the regular suite could never have caught the
         // problem above, and why `CloudKitSchemaTests` writes to disk.
-        let configuration = ModelConfiguration(schema: schema,
-                                               isStoredInMemoryOnly: inMemory,
-                                               cloudKitDatabase: inMemory ? .none : .automatic)
-        return try ModelContainer(for: schema,
-                                  migrationPlan: AppMigrationPlan.self,
-                                  configurations: [configuration])
+        let configuration = url.map {
+            ModelConfiguration(schema: schema, url: $0, cloudKitDatabase: .none)
+        } ?? ModelConfiguration(schema: schema,
+                                isStoredInMemoryOnly: inMemory,
+                                cloudKitDatabase: inMemory ? .none : .automatic)
+        do {
+            return try ModelContainer(for: schema,
+                                      migrationPlan: AppMigrationPlan.self,
+                                      configurations: [configuration])
+        } catch {
+            // **A store from before the versions existed must not brick the
+            // app.** Declaring a migration plan makes SwiftData refuse any
+            // store whose model version isn't one it names — "Cannot use staged
+            // migration with an unknown model version" — and `OurAppApp` turns
+            // that into a `fatalError`. Before the plan existed, automatic
+            // lightweight migration handled those stores happily.
+            //
+            // Found on a real phone carrying a store from an older build, which
+            // is the only place it *could* be found: every simulator store had
+            // been created by a current build.
+            //
+            // So: try the plan, and if the store predates it, fall back to
+            // letting SwiftData migrate the old way. Strictly better than
+            // crashing, and it only runs when the plan has already refused.
+            Logger(subsystem: "OurApp", category: "persistence")
+                .error("staged migration refused the store, falling back to lightweight: \(error.localizedDescription)")
+            return try ModelContainer(for: schema, configurations: [configuration])
+        }
     }
 }
