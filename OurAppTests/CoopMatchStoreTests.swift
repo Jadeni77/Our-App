@@ -133,3 +133,51 @@ struct CoopMatchStoreTests {
         #expect(CoopMatchStore.liveMatch(forLevel: level, in: store) == nil)
     }
 }
+
+@MainActor
+struct CoopWatchedTurnsTests {
+    private func defaults() -> UserDefaults {
+        let suite = "coop.watched.\(UUID().uuidString)"
+        let store = UserDefaults(suiteName: suite)!
+        store.removePersistentDomain(forName: suite)
+        return store
+    }
+
+    private func match(turnIndex: Int, holder: String) -> CoopMatch {
+        let match = CoopMatch(levelID: UUID(), participants: ["me", "her"], turnHolder: holder)
+        match.turnIndex = turnIndex
+        return match
+    }
+
+    @Test func aTurnThatArrivedForYouIsUnwatchedUntilYouWatchIt() {
+        let store = defaults()
+        let live = match(turnIndex: 3, holder: "me")
+        #expect(CoopWatchedTurns.hasUnwatchedTurn(in: live, viewer: "me", defaults: store))
+
+        CoopWatchedTurns.markWatched(3, of: live.id, defaults: store)
+        #expect(CoopWatchedTurns.hasUnwatchedTurn(in: live, viewer: "me", defaults: store) == false)
+    }
+
+    @Test func youAreNotOfferedYourOwnFlingBack() {
+        let store = defaults()
+        // The turn is hers to take, so the last fling was yours.
+        let live = match(turnIndex: 3, holder: "her")
+        #expect(CoopWatchedTurns.hasUnwatchedTurn(in: live, viewer: "me", defaults: store) == false)
+    }
+
+    @Test func aFreshMatchHasNothingToWatch() {
+        let store = defaults()
+        #expect(CoopWatchedTurns.hasUnwatchedTurn(in: match(turnIndex: 0, holder: "me"),
+                                                  viewer: "me", defaults: store) == false)
+    }
+
+    @Test func watchedNeverGoesBackwards() {
+        let store = defaults()
+        let id = UUID()
+        CoopWatchedTurns.markWatched(5, of: id, defaults: store)
+        // Sync delivers out of order routinely; an older turn arriving must not
+        // make you re-watch flings you have already seen.
+        CoopWatchedTurns.markWatched(2, of: id, defaults: store)
+        #expect(CoopWatchedTurns.lastWatchedIndex(id, defaults: store) == 5)
+    }
+}

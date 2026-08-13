@@ -45,7 +45,12 @@ struct CoopLobbyView: View {
         ScrollView {
             VStack(spacing: 10) {
                 ForEach(Array(catalog.levels.enumerated()), id: \.element.id) { index, level in
-                    row(for: level, number: index + 1)
+                    NavigationLink {
+                        CoopMatchView(level: level)
+                    } label: {
+                        row(for: level, number: index + 1)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             .padding(16)

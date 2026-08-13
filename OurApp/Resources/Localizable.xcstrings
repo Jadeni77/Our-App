@@ -3607,6 +3607,29 @@
         }
       }
     },
+    "One of you flings, then the other. It keeps its place between you." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One of you flings, then the other. It keeps its place between you."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你一发我一发，中间断了也不要紧，进度一直留着。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你一發我一發，中間斷了也不要緊，進度一直留著。"
+          }
+        }
+      }
+    },
     "One over par — 2 stars" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4826,6 +4849,29 @@
         }
       }
     },
+    "Start together" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start together"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一起开始"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一起開始"
+          }
+        }
+      }
+    },
     "Summon him from the star picker — 40 moondust a visit" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4891,6 +4937,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "跟隨系統"
+          }
+        }
+      }
+    },
+    "Take your shot — she'll see it when she next opens this." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Take your shot — she'll see it when she next opens this."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你先来一发，TA 下次打开就能看到。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你先來一發，TA 下次打開就能看到。"
           }
         }
       }
@@ -5708,6 +5777,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "W%lld · L%lld"
+          }
+        }
+      }
+    },
+    "Waiting for her" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for her"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等 TA 了"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等 TA 了"
           }
         }
       }
@@ -7341,6 +7433,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "要重新配對的話，回首頁就能弄。"
+          }
+        }
+      }
+    },
+    "You've taken your shot. It's with her now." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You've taken your shot. It's with her now."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你这一发打完了，轮到 TA 了。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你這一發打完了，輪到 TA 了。"
           }
         }
       }
