@@ -97,3 +97,110 @@ struct FlingClipCodecTests {
         #expect(FlingClip(frameRate: 0, bodyIDs: [], frames: []).duration == 0)
     }
 }
+
+@MainActor
+final class FakeBody: RecordableBody {
+    let recordingID: String
+    var recordedPose: BodyPose
+    var isRecordingAlive: Bool
+
+    init(_ id: String, x: Double = 0, y: Double = 0, angle: Double = 0) {
+        recordingID = id
+        recordedPose = BodyPose(x: x, y: y, angle: angle)
+        isRecordingAlive = true
+    }
+}
+
+@MainActor
+struct FlingRecorderTests {
+    @Test func samplingIsPacedByTimeNotByHowOftenItIsCalled() {
+        let body = FakeBody("a")
+        let recorder = FlingRecorder(bodies: [body], frameRate: 30)
+
+        // update(_:) fires at the display's rate — 60Hz here, 120 on a ProMotion
+        // phone. Recording every call would make a clip's length depend on
+        // which handset took the turn.
+        var captured = 0
+        for step in 0..<60 {
+            if recorder.sample(at: Double(step) / 60.0) { captured += 1 }
+        }
+        #expect(captured == 30)
+        #expect(recorder.finish().frames.count == 30)
+    }
+
+    @Test func aDestroyedBodyIsRecordedAsGoneFromThatFrameOn() {
+        let alive = FakeBody("a"), doomed = FakeBody("b")
+        let recorder = FlingRecorder(bodies: [alive, doomed], frameRate: 30)
+
+        recorder.sample(at: 0)
+        doomed.isRecordingAlive = false
+        recorder.sample(at: 1.0 / 30)
+
+        let clip = recorder.finish()
+        #expect(clip.frames[0].present == [true, true])
+        #expect(clip.frames[1].present == [true, false])
+        #expect(clip.bodyIDs == ["a", "b"])
+    }
+
+    @Test func aLongFrameCatchesUpRatherThanDrifting() {
+        let recorder = FlingRecorder(bodies: [FakeBody("a")], frameRate: 30)
+        recorder.sample(at: 0)
+        // A hitch: the next call arrives half a second late. Without catch-up
+        // the recorder would then fire on every call trying to make up 15
+        // frames it can never recover.
+        recorder.sample(at: 0.5)
+        let immediatelyAfter = recorder.sample(at: 0.5)
+        #expect(immediatelyAfter == false)
+    }
+}
+
+struct FlingPlayerTests {
+    private func clip() -> FlingClip {
+        FlingClip(frameRate: 10, bodyIDs: ["a"], frames: [
+            .init(poses: [BodyPose(x: 0, y: 0, angle: 0)], present: [true]),
+            .init(poses: [BodyPose(x: 10, y: 20, angle: 1)], present: [true]),
+        ])
+    }
+
+    @Test func positionsInterpolateBetweenFrames() throws {
+        // A 30Hz clip drawn on a 60 or 120Hz screen would visibly step without
+        // this.
+        let midway = try #require(FlingPlayer.sample(clip(), at: 0.05))
+        #expect(abs(midway.poses[0].x - 5) < 0.001)
+        #expect(abs(midway.poses[0].y - 10) < 0.001)
+    }
+
+    @Test func timeBeforeAndAfterTheClipClamps() throws {
+        let early = try #require(FlingPlayer.sample(clip(), at: -5))
+        #expect(early.poses[0].x == 0)
+        // A watcher joining late should see the final rubble, not nothing.
+        let late = try #require(FlingPlayer.sample(clip(), at: 99))
+        #expect(late.poses[0].x == 10)
+    }
+
+    @Test func rotationTakesTheShortWayRoundTheWrap() {
+        let turn = 2 * Double.pi
+        // A piece spinning past 2π wraps from ~6.28 to ~0. Interpolating that
+        // linearly spins it almost a full turn *backwards* in one frame.
+        let crossing = FlingPlayer.interpolate(angle: turn - 0.1, to: 0.1, t: 0.5)
+        #expect(abs(crossing - 0) < 0.001 || abs(crossing - turn) < 0.001)
+
+        let ordinary = FlingPlayer.interpolate(angle: 1.0, to: 2.0, t: 0.5)
+        #expect(abs(ordinary - 1.5) < 0.001)
+    }
+
+    @Test func presenceDoesNotInterpolate() throws {
+        var dying = clip()
+        dying.frames[1].present = [false]
+        // A body is alive or it isn't; the frame it dies in is the frame it
+        // should disappear, not a fade.
+        let midway = try #require(FlingPlayer.sample(dying, at: 0.05))
+        #expect(midway.present == [true])
+        let after = try #require(FlingPlayer.sample(dying, at: 0.15))
+        #expect(after.present == [false])
+    }
+
+    @Test func anEmptyClipHasNothingToShow() {
+        #expect(FlingPlayer.sample(FlingClip(frameRate: 30, bodyIDs: [], frames: []), at: 0) == nil)
+    }
+}
