@@ -1,0 +1,99 @@
+import Foundation
+import SpriteKit
+import Testing
+@testable import OurApp
+
+/// The one place co-op meets SpriteKit, so the one place worth testing against
+/// real nodes rather than a fake.
+@MainActor
+struct CoopSceneBridgeTests {
+    private var level: MoonshotLevel {
+        CampaignCatalog.bundled.levels[0]
+    }
+
+    /// A world built the way `GameScene.buildWorld` builds one, ids and all.
+    private func world(for level: MoonshotLevel) -> SKNode {
+        let world = SKNode()
+        for (index, piece) in level.pieces.enumerated() {
+            let node = SpriteFactory.makePiece(piece)
+            node.coopBodyID = "p\(index)"
+            world.addChild(node)
+        }
+        for (index, gloom) in level.glooms.enumerated() {
+            let node = SpriteFactory.makeGloom(at: .zero, kind: gloom.kind)
+            node.coopBodyID = "g\(index)"
+            world.addChild(node)
+        }
+        return world
+    }
+
+    @Test func bodiesComeBackInLevelOrderNotChildOrder() {
+        let level = self.level
+        let scene = world(for: level)
+        // Shuffling the scene's children stands in for anything that reorders
+        // them — z-sorting, removal and re-add, a future refactor. Order is the
+        // identity, so it must survive all of that.
+        let shuffled = SKNode()
+        for child in scene.children.shuffled() {
+            child.removeFromParent()
+            shuffled.addChild(child)
+        }
+
+        let ids = CoopSceneBridge.bodies(in: shuffled, level: level).map(\.recordingID)
+        #expect(ids == CoopSceneBridge.orderedIDs(for: level))
+    }
+
+    @Test func aSnapshotKeepsItsFullRosterWhenBodiesAreDestroyed() {
+        let level = self.level
+        let scene = world(for: level)
+        let before = CoopSceneBridge.snapshot(of: scene, level: level)
+        #expect(before.bodies.count == level.pieces.count + level.glooms.count)
+        // Outside the macro: `allSatisfy` is `rethrows` and `#expect` treats
+        // that as throwing. Third time this has bitten in this codebase.
+        let allAlive = before.bodies.allSatisfy(\.alive)
+        #expect(allAlive)
+
+        // Destroy one. The roster must stay the same length — a shorter roster
+        // would silently shift every later body's index and a clip recorded
+        // against it would animate the wrong pieces.
+        (scene.children.first { ($0 as? PieceNode)?.coopBodyID == "p0" })?.removeFromParent()
+
+        let after = CoopSceneBridge.snapshot(of: scene, level: level)
+        #expect(after.bodies.count == before.bodies.count)
+        #expect(after.bodies.first { $0.id == "p0" }?.alive == false)
+        #expect(after.aliveBodies.count == before.aliveBodies.count - 1)
+    }
+
+    @Test func aClipRecordedFromTheSceneMatchesTheSceneSnapshot() {
+        let level = self.level
+        let scene = world(for: level)
+        let bodies = CoopSceneBridge.bodies(in: scene, level: level)
+        let recorder = FlingRecorder(bodies: bodies, frameRate: 30)
+        recorder.sample(at: 0)
+        recorder.sample(at: 1.0 / 30)
+
+        // The whole point of the identity design: a clip recorded here plays
+        // against a snapshot taken here, without either side assuming anything
+        // about how the scene was built.
+        let clip = recorder.finish()
+        let snapshot = CoopSceneBridge.snapshot(of: scene, level: level)
+        #expect(CoopBoardRules.clip(clip, matches: snapshot))
+    }
+
+    @Test func aDestroyedBodyIsRecordedAsGoneByTheRealNodes() {
+        let level = self.level
+        let scene = world(for: level)
+        let bodies = CoopSceneBridge.bodies(in: scene, level: level)
+        let recorder = FlingRecorder(bodies: bodies, frameRate: 30)
+        recorder.sample(at: 0)
+
+        // `parent == nil` is the aliveness signal, so removal is what a
+        // destroyed piece looks like to the recorder.
+        (bodies.first as? PieceNode)?.removeFromParent()
+        recorder.sample(at: 1.0 / 30)
+
+        let clip = recorder.finish()
+        #expect(clip.frames[0].present[0] == true)
+        #expect(clip.frames[1].present[0] == false)
+    }
+}

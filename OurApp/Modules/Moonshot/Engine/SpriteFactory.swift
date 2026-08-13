@@ -26,6 +26,9 @@ enum FieldCategory {
 /// A structure piece with material HP. Damage crosses two thresholds:
 /// half HP shows the crack overlay once, zero removes the piece.
 final class PieceNode: SKSpriteNode {
+    /// Identity for co-op clips, assigned from the level definition rather than
+    /// from build order — see `BoardSnapshot`.
+    var coopBodyID: String = ""
     enum Fate { case intact, cracked, destroyed }
 
     let material: Material
@@ -97,6 +100,8 @@ final class PieceNode: SKSpriteNode {
 /// boss whose face angers per chip; hopper/mist behaviors arrive with
 /// their own PRs.
 final class GloomNode: SKShapeNode {
+    /// Identity for co-op clips (see `BoardSnapshot`).
+    var coopBodyID: String = ""
     let kind: GloomKind?
     private(set) var hp: Int
     private let maxHP: Int
@@ -855,4 +860,22 @@ private extension Material {
         case .frame: UIColor(white: 0.1, alpha: 1)
         }
     }
+}
+
+
+// MARK: - Co-op recording
+
+/// A body is "alive" while it is still in the world. Destruction removes the
+/// node, so `parent` is the honest signal — a piece that has merely come to
+/// rest still has a physics body and must keep being recorded.
+extension PieceNode: RecordableBody {
+    var recordingID: String { coopBodyID }
+    var recordedPose: BodyPose { BodyPose(x: position.x, y: position.y, angle: zRotation) }
+    var isRecordingAlive: Bool { parent != nil }
+}
+
+extension GloomNode: RecordableBody {
+    var recordingID: String { coopBodyID }
+    var recordedPose: BodyPose { BodyPose(x: position.x, y: position.y, angle: zRotation) }
+    var isRecordingAlive: Bool { parent != nil }
 }

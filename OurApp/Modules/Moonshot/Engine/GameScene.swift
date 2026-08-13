@@ -105,14 +105,21 @@ final class GameScene: SKScene {
         addChild(bounds)
 
         addChild(worldNode)
-        for piece in level.pieces {
+        // Co-op identity comes from the **level definition**, not from the
+        // order the scene happens to walk its children: both phones hold the
+        // same bundled level, so `p3` is the same piece on both, on every turn,
+        // in every app version. See `BoardSnapshot`.
+        for (index, piece) in level.pieces.enumerated() {
             let node = SpriteFactory.makePiece(piece)
             node.position = levelPoint(piece.x, piece.y)
+            node.coopBodyID = "p\(index)"
             worldNode.addChild(node)
         }
-        for gloom in level.glooms {
-            worldNode.addChild(SpriteFactory.makeGloom(at: levelPoint(gloom.x, gloom.y),
-                                                       kind: gloom.kind))
+        for (index, gloom) in level.glooms.enumerated() {
+            let node = SpriteFactory.makeGloom(at: levelPoint(gloom.x, gloom.y),
+                                               kind: gloom.kind)
+            node.coopBodyID = "g\(index)"
+            worldNode.addChild(node)
         }
 
         var windZones = level.wind ?? []
