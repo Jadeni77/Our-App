@@ -194,6 +194,15 @@ final class GameScene: SKScene {
     /// Fired once, on the first real pull — the coach layer marks the drag
     /// moment seen and never shows the hint again.
     var onDragHintDismissed: (() -> Void)?
+
+    // MARK: Co-op recording
+
+    /// Set to record this turn for the other phone. Nil means solo, and nothing
+    /// is recorded — a co-op concern must cost a solo player nothing.
+    var recordsCoopTurns = false
+    /// Handed the finished clip when the board settles.
+    var onCoopTurnRecorded: ((FlingClip) -> Void)?
+    private var coopRecorder: FlingRecorder?
     /// The view configures the scene BEFORE presentation, but the slingshot
     /// only exists after buildWorld — park the request until then.
     private var pendingDragHint: Bool?
@@ -330,6 +339,13 @@ final class GameScene: SKScene {
         }
         sprite.activatePhysics()
         sprite.physicsBody?.velocity = velocity
+        // Recording starts at the launch, not at the touch: a pull that gets
+        // cancelled isn't a turn, and recording it would leave a clip with
+        // nothing in it.
+        if recordsCoopTurns {
+            coopRecorder = FlingRecorder(bodies: CoopSceneBridge.bodies(in: worldNode,
+                                                                        level: level))
+        }
         sprite.launched = true
         addLaunchedSprite(sprite)
         seatedSprite = nil
@@ -382,8 +398,12 @@ final class GameScene: SKScene {
         sweepEscapedGlooms()
         switch session.phase {
         case .inFlight:
+            coopRecorder?.sample(at: currentTime)
             trackFlight(at: currentTime)
         case .settling:
+            // Recorded through settling too: the rubble is still moving, and a
+            // clip that stopped at the impact would end mid-collapse.
+            coopRecorder?.sample(at: currentTime)
             trackSettle(at: currentTime)
         default:
             break
@@ -564,6 +584,10 @@ final class GameScene: SKScene {
 
         settlingSince = nil
         calmSince = nil
+        if let recorder = coopRecorder {
+            coopRecorder = nil
+            onCoopTurnRecorded?(recorder.finish())
+        }
         session.settled()
         switch session.phase {
         case .won(let stars):
