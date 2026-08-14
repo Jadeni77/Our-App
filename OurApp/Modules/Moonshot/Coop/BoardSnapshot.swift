@@ -88,8 +88,13 @@ enum CoopBoardRules {
     /// Order matters as well as membership: the clip's frames are positional,
     /// so `["a","b"]` against `["b","a"]` would animate each body along the
     /// other's path — every piece moving smoothly and every piece wrong.
+    /// The board's roster must match position for position. Anything after it
+    /// is the shot — recorded so the replay can show the fling, and no part of
+    /// the board, so it is not the board's business what it is.
     static func clip(_ clip: FlingClip, matches snapshot: BoardSnapshot) -> Bool {
-        clip.bodyIDs == snapshot.bodies.map(\.id)
+        let roster = snapshot.bodies.map(\.id)
+        guard clip.bodyIDs.count >= roster.count else { return false }
+        return Array(clip.bodyIDs.prefix(roster.count)) == roster
     }
 
     /// The state after a turn, folded from the clip's final frame.

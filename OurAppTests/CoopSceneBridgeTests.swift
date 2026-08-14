@@ -202,3 +202,45 @@ struct CoopBoardRestoreTests {
         #expect(moving == false)
     }
 }
+
+/// The shot itself is part of the clip.
+@MainActor
+struct CoopShotRecordingTests {
+    private var level: MoonshotLevel { CampaignCatalog.bundled.levels[0] }
+
+    /// You watched the fort collapse for no visible reason, because the thing
+    /// that hit it was never recorded.
+    @Test func theFlungCharacterIsRecordedAfterTheRoster() {
+        let world = SKNode()
+        let star = SpriteFactory.makeStar(.mochi)
+        let recorded = CoopSceneBridge.bodies(in: world, level: level, shot: star)
+
+        let roster = CoopSceneBridge.orderedIDs(for: level)
+        // Appended, never interleaved: p3 has to stay the fourth position of
+        // the level's roster on every turn and in every version of the app.
+        #expect(recorded.last?.recordingID == "s:mochi")
+        let ids = recorded.map(\.recordingID)
+        #expect(Array(ids.dropLast()).allSatisfy { !$0.hasPrefix("s:") })
+        #expect(ids.count <= roster.count + 1)
+    }
+
+    /// A clip carrying a shot still plays against a board that has no such body
+    /// — the board's roster must match position for position, and the trailing
+    /// shot is simply not the board's business.
+    @Test func aClipWithAShotStillMatchesTheBoard() {
+        let board = BoardSnapshot(levelID: level.id, bodies: [
+            .init(id: "p0", kind: "piece", x: 0, y: 0, angle: 0, alive: true),
+            .init(id: "g0", kind: "gloom", x: 0, y: 0, angle: 0, alive: true)])
+        let withShot = FlingClip(frameRate: 30, bodyIDs: ["p0", "g0", "s:mochi"], frames: [
+            .init(poses: (0..<3).map { _ in BodyPose(x: 0, y: 0, angle: 0) },
+                  present: [true, true, true])])
+
+        #expect(CoopBoardRules.clip(withShot, matches: board))
+
+        // And order still has to hold, or every body animates along another's
+        // path — smoothly, and entirely wrong.
+        let scrambled = FlingClip(frameRate: 30, bodyIDs: ["g0", "p0", "s:mochi"],
+                                  frames: withShot.frames)
+        #expect(CoopBoardRules.clip(scrambled, matches: board) == false)
+    }
+}

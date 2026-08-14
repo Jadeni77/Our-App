@@ -15,11 +15,18 @@ enum CoopSceneBridge {
     /// Order is the identity (see `BoardSnapshot`), so this must not sort by
     /// anything the scene happens to know: not z-order, not position, not the
     /// order children were added.
-    static func bodies(in world: SKNode, level: MoonshotLevel) -> [any RecordableBody] {
+    /// `shot` is the sprite being flung, recorded **after** the roster so the
+    /// roster's indices keep meaning what they mean. Passed in rather than
+    /// discovered, because at the moment recording starts the sprite is not yet
+    /// marked launched — and a flag read a line too early is exactly the kind
+    /// of thing that silently records nothing.
+    static func bodies(in world: SKNode, level: MoonshotLevel,
+                       shot: StarSpriteNode? = nil) -> [any RecordableBody] {
         var byID: [String: any RecordableBody] = [:]
         for case let piece as PieceNode in world.children { byID[piece.coopBodyID] = piece }
         for case let gloom as GloomNode in world.children { byID[gloom.coopBodyID] = gloom }
-        return orderedIDs(for: level).compactMap { byID[$0] }
+        let roster = orderedIDs(for: level).compactMap { byID[$0] }
+        return roster + (shot.map { [$0] } ?? [])
     }
 
     /// The full roster a level defines, alive or not. A destroyed body has no

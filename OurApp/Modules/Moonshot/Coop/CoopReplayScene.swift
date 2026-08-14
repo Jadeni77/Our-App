@@ -57,6 +57,25 @@ final class CoopReplayScene: SKScene {
             addChild(node)
             bodies[body.id] = node
         }
+
+        // The shot, which is in the clip but not on the board — it is what the
+        // turn *did*, not part of what the turn was played against. Without it
+        // you watched a fort collapse for no visible reason.
+        for (index, id) in clip.bodyIDs.enumerated()
+        where id.hasPrefix(StarSpriteNode.recordingPrefix) {
+            let raw = String(id.dropFirst(StarSpriteNode.recordingPrefix.count))
+            guard let character = CharacterID(rawValue: raw) else { continue }
+            let node = SpriteFactory.makeStar(character)
+            node.physicsBody = nil
+            // Placed on its first recorded pose, so it starts in the sling
+            // rather than flashing at the origin for a frame.
+            if let first = clip.frames.first, index < first.poses.count {
+                node.position = CGPoint(x: first.poses[index].x, y: first.poses[index].y)
+                node.zRotation = first.poses[index].angle
+            }
+            addChild(node)
+            bodies[id] = node
+        }
     }
 
     private func makeNode(for body: BoardSnapshot.Body) -> SKNode? {

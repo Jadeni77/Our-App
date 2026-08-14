@@ -381,7 +381,8 @@ final class GameScene: SKScene {
         // nothing in it.
         if recordsCoopTurns {
             coopRecorder = FlingRecorder(bodies: CoopSceneBridge.bodies(in: worldNode,
-                                                                        level: level))
+                                                                        level: level,
+                                                                        shot: sprite))
         }
         sprite.launched = true
         addLaunchedSprite(sprite)
