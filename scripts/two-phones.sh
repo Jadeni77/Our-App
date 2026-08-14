@@ -52,11 +52,28 @@ if [ "$MODE" = "--coop" ]; then
   xcrun simctl launch "$B" $BUNDLE -localNetwork -pairWith "$CODE" -syncTrace "$TRACE" >/dev/null
   sleep 14
 
+  # **Pair over Bonjour, then replicate through the folder.** Discovery
+  # between two simulators on one Mac is unreliable — the trace from a real
+  # session shows `peers: 0` about half the time, and one phone finding the
+  # other while the other finds nobody, so turns crossed in one direction
+  # only. Pairing is a single handshake and survives that; a game of catch
+  # does not.
+  #
+  # The folder is a test rig, not the product: two phones in different places
+  # will use CloudKit (slice D), and neither Bonjour nor this folder is that.
+  # What matters is that the rig replicates every time it is asked.
   if grep -q "pairWith: paired" "$TRACE"; then
+    CLOUD=/private/tmp/ourapp-coop-cloud
+    rm -rf "$CLOUD"; mkdir -p "$CLOUD"
+    for D in "$A" "$B"; do
+      xcrun simctl terminate "$D" $BUNDLE 2>/dev/null || true
+      xcrun simctl launch "$D" $BUNDLE -fakeCloud "$CLOUD" -syncTrace "$TRACE" >/dev/null
+    done
+    sleep 3
     echo
     echo "Paired. On either simulator: Apps → Moonshot → Co-op → pick a level → Start."
     echo "Take a shot on one, then open the same level on the other to watch it."
-    echo "A tick runs whenever Home is foregrounded, so switching windows syncs."
+    echo "The co-op screens sync themselves on appear — no need to visit Home."
   else
     echo "Pairing didn't complete. Trace: $TRACE"
     tail -5 "$TRACE"
