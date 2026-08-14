@@ -24,7 +24,11 @@ enum CoopMatchStore {
                               turnHolder: firstTurn,
                               boardState: BoardSnapshotCodec.encode(board))
         context.insert(match)
-        try? context.save()
+        // **No explicit save.** SwiftData autosaves, and an explicit save from
+        // a button action is a synchronous write that, on a phone with iCloud,
+        // can be caught behind CloudKit's first schema initialisation — network
+        // work on the main thread. Every simulator here has no iCloud account,
+        // so that path never ran in testing.
         return match
     }
 
