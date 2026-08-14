@@ -219,3 +219,20 @@ struct PairedPartnerTests {
         #expect(try JSONDecoder().decode(SyncWire.Response.self, from: data) == response)
     }
 }
+
+@MainActor
+struct PairedStateTests {
+    @Test func aSecretWithoutAPartnerIsNotPaired() {
+        SyncSecretStore.clear()
+        defer { SyncSecretStore.clear() }
+
+        // The state an older build left behind: a secret, and no idea whose it
+        // is. Reporting that as paired let the lobby offer a Start button that
+        // silently did nothing — reported, reasonably, as the app freezing.
+        SyncSecretStore.save(Data([1, 2, 3]))
+        #expect(SyncSecretStore.isPaired == false)
+
+        SyncSecretStore.savePartner("her-install-id")
+        #expect(SyncSecretStore.isPaired)
+    }
+}

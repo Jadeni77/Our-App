@@ -40,7 +40,13 @@ enum SyncSecretStore {
         SecItemDelete(partnerQuery as CFDictionary)
     }
 
-    static var isPaired: Bool { load() != nil }
+    /// Paired means **both** the secret and who it belongs to.
+    ///
+    /// It used to mean only the secret, which let a phone paired by an older
+    /// build claim to be paired while being unable to name its partner — so
+    /// co-op offered a Start button that silently did nothing. A state that
+    /// says yes to a question the app can't act on is worse than saying no.
+    static var isPaired: Bool { load() != nil && partnerAuthorID() != nil }
 
     // MARK: - Who we paired with
 

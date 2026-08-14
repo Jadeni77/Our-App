@@ -3998,6 +3998,29 @@
         }
       }
     },
+    "Pair your phones again — this one doesn't know who it's paired with" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pair your phones again — this one doesn't know who it's paired with"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "两台手机重新配对一下，这台还不知道跟谁配的"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "兩台手機重新配對一下，這台還不知道跟誰配的"
+          }
+        }
+      }
+    },
     "Pair your phones first — co-op needs both of you" : {
       "extractionState" : "manual",
       "localizations" : {

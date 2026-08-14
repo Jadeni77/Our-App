@@ -21,6 +21,7 @@ struct CoopMatchView: View {
     @Query(filter: CoopMatch.live) private var matches: [CoopMatch]
     @State private var watchedNow = false
     @State private var playing = false
+    @State private var cannotStart = false
 
     private var match: CoopMatch? { matches.first { $0.levelID == level.id } }
 
@@ -61,7 +62,13 @@ struct CoopMatchView: View {
     /// flung yet — and whoever taps first takes the first turn, which needs no
     /// negotiation: the other phone learns it from the record.
     private func startMatch() {
-        guard let partner = SyncSecretStore.partnerAuthorID() else { return }
+        guard let partner = SyncSecretStore.partnerAuthorID() else {
+            // Never a silent no-op (principle 7): a button that does nothing
+            // is indistinguishable from a frozen app, which is exactly how
+            // this was reported.
+            cannotStart = true
+            return
+        }
         CoopMatchStore.start(levelID: level.id,
                              participants: [LocalAuthor.id(), partner],
                              firstTurn: LocalAuthor.id(),
@@ -109,6 +116,12 @@ struct CoopMatchView: View {
                     .padding(.vertical, 13)
             }
             .glassCard(cornerRadius: 22)
+            if cannotStart {
+                Text("Pair your phones again — this one doesn't know who it's paired with")
+                    .font(.footnote)
+                    .foregroundStyle(.white.opacity(0.75))
+                    .multilineTextAlignment(.center)
+            }
         }
     }
 
