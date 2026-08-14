@@ -14,20 +14,88 @@ struct CoopMatchStoreTests {
         ModelContext(try Persistence.makeContainer(inMemory: true))
     }
 
+    /// **Every board here carries a gloom**, added automatically, because a
+    /// board with nothing gloomy left standing is a *cleared* board — so a test
+    /// that forgot one would quietly be playing a level that was already won.
     private func board(_ ids: [String]) -> BoardSnapshot {
-        BoardSnapshot(levelID: UUID(), bodies: ids.map {
-            BoardSnapshot.Body(id: $0, kind: "piece", x: 0, y: 0, angle: 0, alive: true)
+        BoardSnapshot(levelID: UUID(), bodies: (ids + [gloom]).map {
+            BoardSnapshot.Body(id: $0, kind: $0 == gloom ? "gloom" : "piece",
+                               x: 0, y: 0, angle: 0, alive: true)
         })
     }
 
-    /// A fling that shifts everything a little and destroys nothing.
-    private func clip(_ ids: [String], shift: Double) -> FlingClip {
-        FlingClip(frameRate: 30, bodyIDs: ids, frames: [
-            .init(poses: ids.map { _ in BodyPose(x: 0, y: 0, angle: 0) },
-                  present: ids.map { _ in true }),
-            .init(poses: ids.map { _ in BodyPose(x: shift, y: shift, angle: 0) },
-                  present: ids.map { _ in true }),
+    private let gloom = "g0"
+
+    /// A fling that shifts everything a little. `clearing` is the shot that
+    /// wins it: the gloom stops being present, which is how a clip says a body
+    /// is gone.
+    private func clip(_ ids: [String], shift: Double, clearing: Bool = false) -> FlingClip {
+        let all = ids + [gloom]
+        return FlingClip(frameRate: 30, bodyIDs: all, frames: [
+            .init(poses: all.map { _ in BodyPose(x: 0, y: 0, angle: 0) },
+                  present: all.map { _ in true }),
+            .init(poses: all.map { _ in BodyPose(x: shift, y: shift, angle: 0) },
+                  present: all.map { !clearing || $0 != gloom }),
         ])
+    }
+
+    /// Winning has to *end* the match. It didn't: nothing in the app wrote
+    /// `finishedAt`, so clearing a level just passed the cleared board to the
+    /// other player and both phones sat on "waiting" over a finished game.
+    @Test func clearingTheBoardFinishesTheMatch() throws {
+        let store = try context()
+        let ids = ["p0", "p1"]
+        let match = CoopMatchStore.start(levelID: UUID(), participants: [me, her],
+                                         firstTurn: me, board: board(ids), in: store)
+
+        #expect(CoopMatchStore.takeTurn(clip: clip(ids, shift: 4, clearing: true),
+                                        by: me, in: match, context: store) != nil)
+        #expect(match.finishedAt != nil)
+    }
+
+    /// And it has to end on *her* phone too, which never took the winning shot
+    /// — she only watched it. Both derive the ending from the same board, so
+    /// neither has to be told.
+    @Test func theWatchingPhoneAlsoSeesTheMatchFinish() throws {
+        let mine = try context()
+        let hers = try context()
+        let ids = ["p0", "p1"]
+        let levelID = UUID()
+        let startingBoard = board(ids)
+
+        let myMatch = CoopMatchStore.start(levelID: levelID, participants: [me, her],
+                                           firstTurn: me, board: startingBoard, in: mine)
+        let herMatch = CoopMatchStore.start(levelID: levelID, participants: [me, her],
+                                            firstTurn: me, board: startingBoard, in: hers)
+
+        let winning = try #require(CoopMatchStore.takeTurn(
+            clip: clip(ids, shift: 4, clearing: true), by: me, in: myMatch, context: mine))
+
+        // The turn as it arrives on her phone.
+        let arrived = CoopTurn(matchID: herMatch.id, index: winning.index, authorID: me,
+                               clip: winning.clip, resultingState: winning.resultingState)
+        hers.insert(arrived)
+        #expect(CoopMatchStore.apply(arrived, to: herMatch, context: hers))
+        #expect(herMatch.finishedAt != nil)
+    }
+
+    /// Re-entering a level you cleared together must not insert a second match.
+    /// A match's id *is* its level's id, so two rows would mean one identity
+    /// with two records and a merge that picks between them arbitrarily.
+    @Test func startingAClearedLevelReturnsTheMatchYouAlreadyPlayed() throws {
+        let store = try context()
+        let ids = ["p0", "p1"]
+        let levelID = UUID()
+        let match = CoopMatchStore.start(levelID: levelID, participants: [me, her],
+                                         firstTurn: me, board: board(ids), in: store)
+        CoopMatchStore.takeTurn(clip: clip(ids, shift: 4, clearing: true),
+                                by: me, in: match, context: store)
+
+        let again = CoopMatchStore.start(levelID: levelID, participants: [me, her],
+                                         firstTurn: me, board: board(ids), in: store)
+        #expect(again === match)
+        let all = try store.fetch(FetchDescriptor<CoopMatch>())
+        #expect(all.count == 1)
     }
 
     @Test func aFullAlternationRunsTheTurnBackAndForth() throws {

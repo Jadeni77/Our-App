@@ -78,7 +78,14 @@ final class CoopTurn {
 }
 
 extension CoopMatch {
+    /// A match still being played.
     static var live: Predicate<CoopMatch> {
         #Predicate<CoopMatch> { $0.deletedAt == nil && $0.finishedAt == nil }
+    }
+
+    /// Every match that still exists, played out or not — what a screen showing
+    /// one level wants, since "we cleared this" is a state worth showing.
+    static var notDeleted: Predicate<CoopMatch> {
+        #Predicate<CoopMatch> { $0.deletedAt == nil }
     }
 }

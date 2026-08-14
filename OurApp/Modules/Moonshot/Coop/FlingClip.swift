@@ -119,10 +119,28 @@ enum FlingClipCodec {
     }
 
     private static func quantise(angle: Double) -> UInt16 {
+        // A physics body can hand us a non-finite angle, and there is no tick
+        // that means NaN. Losing one body's rotation for one frame is a far
+        // smaller loss than losing the fling.
+        guard angle.isFinite else { return 0 }
         let turn = 2 * Double.pi
         let wrapped = angle.truncatingRemainder(dividingBy: turn)
         let positive = wrapped < 0 ? wrapped + turn : wrapped
-        return UInt16((positive / turn * 65536).rounded()) & 0xFFFF
+        // **Wrap in `Int`, before narrowing.** The mask this line used to end
+        // with never ran: `UInt16(_:)` traps on overflow, so it took the app
+        // down before there was anything to mask.
+        //
+        // And overflow is not exotic here — it is the common case at rest. Any
+        // angle a hair below zero makes `wrapped + turn` round up to exactly
+        // `turn` in binary floating point, so the ratio is 1.0 and the tick is
+        // 65536, one past the top. That is a settled body, which is every body
+        // in the last frame of every fling. Level 1 got away with a single shot
+        // that happened not to leave anything at a negative epsilon; level 2
+        // crashed mid-fling.
+        //
+        // A full turn and no turn are the same angle, so truncating to the low
+        // 16 bits is also the correct answer, not just a safe one.
+        return UInt16(truncatingIfNeeded: Int((positive / turn * 65536).rounded()))
     }
 
     private static func dequantise(angle: UInt16) -> Double {

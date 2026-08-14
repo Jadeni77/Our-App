@@ -14,6 +14,17 @@ enum CoopMatchStore {
         return all?.first { $0.levelID == levelID }
     }
 
+    /// Any match for a level, finished or not.
+    ///
+    /// Separate from `liveMatch` because "is there a game to play" and "does a
+    /// row already exist" are different questions, and answering the second
+    /// with the first is how a duplicate gets inserted.
+    static func anyMatch(forLevel levelID: UUID, in context: ModelContext) -> CoopMatch? {
+        let all = try? context.fetch(FetchDescriptor<CoopMatch>(
+            predicate: #Predicate<CoopMatch> { $0.deletedAt == nil }))
+        return all?.first { $0.levelID == levelID }
+    }
+
     @discardableResult
     /// Idempotent per level: if a match already exists — because she tapped
     /// Start a moment before you did, and it has already arrived — that one is
@@ -23,7 +34,11 @@ enum CoopMatchStore {
                       firstTurn: String,
                       board: BoardSnapshot,
                       in context: ModelContext) -> CoopMatch {
-        if let existing = liveMatch(forLevel: levelID, in: context) { return existing }
+        // Matched on *any* existing match, not just a live one. A match's id is
+        // its level's id, so inserting a second row for a level you have
+        // already cleared together would put two rows with one identity in the
+        // store, and every merge afterwards would pick between them arbitrarily.
+        if let existing = anyMatch(forLevel: levelID, in: context) { return existing }
         let match = CoopMatch(levelID: levelID, participants: participants,
                               turnHolder: firstTurn,
                               boardState: BoardSnapshotCodec.encode(board))
@@ -94,6 +109,19 @@ enum CoopMatchStore {
         match.turnIndex = turn.index
         match.boardState = turn.resultingState
         match.turnHolder = CoopTurnRules.nextHolder(after: turn.authorID, in: match)
+        // **A cleared board ends the match, on both phones, unprompted.** Every
+        // path that moves a match runs through here — the fling you took and
+        // the clip you watched alike — so each phone derives the ending from
+        // the same resulting state. Nothing has to be sent, and there is no
+        // window where one phone thinks the game is still on.
+        //
+        // Until this existed nothing in the app ever wrote `finishedAt`, so
+        // winning simply handed the cleared level to the other player and both
+        // phones sat waiting on a game that was already over.
+        if match.finishedAt == nil,
+           BoardSnapshotCodec.decode(turn.resultingState)?.isCleared == true {
+            match.finishedAt = .now
+        }
         match.updatedAt = .now
     }
 }

@@ -31,6 +31,11 @@ struct BoardSnapshot: Codable, Equatable {
 
     var aliveBodies: [Body] { bodies.filter(\.alive) }
 
+    /// Cleared when no gloom is left standing — the same condition the solo
+    /// game wins on, read off the board rather than off the scene, so both
+    /// phones reach the same verdict from the same bytes.
+    var isCleared: Bool { !bodies.contains { $0.kind == "gloom" && $0.alive } }
+
     /// The board as a level starts, computed **from the level definition** —
     /// no scene, no sprites, no physics.
     ///

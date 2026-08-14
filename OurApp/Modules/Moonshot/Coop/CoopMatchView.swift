@@ -18,7 +18,11 @@ struct CoopMatchView: View {
     /// here anyway — hence this note, at the place someone would repeat it.
 
     @Environment(\.modelContext) private var context
-    @Query(filter: CoopMatch.live) private var matches: [CoopMatch]
+    /// Not `CoopMatch.live`: a finished match has to stay visible here, or
+    /// clearing a level makes it vanish from the query, drop back to the Start
+    /// screen, and offer a button that correctly refuses to make a second match
+    /// for a level that already has one — a button that does nothing.
+    @Query(filter: CoopMatch.notDeleted) private var matches: [CoopMatch]
     @State private var watchedNow = false
     @State private var playing = false
     @State private var cannotStart = false
@@ -54,7 +58,12 @@ struct CoopMatchView: View {
     private var content: some View {
         if let match {
             if let turn = pendingWatch {
+                // Ahead of the cleared state on purpose: if her shot was the
+                // one that won it, she should get to watch it land before
+                // being told the level is over.
                 replay(of: turn, in: match)
+            } else if match.finishedAt != nil {
+                cleared
             } else if CoopTurnRules.mayFling(LocalAuthor.id(), in: match) {
                 if playing {
                     CoopTurnGameView(level: level, match: match) {
@@ -143,6 +152,11 @@ struct CoopMatchView: View {
                     .multilineTextAlignment(.center)
             }
         }
+    }
+
+    private var cleared: some View {
+        message(icon: "🌕", title: Text("Cleared together"),
+                detail: Text("Nothing gloomy left standing. That one's yours."))
     }
 
     private var waiting: some View {
