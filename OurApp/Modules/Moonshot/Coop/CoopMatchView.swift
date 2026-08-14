@@ -37,6 +37,12 @@ struct CoopMatchView: View {
             content
         }
         .task(id: match?.turnIndex) { refreshPendingWatch() }
+        // Ask for a sync on arrival: this screen's whole purpose is to show
+        // what she did, and Home isn't foregrounded while you're in here.
+        .task {
+            await SyncStack.tick(context: context)
+            refreshPendingWatch()
+        }
         .onChange(of: watchedNow) { _, _ in refreshPendingWatch() }
         .navigationTitle(Text(verbatim: level.title ?? ""))
         .navigationBarTitleDisplayMode(.inline)
@@ -79,7 +85,8 @@ struct CoopMatchView: View {
         }
         CoopMatchStore.start(levelID: level.id,
                              participants: [LocalAuthor.id(), partner],
-                             firstTurn: LocalAuthor.id(),
+                             firstTurn: CoopTurnRules.firstTurn(
+                                 among: [LocalAuthor.id(), partner]),
                              board: BoardSnapshot(startOf: level),
                              in: context)
     }

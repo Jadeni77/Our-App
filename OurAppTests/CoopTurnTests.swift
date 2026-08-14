@@ -143,3 +143,21 @@ struct CoopSyncTests {
         #expect(try store.fetch(FetchDescriptor<CoopMatch>()).first?.finishedAt == nil)
     }
 }
+
+@MainActor
+struct CoopFirstTurnTests {
+    @Test func bothPhonesAgreeWhoGoesFirstWithoutTalking() {
+        // The bug this replaces: "whoever tapped Start first" is a race. With
+        // no sync in between, both phones believed they had won it, both took
+        // "the first turn", and both then sat waiting for a turn the other had
+        // never sent.
+        #expect(CoopTurnRules.firstTurn(among: ["b", "a"])
+                == CoopTurnRules.firstTurn(among: ["a", "b"]))
+        #expect(CoopTurnRules.firstTurn(among: ["b", "a"]) == "a")
+    }
+
+    @Test func firstTurnIsAlwaysAParticipant() {
+        let ids = ["zebra-install", "aardvark-install"]
+        #expect(ids.contains(CoopTurnRules.firstTurn(among: ids)))
+    }
+}

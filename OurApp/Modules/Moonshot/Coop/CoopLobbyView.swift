@@ -27,6 +27,7 @@ struct CoopLobbyView: View {
                 CoopMatchView(level: level)
             }
         }
+        .task { await SyncStack.tick(context: context) }
         .navigationTitle(Text("Co-op"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
