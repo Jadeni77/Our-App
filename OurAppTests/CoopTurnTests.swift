@@ -95,6 +95,84 @@ struct CoopSyncTests {
         #expect(arrived?.boardState == board)
     }
 
+    /// **The stall, exactly as it happened on the simulators.**
+    ///
+    /// Both phones create a match the moment the level is opened, and a match's
+    /// id is its level's id — so the two creations are two writes to one
+    /// record. She opened level 2 a few seconds after your shot, so her turn-0
+    /// match was the *newer* write. Under LWW it won, and your turn was undone
+    /// on both phones: turn 1 at ...549.673 lost to turn 0 at ...553.426.
+    @Test func aFreshlyCreatedMatchCannotUndoATurnAlreadyTaken() throws {
+        let levelID = UUID()
+        let played = CoopMatch(levelID: levelID, participants: ["a", "b"],
+                               turnHolder: "b", boardState: Data([9, 9, 9]))
+        played.turnIndex = 1
+        played.updatedAt = Date(timeIntervalSinceReferenceDate: 549.673)
+
+        // Hers: same record, no turn taken, and four seconds later.
+        let store = try context()
+        let fresh = CoopMatch(levelID: levelID, participants: ["a", "b"],
+                              turnHolder: "a", boardState: Data([1, 1, 1]))
+        fresh.updatedAt = Date(timeIntervalSinceReferenceDate: 553.426)
+        store.insert(fresh)
+        try store.save()
+
+        SyncApply.apply(played.envelope(), in: store, localAuthorID: "b")
+        try store.save()
+
+        let arrived = try #require(try store.fetch(FetchDescriptor<CoopMatch>()).first)
+        #expect(arrived.turnIndex == 1)
+        #expect(arrived.turnHolder == "b")
+        #expect(arrived.boardState == Data([9, 9, 9]))
+    }
+
+    /// And the same in the other direction: her stale turn-0 record arriving on
+    /// the phone that is already at turn 1 must change nothing.
+    @Test func aStaleMatchArrivingLaterDoesNotRewindTheGame() throws {
+        let levelID = UUID()
+        let store = try context()
+        let played = CoopMatch(levelID: levelID, participants: ["a", "b"],
+                               turnHolder: "b", boardState: Data([9, 9, 9]))
+        played.turnIndex = 1
+        played.updatedAt = Date(timeIntervalSinceReferenceDate: 549.673)
+        store.insert(played)
+        try store.save()
+
+        let stale = CoopMatch(levelID: levelID, participants: ["a", "b"],
+                              turnHolder: "a", boardState: Data([1, 1, 1]))
+        stale.updatedAt = Date(timeIntervalSinceReferenceDate: 553.426)
+        SyncApply.apply(stale.envelope(), in: store, localAuthorID: "b")
+        try store.save()
+
+        let arrived = try #require(try store.fetch(FetchDescriptor<CoopMatch>()).first)
+        #expect(arrived.turnIndex == 1)
+        #expect(arrived.turnHolder == "b")
+    }
+
+    /// A level you cleared together stays cleared. `finishedAt` is derived from
+    /// a board whose bodies only ever die, so a record without it is stale news
+    /// rather than a retraction.
+    @Test func aMatchAlreadyWonIsNotUnwonByAnEarlierRecord() throws {
+        let levelID = UUID()
+        let store = try context()
+        let won = CoopMatch(levelID: levelID, participants: ["a", "b"],
+                            turnHolder: "b", boardState: Data([9]))
+        won.turnIndex = 2
+        won.finishedAt = Date(timeIntervalSinceReferenceDate: 600)
+        store.insert(won)
+        try store.save()
+
+        let unfinished = CoopMatch(levelID: levelID, participants: ["a", "b"],
+                                   turnHolder: "b", boardState: Data([9]))
+        unfinished.turnIndex = 2
+        unfinished.updatedAt = Date(timeIntervalSinceReferenceDate: 900)
+        SyncApply.apply(unfinished.envelope(), in: store, localAuthorID: "b")
+        try store.save()
+
+        let arrived = try #require(try store.fetch(FetchDescriptor<CoopMatch>()).first)
+        #expect(arrived.finishedAt != nil)
+    }
+
     @Test func aTurnArrivingTwiceIsNotStoredTwice() throws {
         let store = try context()
         let turn = CoopTurn(matchID: UUID(), index: 1, authorID: "a",
@@ -124,23 +202,30 @@ struct CoopSyncTests {
         #expect(arrived?.resultingState == Data([9, 9]))
     }
 
-    @Test func aFinishedMatchCanBeUnfinishedByAnOlderTruth() throws {
+    /// **This test used to assert the opposite**, on the reasoning that a match
+    /// which could never be un-finished would strand a level forever if a phone
+    /// set `finishedAt` by mistake.
+    ///
+    /// A phone can no longer set it by mistake. Finishing is derived from the
+    /// board — no gloom left alive — and bodies only ever die, so the condition
+    /// is monotonic and cannot be reached in error. What the old rule bought
+    /// was protection against a hazard that no longer exists; what it cost is
+    /// real, because both phones write this record and a turn-0 write arriving
+    /// late would have un-won a level the two of you had cleared.
+    @Test func aFinishedMatchStaysFinishedWhenAnOlderRecordArrives() throws {
         let store = try context()
         let match = CoopMatch(levelID: UUID(), participants: ["a", "b"], turnHolder: "a")
         match.finishedAt = .now
         store.insert(match)
         try store.save()
 
-        // `finishedAt` is assigned unconditionally on apply: a match that could
-        // never be un-finished would strand a level forever if one phone set it
-        // by mistake.
         var envelope = match.envelope()
         envelope.fields.removeValue(forKey: "finishedAt")
         envelope.updatedAt = Date().addingTimeInterval(60)
         SyncApply.apply(envelope, in: store, localAuthorID: "b")
         try store.save()
 
-        #expect(try store.fetch(FetchDescriptor<CoopMatch>()).first?.finishedAt == nil)
+        #expect(try store.fetch(FetchDescriptor<CoopMatch>()).first?.finishedAt != nil)
     }
 }
 
