@@ -124,6 +124,30 @@ enum CoopMatchStore {
             .first
     }
 
+    /// The board a turn was played against — what its clip was recorded on top
+    /// of, and therefore the only board it can be replayed over.
+    ///
+    /// `match.boardState` is the board *after* the turn, so handing that to the
+    /// replay meant every piece the shot destroyed was already gone before the
+    /// clip started. You saw the survivors move a little at the end and nothing
+    /// of the shot itself.
+    ///
+    /// Derived from the previous turn rather than stored: one board held in two
+    /// places is two boards waiting to disagree.
+    static func startingBoard(for turn: CoopTurn,
+                              level: MoonshotLevel,
+                              context: ModelContext) -> BoardSnapshot? {
+        let matchID = turn.matchID
+        let previousIndex = turn.index - 1
+        let earlier = try? context.fetch(FetchDescriptor<CoopTurn>(
+            predicate: #Predicate { $0.matchID == matchID && $0.index == previousIndex }))
+        if let previous = earlier?.first {
+            return BoardSnapshotCodec.decode(previous.resultingState)
+        }
+        // The first turn of a match starts from the level as authored.
+        return BoardSnapshot(startOf: level)
+    }
+
     private static func advance(_ match: CoopMatch, with turn: CoopTurn) {
         match.turnIndex = turn.index
         match.boardState = turn.resultingState

@@ -29,6 +29,40 @@ enum CoopSceneBridge {
         level.pieces.indices.map { "p\($0)" } + level.glooms.indices.map { "g\($0)" }
     }
 
+    /// Puts a board back into a freshly built scene.
+    ///
+    /// Without this every turn began from the pristine level: taking your go
+    /// re-ran the level from the top rather than continuing from where the last
+    /// fling left it. The board was being carried faithfully between the two
+    /// phones and then ignored by the one place it mattered.
+    ///
+    /// Snapshot coordinates are world coordinates — `BoardSnapshot(startOf:)`
+    /// adds the ground offset exactly as `GameScene.levelPoint` does — so poses
+    /// are assigned straight across.
+    static func restore(_ snapshot: BoardSnapshot, in world: SKNode, level: MoonshotLevel) {
+        var byID: [String: SKNode] = [:]
+        for case let piece as PieceNode in world.children { byID[piece.coopBodyID] = piece }
+        for case let gloom as GloomNode in world.children { byID[gloom.coopBodyID] = gloom }
+
+        for body in snapshot.bodies {
+            guard let node = byID[body.id] else { continue }
+            guard body.alive else {
+                // Destroyed on an earlier turn. Removed rather than hidden, so
+                // everything that counts glooms — the win condition included —
+                // sees the same board the other phone does.
+                node.removeFromParent()
+                continue
+            }
+            node.position = CGPoint(x: body.x, y: body.y)
+            node.zRotation = CGFloat(body.angle)
+            // Placed at rest. Any momentum left over from the drop-in would
+            // shift the board before the player had touched anything, and the
+            // two phones would stop agreeing about where things are.
+            node.physicsBody?.velocity = .zero
+            node.physicsBody?.angularVelocity = 0
+        }
+    }
+
     /// The board as it stands, in level order, with destroyed bodies marked.
     static func snapshot(of world: SKNode, level: MoonshotLevel) -> BoardSnapshot {
         var byID: [String: any RecordableBody] = [:]

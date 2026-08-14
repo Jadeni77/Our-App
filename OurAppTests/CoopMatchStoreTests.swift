@@ -360,3 +360,54 @@ struct CoopMatchIdentityTests {
         #expect(a.id == b.id)
     }
 }
+
+/// Continuing a board, rather than starting the level again.
+@MainActor
+struct CoopBoardContinuityTests {
+    private func context() throws -> ModelContext {
+        ModelContext(try Persistence.makeContainer(inMemory: true))
+    }
+
+    /// **The clip has to be replayed over the board it was recorded against.**
+    ///
+    /// The view handed it `match.boardState`, which is the board *after* the
+    /// turn — so every piece the shot destroyed was already gone before the
+    /// replay began, and all you saw was the survivors moving a little at the
+    /// end. The board a turn started from is the previous turn's result.
+    @Test func aTurnReplaysOverTheBoardItWasPlayedOn() throws {
+        let store = try context()
+        let level = CampaignCatalog.bundled.levels[0]
+        let matchID = UUID()
+
+        let first = CoopTurn(matchID: matchID, index: 1, authorID: "a", clip: Data(),
+                             resultingState: BoardSnapshotCodec.encode(
+                                BoardSnapshot(levelID: level.id, bodies: [
+                                    .init(id: "p0", kind: "piece", x: 7, y: 7,
+                                          angle: 0, alive: true)])))
+        store.insert(first)
+        let second = CoopTurn(matchID: matchID, index: 2, authorID: "b",
+                              clip: Data(), resultingState: Data())
+        store.insert(second)
+        try store.save()
+
+        let board = try #require(CoopMatchStore.startingBoard(for: second, level: level,
+                                                              context: store))
+        #expect(board.bodies.first?.x == 7)
+    }
+
+    /// The first turn of a match has no previous turn, and starts from the
+    /// level as authored rather than from nothing.
+    @Test func theFirstTurnStartsFromTheLevelItself() throws {
+        let store = try context()
+        let level = CampaignCatalog.bundled.levels[0]
+        let turn = CoopTurn(matchID: UUID(), index: 1, authorID: "a",
+                            clip: Data(), resultingState: Data())
+
+        let board = try #require(CoopMatchStore.startingBoard(for: turn, level: level,
+                                                              context: store))
+        let opening = BoardSnapshot(startOf: level)
+        let allAlive = board.bodies.allSatisfy(\.alive)
+        #expect(board.bodies.count == opening.bodies.count)
+        #expect(allAlive)
+    }
+}

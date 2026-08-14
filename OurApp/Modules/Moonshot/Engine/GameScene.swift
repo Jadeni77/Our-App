@@ -63,6 +63,11 @@ final class GameScene: SKScene {
         // Explicit, from tuning: the trajectory hint samples the same knob.
         physicsWorld.gravity = CGVector(dx: 0, dy: MoonshotTuning.gravityMetersPerSecond)
         buildWorld()
+        // A co-op turn continues a board rather than starting a level. Applied
+        // after the world is built, because that is when the nodes exist.
+        if let coopStartingBoard {
+            CoopSceneBridge.restore(coopStartingBoard, in: worldNode, level: level)
+        }
         SoundBank.prewarm()   // playSoundFileNamed loads at construction — never mid-flight
     }
 
@@ -200,6 +205,10 @@ final class GameScene: SKScene {
     /// Set to record this turn for the other phone. Nil means solo, and nothing
     /// is recorded — a co-op concern must cost a solo player nothing.
     var recordsCoopTurns = false
+
+    /// The board this turn picks up from, when it is a co-op turn rather than a
+    /// fresh attempt at a level.
+    var coopStartingBoard: BoardSnapshot?
     /// Handed the finished clip when the board settles.
     var onCoopTurnRecorded: ((FlingClip) -> Void)?
     private var coopRecorder: FlingRecorder?

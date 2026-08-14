@@ -24,6 +24,11 @@ struct CoopTurnGameView: View {
     private func makeScene() -> GameScene {
         let scene = GameScene(level: level, session: LevelSession(level: level))
         scene.recordsCoopTurns = true
+        // **Where the last fling left it, not the top of the level.** The board
+        // was already being carried between the phones; this is the one place
+        // it was being thrown away, which is why taking your turn looked like
+        // starting a new game.
+        scene.coopStartingBoard = BoardSnapshotCodec.decode(match.boardState)
         scene.onCoopTurnRecorded = { clip in
             // The store decides whether this counts: it re-checks the turn
             // holder, so a fling taken while her turn was already arriving is

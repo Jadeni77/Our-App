@@ -141,7 +141,7 @@ struct CoopMatchView: View {
     @ViewBuilder
     private func replay(of turn: CoopTurn, in match: CoopMatch) -> some View {
         if let clip = FlingClipCodec.decode(turn.clip),
-           let board = BoardSnapshotCodec.decode(match.boardState) {
+           let board = CoopMatchStore.startingBoard(for: turn, level: level, context: context) {
             CoopReplayView(level: level, snapshot: board, clip: clip) {
                 CoopWatchedTurns.markWatched(turn.index, of: match.id)
                 watchedNow = true

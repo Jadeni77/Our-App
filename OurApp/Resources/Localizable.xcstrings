@@ -1191,6 +1191,29 @@
         }
       }
     },
+    "Cleared": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cleared"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已通关"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已通關"
+          }
+        }
+      }
+    },
     "Cleared together": {
       "extractionState": "manual",
       "localizations": {

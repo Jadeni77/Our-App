@@ -8,7 +8,10 @@ import SwiftUI
 /// she has played, not to start something.
 struct CoopLobbyView: View {
     @Environment(\.modelContext) private var context
-    @Query(filter: CoopMatch.live) private var matches: [CoopMatch]
+    /// Not `CoopMatch.live`: a cleared level has to keep showing that it is
+    /// cleared. Filtering finished matches out made it read "Start" again, as
+    /// though the two of you had never played it.
+    @Query(filter: CoopMatch.notDeleted) private var matches: [CoopMatch]
 
     private let catalog = CampaignCatalog.bundled
     private var me: String { LocalAuthor.id() }
@@ -91,12 +94,18 @@ struct CoopLobbyView: View {
     @ViewBuilder
     private func status(for match: CoopMatch?) -> some View {
         if let match {
+            if match.finishedAt != nil {
+                Text("Cleared")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.95))
+            } else {
             // Whose go it is, which is the only thing you came here to learn.
             match.turnHolder == me
                 ? Text("Your turn")
                 : Text("Waiting for \(PartnerVoice.label())")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.white.opacity(match.turnHolder == me ? 0.95 : 0.6))
+            }
         } else {
             Text("Start")
                 .font(.caption.weight(.semibold))
