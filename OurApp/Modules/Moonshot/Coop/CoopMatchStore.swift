@@ -51,6 +51,25 @@ enum CoopMatchStore {
         return match
     }
 
+    /// Finishes a match whose board is already clear.
+    ///
+    /// `advance` is where a win is normally noticed, but it only runs when a
+    /// turn moves the match — so a match that reached a cleared board by any
+    /// other route, including one left behind by a build that couldn't finish a
+    /// match at all, would sit on "waiting" forever. Checking the board on load
+    /// costs one decode and means the ending is a property of the board rather
+    /// than of which code ran when.
+    @discardableResult
+    static func reconcile(_ match: CoopMatch, context: ModelContext) -> Bool {
+        guard match.finishedAt == nil,
+              BoardSnapshotCodec.decode(match.boardState)?.isCleared == true
+        else { return false }
+        match.finishedAt = .now
+        match.updatedAt = .now
+        try? context.save()
+        return true
+    }
+
     /// Records a fling this phone just took.
     ///
     /// - Returns: the turn, or nil when this phone had no right to play — which

@@ -79,6 +79,26 @@ struct CoopMatchStoreTests {
         #expect(herMatch.finishedAt != nil)
     }
 
+    /// A match already sitting on a cleared board — which is what the build
+    /// that couldn't finish a match left behind on both simulators — heals on
+    /// load rather than waiting forever for a turn that will never come.
+    @Test func aMatchLeftOnAClearedBoardFinishesOnLoad() throws {
+        let store = try context()
+        var cleared = board(["p0"])
+        for index in cleared.bodies.indices where cleared.bodies[index].kind == "gloom" {
+            cleared.bodies[index].alive = false
+        }
+        let match = CoopMatchStore.start(levelID: UUID(), participants: [me, her],
+                                         firstTurn: me, board: cleared, in: store)
+        #expect(match.finishedAt == nil)
+
+        #expect(CoopMatchStore.reconcile(match, context: store))
+        #expect(match.finishedAt != nil)
+        // Idempotent: a second load must not keep rewriting the timestamp, or
+        // every open would look like a change worth syncing.
+        #expect(CoopMatchStore.reconcile(match, context: store) == false)
+    }
+
     /// Re-entering a level you cleared together must not insert a second match.
     /// A match's id *is* its level's id, so two rows would mean one identity
     /// with two records and a merge that picks between them arbitrarily.

@@ -45,6 +45,7 @@ struct CoopMatchView: View {
         // what she did, and Home isn't foregrounded while you're in here.
         .task {
             await SyncStack.tick(context: context)
+            if let match { CoopMatchStore.reconcile(match, context: context) }
             refreshPendingWatch()
         }
         .onChange(of: watchedNow) { _, _ in refreshPendingWatch() }
