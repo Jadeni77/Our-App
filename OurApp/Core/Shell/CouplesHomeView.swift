@@ -33,20 +33,16 @@ struct CouplesHomeView: View {
     /// Turning sync off drops the engine, which drops its listener — the phone
     /// stops advertising rather than merely ignoring what arrives.
     private func configureSync() {
-        #if DEBUG
-        if let directory = FakeCloudLaunch.directory {
-            syncEngine = SyncEngine(context: modelContext,
-                                    transport: FileCloudTransport(directory: directory,
-                                                                  authorID: identity.authorID),
-                                    authorID: identity.authorID)
-            return
-        }
-        #endif
         // The engine always exists; **pairing gates the network, not the
         // engine**. Pushing appends to our own outbox, which is a local file,
         // so an unpaired phone builds its history and hands the whole of it
         // over the moment it pairs. `LocalPeerService` refuses to advertise
         // until there is a reason to, which is where the privacy line sits.
+        //
+        // Which transport that is belongs to `SyncStack`, not here. Home
+        // choosing its own gave the app two of them at once — a debug run on a
+        // shared folder had Home on the folder and co-op on Bonjour, so turns
+        // taken in Moonshot went somewhere Home never looked.
         syncEngine = SyncEngine(context: modelContext,
                                 transport: SyncStack.transport,
                                 authorID: identity.authorID)

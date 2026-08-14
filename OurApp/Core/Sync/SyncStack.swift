@@ -17,8 +17,23 @@ enum SyncStack {
 
     static let peers = LocalPeerService(outbox: outbox)
 
-    static var transport: LocalNetworkTransport {
-        LocalNetworkTransport(outbox: outbox, peers: peers, photos: MemoryPhotoStore())
+    /// The transport this app is actually using — **decided here, once.**
+    ///
+    /// Home used to make this choice for itself, and in a debug run pointed at
+    /// a shared folder it chose `FileCloudTransport` while everything else got
+    /// the Bonjour one from here. So Home replicated through the folder and
+    /// co-op pushed turns at a listener on the other side of a channel nobody
+    /// was reading: both phones kept their own match and both sat waiting.
+    ///
+    /// Two answers to "how does this app sync" is one too many. A caller asks
+    /// for the transport; it does not get to pick.
+    static var transport: any SyncTransport {
+        #if DEBUG
+        if let directory = FakeCloudLaunch.directory, !FakeCloudLaunch.usesLocalNetwork {
+            return FileCloudTransport(directory: directory, authorID: LocalAuthor.id())
+        }
+        #endif
+        return LocalNetworkTransport(outbox: outbox, peers: peers, photos: MemoryPhotoStore())
     }
 
     /// Push and pull once, from anywhere.
