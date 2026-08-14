@@ -2249,6 +2249,29 @@
         }
       }
     },
+    "He / him": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "He / him"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "他"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "他"
+          }
+        }
+      }
+    },
     "Heart": {
       "extractionState": "manual",
       "localizations": {
@@ -2268,29 +2291,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "愛心"
-          }
-        }
-      }
-    },
-    "Her turn": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Her turn"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "TA 的回合"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "TA 的回合"
           }
         }
       }
@@ -4709,6 +4709,29 @@
         }
       }
     },
+    "She / her": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "She / her"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "她"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "她"
+          }
+        }
+      }
+    },
     "Smashing pieces earns moondust — tougher pieces pay more. First clears add +20.": {
       "extractionState": "manual",
       "localizations": {
@@ -5031,25 +5054,25 @@
         }
       }
     },
-    "Take your shot — she'll see it when she next opens this.": {
+    "Take your shot — it'll be waiting for %@.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Take your shot — she'll see it when she next opens this."
+            "value": "Take your shot — it'll be waiting for %@."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "你先来一发，TA 下次打开就能看到。"
+            "value": "出手吧，%@打开时就能看到。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "你先來一發，TA 下次打開就能看到。"
+            "value": "出手吧，%@打開時就能看到。"
           }
         }
       }
@@ -5514,6 +5537,29 @@
         }
       }
     },
+    "They / them": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "They / them"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TA"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TA"
+          }
+        }
+      }
+    },
     "This counts your days. When our phones can talk to each other it'll count both.": {
       "extractionState": "manual",
       "localizations": {
@@ -5871,25 +5917,25 @@
         }
       }
     },
-    "Waiting for her": {
+    "Waiting for %@": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Waiting for her"
+            "value": "Waiting for %@"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "等 TA 了"
+            "value": "等待%@"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "等 TA 了"
+            "value": "等待%@"
           }
         }
       }
@@ -7182,6 +7228,29 @@
         }
       }
     },
+    "What we call them": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What we call them"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "怎么称呼对方"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "怎麼稱呼對方"
+          }
+        }
+      }
+    },
     "What were you like as a child?": {
       "extractionState": "manual",
       "localizations": {
@@ -7527,25 +7596,25 @@
         }
       }
     },
-    "You've taken your shot. It's with her now.": {
+    "You've taken your shot. It's with %@ now.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "You've taken your shot. It's with her now."
+            "value": "You've taken your shot. It's with %@ now."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "你这一发打完了，轮到 TA 了。"
+            "value": "你已经出手了，现在轮到%@。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "你這一發打完了，輪到 TA 了。"
+            "value": "你已經出手了，現在輪到%@。"
           }
         }
       }
@@ -7780,6 +7849,52 @@
         }
       }
     },
+    "her": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "her"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "她"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "她"
+          }
+        }
+      }
+    },
+    "him": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "him"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "他"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "他"
+          }
+        }
+      }
+    },
     "iOS needs an app's link (URL scheme) to open it directly. Without one, the tile opens its App Store page instead.": {
       "extractionState": "manual",
       "localizations": {
@@ -7822,6 +7937,29 @@
           "stringUnit": {
             "state": "translated",
             "value": "從 %@ 開始"
+          }
+        }
+      }
+    },
+    "them": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "them"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TA"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TA"
           }
         }
       }

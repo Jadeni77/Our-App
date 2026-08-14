@@ -15,8 +15,10 @@ enum Partner: String, CaseIterable {
 @MainActor
 @Observable
 final class CoupleIdentityStore {
-    private enum Keys {
+    enum Keys {
         static let nameOne = "couple.nameOne"
+        /// Read by `PartnerVoice` too, which needs the name without being able
+        /// to touch this store — hence not private.
         static let nameTwo = "couple.nameTwo"
     }
 

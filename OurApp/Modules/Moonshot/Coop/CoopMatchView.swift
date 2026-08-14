@@ -134,7 +134,7 @@ struct CoopMatchView: View {
     private var yourTurn: some View {
         VStack(spacing: 20) {
             message(icon: "🎯", title: Text("Your turn"),
-                    detail: Text("Take your shot — she'll see it when she next opens this."))
+                    detail: Text("Take your shot — it'll be waiting for \(PartnerVoice.label())."))
             Button {
                 Haptics.tap()
                 playing = true
@@ -161,8 +161,8 @@ struct CoopMatchView: View {
     }
 
     private var waiting: some View {
-        message(icon: "⏳", title: Text("Waiting for her"),
-                detail: Text("You've taken your shot. It's with her now."))
+        message(icon: "⏳", title: Text("Waiting for \(PartnerVoice.label())"),
+                detail: Text("You've taken your shot. It's with \(PartnerVoice.label()) now."))
     }
 
     private var start: some View {

@@ -92,7 +92,9 @@ struct CoopLobbyView: View {
     private func status(for match: CoopMatch?) -> some View {
         if let match {
             // Whose go it is, which is the only thing you came here to learn.
-            Text(match.turnHolder == me ? "Your turn" : "Her turn")
+            match.turnHolder == me
+                ? Text("Your turn")
+                : Text("Waiting for \(PartnerVoice.label())")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.white.opacity(match.turnHolder == me ? 0.95 : 0.6))
         } else {

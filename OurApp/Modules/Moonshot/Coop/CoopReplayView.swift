@@ -20,7 +20,7 @@ struct CoopReplayView: View {
                     .ignoresSafeArea()
 
                 VStack {
-                    Text("Her turn")
+                    Text("Waiting for \(PartnerVoice.label())")
                         .font(.system(.subheadline, design: .rounded).weight(.semibold))
                         .foregroundStyle(.white)
                         .padding(.horizontal, 16)

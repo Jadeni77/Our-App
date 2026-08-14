@@ -16,6 +16,7 @@ struct CoupleSettingsSheet: View {
     @State private var isPickerPresented = false
     @AppStorage(AppLanguage.storageKey) private var languageRaw = AppLanguage.system.rawValue
     @State private var isPaired = SyncSecretStore.isPaired
+    @State private var partnerPronoun = PartnerVoice.pronoun()
 
 
 
@@ -93,6 +94,23 @@ struct CoupleSettingsSheet: View {
     private func partnerSection(header: LocalizedStringKey, name: Binding<String>, partner: Partner) -> some View {
         Section(header) {
             TextField("Name", text: name)
+            // Only for the other person: the app writes sentences about them
+            // ("Waiting for …") and never about you in the third person.
+            //
+            // It used to say "her" outright, which is a thing the app has no
+            // business assuming. Their name is used whenever one is set — this
+            // is the fallback, and it defaults to they/them, the answer that
+            // is never wrong about someone we haven't been told about.
+            if partner == .two {
+                Picker(selection: $partnerPronoun) {
+                    ForEach(PartnerVoice.Pronoun.allCases) { pronoun in
+                        Text(verbatim: pronoun.menuLabel).tag(pronoun)
+                    }
+                } label: {
+                    Text("What we call them")
+                }
+                .onChange(of: partnerPronoun) { _, new in PartnerVoice.setPronoun(new) }
+            }
             Button {
                 pickingFor = partner
                 isPickerPresented = true
