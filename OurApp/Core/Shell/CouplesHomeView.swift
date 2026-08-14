@@ -80,26 +80,27 @@ struct CouplesHomeView: View {
                         // the group is here to absorb.
                         SparkPill()
 
-                        // Setup prompts, one at a time. Both vanish for good
-                        // once done, which is the only reason a permanent line
-                        // on the hero canvas is acceptable at all.
-                        if identity.nameOne.isEmpty && identity.nameTwo.isEmpty {
-                            Button {
-                                showSettings = true
-                            } label: {
-                                Text("Add your names")
-                                    .font(.footnote)
-                                    .foregroundStyle(.white.opacity(0.7))
-                            }
-                        } else if !isPaired {
-                            // Here rather than in Settings: pairing is a
-                            // once-ever setup step, and nobody goes looking in
-                            // Settings for something they have never done.
+                        // Both prompts show when both apply. They were once
+                        // one-at-a-time to keep the hero uncluttered, which
+                        // hid pairing behind naming — and pairing is the step
+                        // that makes the app *shared*, so hiding it made the
+                        // single most important setup action look absent.
+                        // Two footnote lines is a cheaper price than that.
+                        if !isPaired {
                             Button {
                                 Haptics.tap()
                                 showPairing = true
                             } label: {
                                 Text("Pair with your partner's phone")
+                                    .font(.footnote)
+                                    .foregroundStyle(.white.opacity(0.7))
+                            }
+                        }
+                        if identity.nameOne.isEmpty && identity.nameTwo.isEmpty {
+                            Button {
+                                showSettings = true
+                            } label: {
+                                Text("Add your names")
                                     .font(.footnote)
                                     .foregroundStyle(.white.opacity(0.7))
                             }
