@@ -912,3 +912,69 @@ struct SyncFramingTests {
         #expect(data?.count == 400_000)
     }
 }
+
+/// Sync progress belongs to a transport, not to the app.
+@MainActor
+struct SyncTransportProgressTests {
+    /// **A record pushed over one channel must still be pushed over the next.**
+    ///
+    /// This is how a co-op turn disappeared. A plain launch ticked over the
+    /// local network, which pushes into a local outbox and always succeeds, so
+    /// the watermark advanced. The shared folder the other phone was reading
+    /// never received the turn — and a high-water mark only moves forward, so
+    /// nothing ever rescanned below it. One phone waited forever for a shot
+    /// that had already been taken.
+    @Test func switchingTransportsResendsEverything() async throws {
+        let context = ModelContext(try Persistence.makeContainer(inMemory: true))
+        let suite = "sync.transport.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defaults.removePersistentDomain(forName: suite)
+
+        let match = CoopMatch(levelID: UUID(), participants: ["a", "b"], turnHolder: "a")
+        context.insert(match)
+        try context.save()
+
+        // First channel: takes the record and marks its own progress.
+        let first = CountingTransport()
+        try await SyncEngine(context: context, transport: first,
+                             authorID: "a", defaults: defaults).tick()
+        #expect(first.pushed == 1)
+
+        // Second channel, same store, same defaults. It has never seen this
+        // record, so it must receive it.
+        let second = CountingTransport()
+        try await SyncEngine(context: context, transport: second,
+                             authorID: "a", defaults: defaults).tick()
+        #expect(second.pushed == 1)
+    }
+
+    /// And the same channel still refuses to re-send what it already has.
+    @Test func oneTransportDoesNotResendWhatItAlreadyTook() async throws {
+        let context = ModelContext(try Persistence.makeContainer(inMemory: true))
+        let suite = "sync.transport.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defaults.removePersistentDomain(forName: suite)
+
+        context.insert(CoopMatch(levelID: UUID(), participants: ["a", "b"], turnHolder: "a"))
+        try context.save()
+
+        let transport = CountingTransport()
+        for _ in 0..<2 {
+            try await SyncEngine(context: context, transport: transport,
+                                 authorID: "a", defaults: defaults).tick()
+        }
+        #expect(transport.pushed == 1)
+    }
+}
+
+/// Counts what it is handed and keeps nothing — the question here is what the
+/// engine decides to send, not what a channel does with it.
+private final class CountingTransport: SyncTransport, @unchecked Sendable {
+    private(set) var pushed = 0
+    let syncIdentity = "counting:\(UUID().uuidString)"
+
+    func push(_ envelopes: [SyncEnvelope]) async throws { pushed += envelopes.count }
+    func pull(since token: SyncToken?) async throws -> SyncBatch {
+        SyncBatch(envelopes: [], token: token ?? "")
+    }
+}

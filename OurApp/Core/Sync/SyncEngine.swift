@@ -9,10 +9,11 @@ import SwiftData
 /// specifically designed not to need.
 @MainActor
 final class SyncEngine {
-    private enum Keys {
-        static let pullToken = "sync.pullToken"
-        static let pushedThrough = "sync.pushedThrough"
-    }
+    /// **Per transport.** Both marks describe progress through one channel and
+    /// are meaningless about another; sharing them means a record pushed into
+    /// one is treated as already sent to all of them. See `syncIdentity`.
+    private var pullTokenKey: String { "sync.pullToken.\(transport.syncIdentity)" }
+    private var pushedThroughKey: String { "sync.pushedThrough.\(transport.syncIdentity)" }
 
     private let context: ModelContext
     private let transport: any SyncTransport
@@ -50,7 +51,7 @@ final class SyncEngine {
     /// between two phones — slice D replaces the cursor with CloudKit's own
     /// change tokens, which is the correct fix rather than a workaround.
     private func push() async throws {
-        let through = defaults.object(forKey: Keys.pushedThrough) as? Date ?? .distantPast
+        let through = defaults.object(forKey: pushedThroughKey) as? Date ?? .distantPast
         // **This phone's clock, not any record's timestamp.**
         //
         // The watermark used to be `max(updatedAt)` over everything collected —
@@ -83,11 +84,11 @@ final class SyncEngine {
 
         guard !outgoing.isEmpty else { return }
         try await transport.push(outgoing)
-        defaults.set(stamp, forKey: Keys.pushedThrough)
+        defaults.set(stamp, forKey: pushedThroughKey)
     }
 
     private func pull() async throws {
-        let batch = try await transport.pull(since: defaults.string(forKey: Keys.pullToken))
+        let batch = try await transport.pull(since: defaults.string(forKey: pullTokenKey))
         var changed = false
         for envelope in batch.envelopes {
             // Our own envelopes come back on the next pull. Applying one is a
@@ -113,6 +114,6 @@ final class SyncEngine {
         }
         // Still advances on an empty batch, so an idle tick doesn't re-deliver
         // the same envelopes forever.
-        defaults.set(batch.token, forKey: Keys.pullToken)
+        defaults.set(batch.token, forKey: pullTokenKey)
     }
 }

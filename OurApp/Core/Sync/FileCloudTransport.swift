@@ -23,6 +23,11 @@ struct FileCloudTransport: SyncTransport, SyncAssetTransport {
     /// records directory, never has to filter megabytes of JPEG out of its way.
     private var assetsDirectory: URL { directory.appendingPathComponent("assets", isDirectory: true) }
 
+    /// Includes the folder: a different folder is a different cloud, and
+    /// pointing at a fresh one should hand it everything rather than assume it
+    /// already has what the last one did.
+    var syncIdentity: String { "file:\(directory.path)" }
+
     func putAsset(_ data: Data, id: String) async throws {
         try FileManager.default.createDirectory(at: assetsDirectory, withIntermediateDirectories: true)
         let final = assetsDirectory.appendingPathComponent("\(id).jpg")
