@@ -30,6 +30,37 @@ struct BoardSnapshot: Codable, Equatable {
     var bodies: [Body]
 
     var aliveBodies: [Body] { bodies.filter(\.alive) }
+
+    /// The board as a level starts, computed **from the level definition** —
+    /// no scene, no sprites, no physics.
+    ///
+    /// Building a `GameScene` just to read starting positions froze the app on
+    /// tapping Start: `buildWorld` generates a sky texture and every sprite and
+    /// physics body, synchronously, on the main thread. The give-away was the
+    /// background animation stopping — a stalled main thread, not a slow query.
+    ///
+    /// The conversion mirrors `GameScene.levelPoint`, which is a translation by
+    /// the ground height. If that ever stops being a plain translation the two
+    /// must move together, which is why it says so here.
+    init(startOf level: MoonshotLevel) {
+        self.levelID = level.id
+        self.bodies =
+            level.pieces.enumerated().map { index, piece in
+                Body(id: "p\(index)", kind: "piece",
+                     x: piece.x, y: piece.y + Double(MoonshotTuning.groundY),
+                     angle: 0, alive: true)
+            }
+            + level.glooms.enumerated().map { index, gloom in
+                Body(id: "g\(index)", kind: "gloom",
+                     x: gloom.x, y: gloom.y + Double(MoonshotTuning.groundY),
+                     angle: 0, alive: true)
+            }
+    }
+
+    init(levelID: UUID, bodies: [Body]) {
+        self.levelID = levelID
+        self.bodies = bodies
+    }
 }
 
 /// JSON, deliberately — unlike `FlingClip`, which is per-frame and gets a hand

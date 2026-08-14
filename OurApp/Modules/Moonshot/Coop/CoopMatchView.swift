@@ -1,4 +1,3 @@
-import SpriteKit
 import SwiftData
 import SwiftUI
 
@@ -63,16 +62,10 @@ struct CoopMatchView: View {
     /// negotiation: the other phone learns it from the record.
     private func startMatch() {
         guard let partner = SyncSecretStore.partnerAuthorID() else { return }
-        let scene = GameScene(level: level, session: LevelSession(level: level))
-        scene.didMove(to: SKView(frame: CGRect(origin: .zero, size: scene.size)))
-        guard let world = scene.children.first(where: { node in
-            node.children.contains { $0 is PieceNode }
-        }) else { return }
-
         CoopMatchStore.start(levelID: level.id,
                              participants: [LocalAuthor.id(), partner],
                              firstTurn: LocalAuthor.id(),
-                             board: CoopSceneBridge.snapshot(of: world, level: level),
+                             board: BoardSnapshot(startOf: level),
                              in: context)
     }
 
