@@ -15,11 +15,15 @@ enum CoopMatchStore {
     }
 
     @discardableResult
+    /// Idempotent per level: if a match already exists — because she tapped
+    /// Start a moment before you did, and it has already arrived — that one is
+    /// returned rather than a second being created.
     static func start(levelID: UUID,
                       participants: [String],
                       firstTurn: String,
                       board: BoardSnapshot,
                       in context: ModelContext) -> CoopMatch {
+        if let existing = liveMatch(forLevel: levelID, in: context) { return existing }
         let match = CoopMatch(levelID: levelID, participants: participants,
                               turnHolder: firstTurn,
                               boardState: BoardSnapshotCodec.encode(board))

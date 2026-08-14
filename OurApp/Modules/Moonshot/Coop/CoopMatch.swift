@@ -27,8 +27,17 @@ final class CoopMatch {
     var updatedAt: Date = Date.now
     var deletedAt: Date?
 
+    /// **The id *is* the level id.** Two phones starting the same level
+    /// independently must produce the *same* record, or each creates its own
+    /// match, both sync, and each device then picks whichever it finds first —
+    /// usually the other's, where the turn belongs to the other person. Both
+    /// sides sit on "Waiting for her" forever.
+    ///
+    /// Same trap, same answer as `CoopLevelResult` (P23's ledger): make the
+    /// record's identity the thing itself. That one was fixed and this one was
+    /// not, which is how it shipped.
     init(levelID: UUID, participants: [String], turnHolder: String, boardState: Data = Data()) {
-        self.id = UUID()
+        self.id = levelID
         self.levelID = levelID
         self.participants = participants
         self.turnHolder = turnHolder

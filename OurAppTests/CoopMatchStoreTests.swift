@@ -236,3 +236,39 @@ struct PairedStateTests {
         #expect(SyncSecretStore.isPaired)
     }
 }
+
+@MainActor
+struct CoopMatchIdentityTests {
+    private func context() throws -> ModelContext {
+        ModelContext(try Persistence.makeContainer(inMemory: true))
+    }
+
+    private func board() -> BoardSnapshot {
+        BoardSnapshot(levelID: UUID(), bodies: [])
+    }
+
+    @Test func bothPhonesStartingTheSameLevelProduceOneMatch() throws {
+        let level = UUID()
+        let mine = try context()
+
+        // She tapped Start too, a second earlier, on her phone.
+        let hers = CoopMatch(levelID: level, participants: ["her", "me"], turnHolder: "her")
+        SyncApply.apply(hers.envelope(), in: mine, localAuthorID: "me")
+        try mine.save()
+
+        CoopMatchStore.start(levelID: level, participants: ["me", "her"],
+                             firstTurn: "me", board: board(), in: mine)
+
+        // Two matches for one level means each device picks a different one and
+        // both sit on "Waiting for her" forever — which is exactly what shipped.
+        #expect(try mine.fetchCount(FetchDescriptor<CoopMatch>()) == 1)
+    }
+
+    @Test func aMatchesIdentityIsItsLevel() {
+        let level = UUID()
+        let a = CoopMatch(levelID: level, participants: ["a", "b"], turnHolder: "a")
+        let b = CoopMatch(levelID: level, participants: ["b", "a"], turnHolder: "b")
+        // Independently created on two phones, they must be the same record.
+        #expect(a.id == b.id)
+    }
+}
