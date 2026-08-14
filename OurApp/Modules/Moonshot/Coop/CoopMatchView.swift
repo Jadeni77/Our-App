@@ -43,10 +43,24 @@ struct CoopMatchView: View {
         .task(id: match?.turnIndex) { refreshPendingWatch() }
         // Ask for a sync on arrival: this screen's whole purpose is to show
         // what she did, and Home isn't foregrounded while you're in here.
+        // **Sync while the screen is open, not only when it opens.**
+        //
+        // A single tick on appear is exactly wrong for this screen: you take
+        // your shot *after* it has appeared, so the turn was never pushed. It
+        // sat on the phone that flung it until you happened to visit Home,
+        // while the other phone — correctly, on the information it had — said
+        // it was still waiting. That is the whole of "iPhone 17 is always
+        // waiting": the Pro's match and turn were not in the shared folder at
+        // all.
+        //
+        // So it keeps asking. Five seconds is slow enough to be free and fast
+        // enough that a fling appears while you are both looking at it, which
+        // is what makes this feel live rather than posted.
         .task {
-            await SyncStack.tick(context: context)
-            if let match { CoopMatchStore.reconcile(match, context: context) }
-            refreshPendingWatch()
+            while !Task.isCancelled {
+                await syncNow()
+                try? await Task.sleep(for: .seconds(5))
+            }
         }
         .onChange(of: watchedNow) { _, _ in refreshPendingWatch() }
         .navigationTitle(Text(verbatim: level.title ?? ""))
@@ -70,6 +84,10 @@ struct CoopMatchView: View {
                     CoopTurnGameView(level: level, match: match) {
                         playing = false
                         watchedNow = false
+                        // Push it the moment it exists rather than waiting for
+                        // the next poll — this is the one event on this screen
+                        // the other phone is actually waiting for.
+                        Task { await syncNow() }
                     }
                 } else {
                     yourTurn
@@ -99,6 +117,13 @@ struct CoopMatchView: View {
                                  among: [LocalAuthor.id(), partner]),
                              board: BoardSnapshot(startOf: level),
                              in: context)
+    }
+
+    /// One exchange, then bring the screen up to date with whatever it brought.
+    private func syncNow() async {
+        await SyncStack.tick(context: context)
+        if let match { CoopMatchStore.reconcile(match, context: context) }
+        refreshPendingWatch()
     }
 
     /// Recomputed when the match moves, off the body evaluation path.
