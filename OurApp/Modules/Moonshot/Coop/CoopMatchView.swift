@@ -22,6 +22,12 @@ struct CoopMatchView: View {
     @State private var watchedNow = false
     @State private var playing = false
     @State private var cannotStart = false
+    /// Resolved in `.task`, **never in `body`**. Fetching during body
+    /// evaluation invalidates the `@Query` that drives this view, which re-runs
+    /// body, which fetches again — an infinite loop that freezes the app. It
+    /// only bit once a match existed, which is why tapping Start was the
+    /// trigger and everything before it felt fine.
+    @State private var pendingWatch: CoopTurn?
 
     private var match: CoopMatch? { matches.first { $0.levelID == level.id } }
 
@@ -30,6 +36,8 @@ struct CoopMatchView: View {
             DreamyBackground()
             content
         }
+        .task(id: match?.turnIndex) { refreshPendingWatch() }
+        .onChange(of: watchedNow) { _, _ in refreshPendingWatch() }
         .navigationTitle(Text(verbatim: level.title ?? ""))
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
@@ -39,7 +47,7 @@ struct CoopMatchView: View {
     @ViewBuilder
     private var content: some View {
         if let match {
-            if let turn = watchableTurn(in: match) {
+            if let turn = pendingWatch {
                 replay(of: turn, in: match)
             } else if CoopTurnRules.mayFling(LocalAuthor.id(), in: match) {
                 if playing {
@@ -76,11 +84,16 @@ struct CoopMatchView: View {
                              in: context)
     }
 
-    private func watchableTurn(in match: CoopMatch) -> CoopTurn? {
-        guard !watchedNow,
+    /// Recomputed when the match moves, off the body evaluation path.
+    private func refreshPendingWatch() {
+        guard let match, !watchedNow,
               CoopWatchedTurns.hasUnwatchedTurn(in: match, viewer: LocalAuthor.id())
-        else { return nil }
-        return CoopMatchStore.turnToWatch(in: match, viewer: LocalAuthor.id(), context: context)
+        else {
+            pendingWatch = nil
+            return
+        }
+        pendingWatch = CoopMatchStore.turnToWatch(in: match, viewer: LocalAuthor.id(),
+                                                  context: context)
     }
 
     @ViewBuilder
