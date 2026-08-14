@@ -22,6 +22,11 @@ struct CoopLobbyView: View {
                 levels
             }
         }
+        .navigationDestination(for: UUID.self) { levelID in
+            if let level = catalog.levels.first(where: { $0.id == levelID }) {
+                CoopMatchView(level: level)
+            }
+        }
         .navigationTitle(Text("Co-op"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
@@ -45,9 +50,15 @@ struct CoopLobbyView: View {
         ScrollView {
             VStack(spacing: 10) {
                 ForEach(Array(catalog.levels.enumerated()), id: \.element.id) { index, level in
-                    NavigationLink {
-                        CoopMatchView(level: level)
-                    } label: {
+                    // **Value-based, not a destination closure.** A
+                    // `NavigationLink { CoopMatchView(level:) }` inside a
+                    // ForEach has its destination evaluated *eagerly*, so every
+                    // row built a whole match view — each with its own
+                    // `@Query` — during the lobby's own body evaluation. The
+                    // resulting invalidation cascade re-ran body, rebuilt them
+                    // all, and froze the app. A sample showed CoopMatchView on
+                    // the stack 224 times, nested.
+                    NavigationLink(value: level.id) {
                         row(for: level, number: index + 1)
                     }
                     .buttonStyle(.plain)
