@@ -35,6 +35,9 @@ struct OurAppApp: App {
                 // before any view exists.
                 .task {
                     SharedContext.current = ModelContext(container)
+                    // Unconditional, and before anything else: a silent push
+                    // needs a token, not permission.
+                    CoupleSubscription.registerForSilentPushes()
                     if let target = await CoupleZone.syncTarget() {
                         SyncStack.cloudTarget = target
                         await CoupleSubscription.ensure(on: target.database)

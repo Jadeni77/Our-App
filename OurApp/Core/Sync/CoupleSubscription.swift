@@ -44,7 +44,19 @@ enum CoupleSubscription {
         }
     }
 
-    /// Asks once, and only for what is used.
+    /// **Registering is not asking.** No prompt, no consent needed — it is how
+    /// the device gets an APNs token, and a *silent* push requires it and
+    /// nothing else.
+    ///
+    /// Tying this to notification permission, as it was, meant declining the
+    /// banner also switched off real-time sync: no token, no silent push, no
+    /// wake, records arriving only when the app happened to be opened. Two
+    /// unrelated things behind one prompt.
+    static func registerForSilentPushes() {
+        UIApplication.shared.registerForRemoteNotifications()
+    }
+
+    /// Asks for the part that genuinely needs asking: showing you something.
     ///
     /// Requested at the point the couple actually shares, not at first launch:
     /// a permission prompt before the app has done anything for you is a prompt
@@ -52,9 +64,7 @@ enum CoupleSubscription {
     @discardableResult
     static func requestPermission() async -> Bool {
         let centre = UNUserNotificationCenter.current()
-        let granted = (try? await centre.requestAuthorization(options: [.alert, .sound])) ?? false
-        if granted { UIApplication.shared.registerForRemoteNotifications() }
-        return granted
+        return (try? await centre.requestAuthorization(options: [.alert, .sound])) ?? false
     }
 
     /// Says the one thing worth saying.

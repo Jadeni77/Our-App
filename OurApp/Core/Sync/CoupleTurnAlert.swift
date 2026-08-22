@@ -1,5 +1,6 @@
 import CloudKit
 import Foundation
+import OSLog
 import SwiftData
 import UIKit
 
@@ -16,10 +17,22 @@ enum CoupleTurnAlert {
     /// turn arriving twice must not buzz twice.
     private static let announcedKey = "coop.announcedTurns"
 
+    private static var log: Logger { Logger(subsystem: "OurApp", category: "push") }
+
     static func syncAndAnnounce(context: ModelContext? = nil) async -> UIBackgroundFetchResult {
-        guard let context = context ?? SharedContext.current else { return .noData }
+        guard let context = context ?? SharedContext.current else {
+            // Worth a line: it means the push arrived before the app had a
+            // container, and the wake was wasted.
+            log.error("push arrived with no model context")
+            return .noData
+        }
         let arrived = await SyncStack.tick(context: context)
         let announced = announce(in: context)
+        // **Logged on the happy path too.** This is the one route that cannot
+        // be watched any other way — it runs with no screen, often with nobody
+        // holding the phone — so "it silently did nothing" and "it never ran"
+        // have to be distinguishable after the fact.
+        log.info("push handled: \(arrived.count) asset(s), announced: \(announced)")
         return (announced || !arrived.isEmpty) ? .newData : .noData
     }
 
