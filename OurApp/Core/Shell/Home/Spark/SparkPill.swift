@@ -32,9 +32,15 @@ struct SparkPill: View {
     /// of reminders queued in the old one.
     @AppStorage(AppLanguage.storageKey) private var languageRaw = AppLanguage.system.rawValue
 
+    /// Both of you, not just you — see `SparkStreak.sharedDays`. Filtering to
+    /// your own author id, as this did, made 火花 a solo streak that climbed
+    /// happily while she was away.
     private var status: SparkStreak.Status {
-        SparkStreak.status(for: checkIns.filter { $0.authorID == identity.authorID }
-            .map(\.day))
+        let days = SparkStreak.sharedDays(
+            checkIns.map { (day: $0.day, authorID: $0.authorID) },
+            mine: identity.authorID,
+            theirs: SyncSecretStore.partnerAuthorID())
+        return SparkStreak.status(for: days)
     }
 
     var body: some View {

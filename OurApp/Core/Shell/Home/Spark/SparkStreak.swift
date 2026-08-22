@@ -17,6 +17,45 @@ enum SparkStreak {
                                  checkedInToday: false, atRisk: false)
     }
 
+    /// The days you were **both** here.
+    ///
+    /// A couple's streak has to mean the couple. Counting only your own days
+    /// made 火花 two solo streaks wearing one number: it climbed while she was
+    /// away and told you nothing about the two of you, which is the only thing
+    /// it is for.
+    ///
+    /// Intersection, not union or sum. A day either has both of you or it does
+    /// not, and no amount of showing up alone substitutes.
+    ///
+    /// **Before there is a partner, it is your own days.** Requiring two people
+    /// when the app only knows about one would show a permanent zero and read
+    /// as broken rather than as a rule — and an unpaired phone is the normal
+    /// state on the day the app is installed.
+    static func sharedDays(_ checkIns: [(day: Date, authorID: String)],
+                           mine: String,
+                           theirs: String?,
+                           calendar: Calendar = .current) -> [Date] {
+        // **Grouped by civil day, but the raw dates come back out.**
+        //
+        // `status` maps what it is given through `localDay` itself, and mapping
+        // twice is not idempotent in every timezone — the sweep below caught it
+        // returning a streak of zero in three of the six. So localisation stays
+        // in exactly one place, and this only decides *which* days survive.
+        func daysByCivil(of author: String) -> [Date: Date] {
+            var found: [Date: Date] = [:]
+            for checkIn in checkIns where checkIn.authorID == author {
+                let civil = SpecialDateSchedule.localDay(of: checkIn.day, calendar: calendar)
+                found[civil] = checkIn.day
+            }
+            return found
+        }
+
+        let ours = daysByCivil(of: mine)
+        guard let theirs else { return Array(ours.values) }
+        let both = Set(ours.keys).intersection(daysByCivil(of: theirs).keys)
+        return both.compactMap { ours[$0] }
+    }
+
     /// **The rule that matters:** a streak that includes yesterday but not yet
     /// today is *alive and at risk*, not broken. The day is not over.
     ///
