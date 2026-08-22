@@ -26,6 +26,9 @@ struct CoopMatchView: View {
     @State private var watchedNow = false
     @State private var playing = false
     @State private var cannotStart = false
+    /// A fling that didn't count. Never silent: for weeks a refused turn looked
+    /// exactly like a taken one, and the match simply stopped advancing.
+    @State private var turnRefused = false
     /// Resolved in `.task`, **never in `body`**. Fetching during body
     /// evaluation invalidates the `@Query` that drives this view, which re-runs
     /// body, which fetches again — an infinite loop that freezes the app. It
@@ -81,9 +84,10 @@ struct CoopMatchView: View {
                 cleared
             } else if CoopTurnRules.mayFling(LocalAuthor.id(), in: match) {
                 if playing {
-                    CoopTurnGameView(level: level, match: match) {
+                    CoopTurnGameView(level: level, match: match) { recorded in
                         playing = false
                         watchedNow = false
+                        turnRefused = !recorded
                         // Push it the moment it exists rather than waiting for
                         // the next poll — this is the one event on this screen
                         // the other phone is actually waiting for.
@@ -171,6 +175,12 @@ struct CoopMatchView: View {
                     .padding(.vertical, 13)
             }
             .glassCard(cornerRadius: 22)
+            if turnRefused {
+                Text("That shot didn't count — the level moved on. Reopen it to catch up.")
+                    .font(.footnote)
+                    .foregroundStyle(.white.opacity(0.75))
+                    .multilineTextAlignment(.center)
+            }
             if cannotStart {
                 Text("Pair your phones again — this one doesn't know who it's paired with")
                     .font(.footnote)

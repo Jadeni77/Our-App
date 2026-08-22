@@ -5215,6 +5215,29 @@
         }
       }
     },
+    "That shot didn't count — the level moved on. Reopen it to catch up.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "That shot didn't count — the level moved on. Reopen it to catch up."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这一击没算数——关卡已经变了，重新打开就能跟上。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這一擊沒算數——關卡已經變了，重新打開就能跟上。"
+          }
+        }
+      }
+    },
     "The Cloudfoam Skies": {
       "extractionState": "manual",
       "localizations": {

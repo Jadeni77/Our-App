@@ -7,6 +7,19 @@ import SpriteKit
 /// without SpriteKit, and this is the only place the two worlds meet. Keeping
 /// it thin is what stops "does the replay look right" turning into a question
 /// only a simulator can answer.
+/// Holds a destroyed body's place in the roster.
+///
+/// It reports itself as gone in every frame, so the watching phone is told what
+/// it already knows and the board's own merge — `alive && present` — keeps it
+/// dead. Its pose is never used for anything.
+@MainActor
+private final class DestroyedBody: RecordableBody {
+    let recordingID: String
+    init(recordingID: String) { self.recordingID = recordingID }
+    var recordedPose: BodyPose { BodyPose(x: 0, y: 0, angle: 0) }
+    var isRecordingAlive: Bool { false }
+}
+
 @MainActor
 enum CoopSceneBridge {
     /// Every recordable body, **in level order** — pieces then glooms, each in
@@ -25,7 +38,20 @@ enum CoopSceneBridge {
         var byID: [String: any RecordableBody] = [:]
         for case let piece as PieceNode in world.children { byID[piece.coopBodyID] = piece }
         for case let gloom as GloomNode in world.children { byID[gloom.coopBodyID] = gloom }
-        let roster = orderedIDs(for: level).compactMap { byID[$0] }
+        // **The full roster, dead included.** A board always carries every
+        // body the level defines, with the destroyed ones marked — so a clip
+        // must too, because the two are matched position by position.
+        //
+        // Dropping the dead here is what froze co-op at turn one. The moment
+        // anything was destroyed, the next clip's roster was shorter than its
+        // board's, `CoopBoardRules.clip(_:matches:)` refused the pair,
+        // `settledState` returned nil, and the turn was thrown away — silently,
+        // because refusing a turn is a legitimate outcome and looks like one.
+        // The match then sat at turn one with each phone waiting on the other
+        // forever.
+        let roster = orderedIDs(for: level).map { id -> any RecordableBody in
+            byID[id] ?? DestroyedBody(recordingID: id)
+        }
         return roster + (shot.map { [$0] } ?? [])
     }
 

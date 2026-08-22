@@ -180,8 +180,21 @@ struct CoopBoardRestoreTests {
         // it has no business being in.
         let after = CoopSceneBridge.snapshot(of: world, level: level)
         #expect(after.bodies.first { $0.id == doomed }?.alive == false)
-        #expect(CoopSceneBridge.bodies(in: world, level: level)
-            .contains { $0.recordingID == doomed } == false)
+
+        // **It keeps its place in the recording roster**, which this test used
+        // to assert the opposite of.
+        //
+        // Gone from the scene, still in the roster: a clip is matched to a
+        // board position by position, and a board always carries every body the
+        // level defines. A clip that dropped the dead was refused by the very
+        // board it was played on — silently, since refusing a turn is a
+        // legitimate outcome — and co-op froze at turn one with each phone
+        // waiting on the other.
+        let recorded = CoopSceneBridge.bodies(in: world, level: level)
+        let stillListed = recorded.contains { $0.recordingID == doomed }
+        let reportedGone = recorded.first { $0.recordingID == doomed }?.isRecordingAlive
+        #expect(stillListed)
+        #expect(reportedGone == false)
     }
 
     @Test func restoredBodiesStartAtRest() throws {
@@ -242,5 +255,71 @@ struct CoopShotRecordingTests {
         let scrambled = FlingClip(frameRate: 30, bodyIDs: ["g0", "p0", "s:mochi"],
                                   frames: withShot.frames)
         #expect(CoopBoardRules.clip(scrambled, matches: board) == false)
+    }
+}
+
+/// Picking a turn up where the last one left it.
+@MainActor
+struct CoopTurnPickupTests {
+    private var level: MoonshotLevel { CampaignCatalog.bundled.levels[0] }
+
+    private func world(of scene: GameScene) -> SKNode? {
+        scene.children.first { node in
+            node.children.contains { $0 is PieceNode || $0 is GloomNode }
+        }
+    }
+
+    /// The owner's report: taking your turn rebuilds the whole level.
+    @Test func aTurnStartsFromTheBoardItWasHandedNotTheLevel() throws {
+        var board = BoardSnapshot(startOf: level)
+        // Whatever the last fling flattened stays flattened.
+        let killed = Set(["p0", "g0"])
+        for index in board.bodies.indices where killed.contains(board.bodies[index].id) {
+            board.bodies[index].alive = false
+        }
+
+        let scene = GameScene(level: level, session: LevelSession(level: level))
+        scene.coopStartingBoard = board
+        scene.didMove(to: SKView(frame: CGRect(origin: .zero, size: scene.size)))
+
+        let live = try #require(world(of: scene))
+        var present: Set<String> = []
+        for case let piece as PieceNode in live.children { present.insert(piece.coopBodyID) }
+        for case let gloom as GloomNode in live.children { present.insert(gloom.coopBodyID) }
+
+        let survived = killed.isDisjoint(with: present)
+        #expect(survived, "a body destroyed on an earlier turn is standing again")
+        #expect(present.contains("p1"))
+    }
+
+    /// **The silent refusal underneath it.**
+    ///
+    /// The recorder takes the bodies still in the world, but a board always
+    /// carries the *full* roster with the dead marked. So the moment anything
+    /// has been destroyed, the clip's roster is shorter than the board's, the
+    /// two no longer match, `settledState` returns nil and the turn is refused
+    /// — with no error anywhere, because a refusal is a legitimate outcome.
+    ///
+    /// Restoring the board is what makes this reachable: before it, the world
+    /// was always the whole pristine level, so the rosters always agreed.
+    @Test func aClipRecordedOnADamagedBoardStillMatchesIt() throws {
+        var board = BoardSnapshot(startOf: level)
+        for index in board.bodies.indices where board.bodies[index].id == "p0" {
+            board.bodies[index].alive = false
+        }
+
+        let scene = GameScene(level: level, session: LevelSession(level: level))
+        scene.coopStartingBoard = board
+        scene.didMove(to: SKView(frame: CGRect(origin: .zero, size: scene.size)))
+        let live = try #require(world(of: scene))
+
+        let recorded = CoopSceneBridge.bodies(in: live, level: level)
+        let clip = FlingClip(frameRate: 30, bodyIDs: recorded.map(\.recordingID),
+                             frames: [.init(poses: recorded.map(\.recordedPose),
+                                            present: recorded.map { _ in true })])
+
+        #expect(CoopBoardRules.clip(clip, matches: board),
+                "a turn played on a damaged board records a clip its own board rejects")
+        #expect(CoopBoardRules.settledState(from: clip, startingAt: board) != nil)
     }
 }

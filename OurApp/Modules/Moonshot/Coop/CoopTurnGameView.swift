@@ -5,7 +5,10 @@ import SwiftUI
 struct CoopTurnGameView: View {
     let level: MoonshotLevel
     let match: CoopMatch
-    var onTurnTaken: () -> Void
+    /// Carries whether the turn was actually recorded. A refusal is a
+    /// legitimate outcome — the other phone may have got there first — but it
+    /// must never be indistinguishable from success.
+    var onTurnTaken: (Bool) -> Void
 
     @Environment(\.modelContext) private var context
     @State private var scene: GameScene?
@@ -33,9 +36,9 @@ struct CoopTurnGameView: View {
             // The store decides whether this counts: it re-checks the turn
             // holder, so a fling taken while her turn was already arriving is
             // refused rather than silently overwriting it.
-            CoopMatchStore.takeTurn(clip: clip, by: LocalAuthor.id(),
-                                    in: match, context: context)
-            onTurnTaken()
+            let turn = CoopMatchStore.takeTurn(clip: clip, by: LocalAuthor.id(),
+                                               in: match, context: context)
+            onTurnTaken(turn != nil)
         }
         return scene
     }
