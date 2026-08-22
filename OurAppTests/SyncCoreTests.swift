@@ -978,3 +978,50 @@ private final class CountingTransport: SyncTransport, @unchecked Sendable {
         SyncBatch(envelopes: [], token: token ?? "")
     }
 }
+
+/// A cursor can outlive the log it points into.
+@MainActor
+struct FileCloudResetTests {
+    /// The folder is wiped and recreated — which the two-phone script does on
+    /// every run — so the partner's sequences restart at 1 while our cursor is
+    /// still up at 21. Every record they write is then skipped forever, in
+    /// total silence. One phone waited on a turn the other had already taken.
+    @Test func aRewoundLogIsReadAgainRatherThanSkipped() async throws {
+        let directory = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let theirs = FileCloudTransport(directory: directory, authorID: "them")
+        let mine = FileCloudTransport(directory: directory, authorID: "me")
+
+        // A cursor from a previous incarnation of this folder, far above
+        // anything now in it.
+        let stale = try #require(String(data: try JSONEncoder().encode(["them": 21]),
+                                        encoding: .utf8))
+
+        let match = CoopMatch(levelID: UUID(), participants: ["them", "me"], turnHolder: "me")
+        try await theirs.push([match.envelope()])
+
+        let batch = try await mine.pull(since: stale)
+        #expect(batch.envelopes.count == 1,
+                "a partner whose log restarted is skipped forever")
+    }
+
+    /// And a cursor that is merely *current* still skips what it has read, or
+    /// every tick would redeliver the whole history.
+    @Test func anUpToDateCursorStillSkipsWhatItHasSeen() async throws {
+        let directory = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let theirs = FileCloudTransport(directory: directory, authorID: "them")
+        let mine = FileCloudTransport(directory: directory, authorID: "me")
+        try await theirs.push([CoopMatch(levelID: UUID(), participants: ["them", "me"],
+                                         turnHolder: "me").envelope()])
+
+        let first = try await mine.pull(since: nil)
+        #expect(first.envelopes.count == 1)
+        let second = try await mine.pull(since: first.token)
+        #expect(second.envelopes.isEmpty)
+    }
+}
