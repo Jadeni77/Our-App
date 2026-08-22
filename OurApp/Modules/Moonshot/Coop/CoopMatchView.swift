@@ -63,6 +63,10 @@ struct CoopMatchView: View {
             }
         }
         .onChange(of: watchedNow) { _, _ in refreshPendingWatch() }
+        // Upright to read, sideways to play. See `CoopOrientation`.
+        .onAppear { applyOrientation() }
+        .onChange(of: playing) { _, _ in applyOrientation() }
+        .onChange(of: pendingWatch?.id) { _, _ in applyOrientation() }
         .navigationTitle(Text(verbatim: level.title ?? ""))
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
@@ -117,6 +121,11 @@ struct CoopMatchView: View {
                                  among: [LocalAuthor.id(), partner]),
                              board: BoardSnapshot(startOf: level),
                              in: context)
+    }
+
+    private func applyOrientation() {
+        OrientationGate.enter(CoopOrientation.needed(playing: playing,
+                                                     watching: pendingWatch != nil))
     }
 
     /// One exchange, then bring the screen up to date with whatever it brought.

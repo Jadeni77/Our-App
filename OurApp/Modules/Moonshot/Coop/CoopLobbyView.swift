@@ -31,6 +31,9 @@ struct CoopLobbyView: View {
             }
         }
         .task { await SyncStack.tick(context: context) }
+        // A list of levels and whose go it is — read standing up, like the rest
+        // of this app. Only the game itself turns the phone.
+        .onAppear { OrientationGate.enter(.portrait) }
         .navigationTitle(Text("Co-op"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
