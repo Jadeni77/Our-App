@@ -83,11 +83,17 @@ struct CouplesHomeView: View {
                         // single most important setup action look absent.
                         // Two footnote lines is a cheaper price than that.
                         if !isPaired {
+                            // **Invitation first, pairing code second.** The
+                            // code needs two phones in one room at one moment,
+                            // which is the situation this app exists for you
+                            // not being in. The link works across a continent
+                            // and is the only route that carries a push.
+                            CoupleInviteButton()
                             Button {
                                 Haptics.tap()
                                 showPairing = true
                             } label: {
-                                Text("Pair with your partner's phone")
+                                Text("Or pair on the same network")
                                     .font(.footnote)
                                     .foregroundStyle(.white.opacity(0.7))
                             }

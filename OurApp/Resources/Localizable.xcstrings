@@ -1076,6 +1076,29 @@
         }
       }
     },
+    "Check you're signed in to iCloud, then try again.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check you're signed in to iCloud, then try again."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "确认已登录 iCloud，然后再试一次。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "確認已登入 iCloud，然後再試一次。"
+          }
+        }
+      }
+    },
     "Check your connection and give it another go.": {
       "extractionState": "manual",
       "localizations": {
@@ -1555,6 +1578,29 @@
           "stringUnit": {
             "state": "translated",
             "value": "複製名稱"
+          }
+        }
+      }
+    },
+    "Couldn't make the invitation": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't make the invitation"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没能创建邀请"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒能建立邀請"
           }
         }
       }
@@ -2521,6 +2567,29 @@
           "stringUnit": {
             "state": "translated",
             "value": "圖示"
+          }
+        }
+      }
+    },
+    "Invite them": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invite them"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "邀请对方"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "邀請對方"
           }
         }
       }
@@ -3923,6 +3992,29 @@
           "stringUnit": {
             "state": "translated",
             "value": "或者輸入 TA 的"
+          }
+        }
+      }
+    },
+    "Or pair on the same network": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Or pair on the same network"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "或在同一网络下配对"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "或在同一網路下配對"
           }
         }
       }

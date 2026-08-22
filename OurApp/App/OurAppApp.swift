@@ -36,6 +36,7 @@ struct OurAppApp: App {
                 .task {
                     SharedContext.current = ModelContext(container)
                     if let target = await CoupleZone.syncTarget() {
+                        SyncStack.cloudTarget = target
                         await CoupleSubscription.ensure(on: target.database)
                     }
                 }
