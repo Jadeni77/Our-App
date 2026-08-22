@@ -185,11 +185,6 @@ struct MoonshotHomeView: View {
             }
             #endif
             .onAppear(perform: seedStarsIfAsked)
-            // Back to the module's own orientation (M13). Co-op's menus stand
-            // the phone up for a glance; coming back here is coming back to the
-            // game, and the gate is only ever set on appear so there is no
-            // disappear ordering to get wrong.
-            .onAppear { OrientationGate.enter(.landscape) }
         }
     }
 

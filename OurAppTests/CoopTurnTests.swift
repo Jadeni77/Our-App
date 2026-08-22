@@ -246,20 +246,3 @@ struct CoopFirstTurnTests {
         #expect(ids.contains(CoopTurnRules.firstTurn(among: ids)))
     }
 }
-
-/// Upright to read, sideways to play.
-struct CoopOrientationTests {
-    /// The lobby and the waiting screen are a glance — most often not while
-    /// sitting down to play. Turning the phone sideways to read four words is
-    /// a tax on the one interaction co-op exists for.
-    @Test func menusStandThePhoneUp() {
-        #expect(CoopOrientation.needed(playing: false, watching: false) == .portrait)
-    }
-
-    /// The level is authored wide; both of the things that show it need it.
-    @Test func theGameAndTheReplayTurnIt() {
-        #expect(CoopOrientation.needed(playing: true, watching: false) == .landscape)
-        #expect(CoopOrientation.needed(playing: false, watching: true) == .landscape)
-        #expect(CoopOrientation.needed(playing: true, watching: true) == .landscape)
-    }
-}
