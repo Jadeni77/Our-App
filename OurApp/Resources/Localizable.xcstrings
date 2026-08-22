@@ -5744,6 +5744,29 @@
         }
       }
     },
+    "They set their own name and photo on their phone.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "They set their own name and photo on their phone."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "对方的名字和照片由对方在自己手机上设置。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "對方的名字和照片由對方在自己手機上設定。"
+          }
+        }
+      }
+    },
     "This counts your days. When our phones can talk to each other it'll count both.": {
       "extractionState": "manual",
       "localizations": {
@@ -7845,6 +7868,29 @@
           "stringUnit": {
             "state": "translated",
             "value": "你的配對碼"
+          }
+        }
+      }
+    },
+    "Your profile": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your profile"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的资料"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的資料"
           }
         }
       }

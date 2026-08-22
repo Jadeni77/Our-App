@@ -3,14 +3,26 @@ import SwiftUI
 /// The two of us in the top corners (P8: reference-inspired structure):
 /// avatar photos (or monogram circles) with names beneath.
 struct PartnerAvatarsView: View {
+    @State private var editingMine = false
     let identity: CoupleIdentityStore
 
     var body: some View {
         HStack(alignment: .top) {
-            badge(for: .one, name: identity.nameOne, fallback: "Me")
+            // **Yours is a button; theirs is not.** You edit your half, they
+            // edit theirs — and a face that does nothing when tapped reads as
+            // broken, which is how this was reported.
+            Button {
+                Haptics.tap()
+                editingMine = true
+            } label: {
+                badge(for: .one, name: identity.nameOne, fallback: "Me")
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("Your profile"))
             Spacer()
             badge(for: .two, name: identity.nameTwo, fallback: "My love")
         }
+        .sheet(isPresented: $editingMine) { MyProfileSheet(identity: identity) }
     }
 
     private func badge(for partner: Partner, name: String, fallback: LocalizedStringKey) -> some View {
