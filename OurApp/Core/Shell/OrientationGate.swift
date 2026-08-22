@@ -60,10 +60,21 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
     /// receiving phone knows whether an arriving turn is yours, so it syncs
     /// first and words the notification afterwards. Nothing anybody wrote ever
     /// travels as notification text.
+    /// The **completion-handler** form, not the `async` one.
+    ///
+    /// UIKit decides whether an app wants background pushes by asking the
+    /// delegate whether it responds to this selector. The `async` spelling is
+    /// bridged, and on at least one platform here it was never called at all —
+    /// with no error, because "the app did not implement it" is a legitimate
+    /// answer. Given this route runs with nobody watching, the spelling that is
+    /// definitely asked for is the one to use.
     func application(_ application: UIApplication,
-                     didReceiveRemoteNotification userInfo: [AnyHashable: Any]) async
-        -> UIBackgroundFetchResult {
-        await CoupleTurnAlert.syncAndAnnounce()
+                     didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+                     fetchCompletionHandler completionHandler:
+                        @escaping (UIBackgroundFetchResult) -> Void) {
+        Task { @MainActor in
+            completionHandler(await CoupleTurnAlert.syncAndAnnounce())
+        }
     }
 
     /// Accepting the couple's share — **the only place iOS hands this to us.**
