@@ -49,3 +49,35 @@ struct CloudKitTransportTests {
         #expect(any.syncIdentity.hasPrefix("cloudkit:"))
     }
 }
+
+/// The zone the couple shares.
+@MainActor
+struct CoupleZoneTests {
+    /// **A custom zone, because the default zone cannot be shared.** If this
+    /// ever became the default zone, sharing would fail at runtime on a real
+    /// account with an error nobody would connect to this line.
+    @Test func theZoneIsNamedAndNotTheDefault() {
+        #expect(CoupleZone.ownedZoneID.zoneName == "Couple")
+        #expect(CoupleZone.ownedZoneID != CKRecordZone.default().zoneID)
+    }
+
+    /// The owner and the accepter must end up on the *same* zone, reached from
+    /// two different databases. Getting this backwards means two people each
+    /// writing happily into a zone the other never reads — the exact failure
+    /// this whole branch has been about.
+    @Test func theOwnedZoneCarriesTheCurrentUserAsItsOwner() {
+        #expect(CoupleZone.ownedZoneID.ownerName == CKCurrentUserDefaultName)
+    }
+
+    /// The transport's identity has to distinguish the two sides of the share,
+    /// or one phone's progress bookmark would be applied to the other's zone.
+    @Test func eachSideOfTheShareKeepsItsOwnBookmark() {
+        let container = CKContainer(identifier: CoupleZone.containerID)
+        let mine = CloudKitTransport(database: container.privateCloudDatabase,
+                                     zoneID: CoupleZone.ownedZoneID)
+        let theirs = CloudKitTransport(
+            database: container.sharedCloudDatabase,
+            zoneID: CKRecordZone.ID(zoneName: CoupleZone.zoneName, ownerName: "_someoneElse"))
+        #expect(mine.syncIdentity != theirs.syncIdentity)
+    }
+}

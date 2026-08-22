@@ -1,3 +1,5 @@
+import CloudKit
+import OSLog
 import UIKit
 
 /// Rotates the app for landscape modules (M13). Two masks cooperate here —
@@ -50,5 +52,22 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
         MainActor.assumeIsolated { Self.orientationMask }
+    }
+
+    /// Accepting the couple's share — **the only place iOS hands this to us.**
+    ///
+    /// It arrives whether the app was running or launched by the link, so it
+    /// cannot live in a view: a screen that happened not to be on screen would
+    /// silently drop the one invitation there is.
+    func application(_ application: UIApplication,
+                     userDidAcceptCloudKitShareWith metadata: CKShare.Metadata) {
+        Task { @MainActor in
+            do {
+                try await CoupleZone.accept(metadata)
+            } catch {
+                Logger(subsystem: "OurApp", category: "cloudkit")
+                    .error("could not accept the share: \(error.localizedDescription)")
+            }
+        }
     }
 }
