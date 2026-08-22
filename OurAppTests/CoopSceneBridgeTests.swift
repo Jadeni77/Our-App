@@ -323,3 +323,34 @@ struct CoopTurnPickupTests {
         #expect(CoopBoardRules.settledState(from: clip, startingAt: board) != nil)
     }
 }
+
+/// Watching a turn has to show the same world as taking one.
+@MainActor
+struct CoopReplayFramingTests {
+    private var level: MoonshotLevel { CampaignCatalog.bundled.levels[0] }
+
+    private func replay() -> CoopReplayScene {
+        let scene = CoopReplayScene(level: level, snapshot: BoardSnapshot(startOf: level),
+                                    clip: FlingClip(frameRate: 30, bodyIDs: [], frames: []))
+        scene.didMove(to: SKView(frame: CGRect(origin: .zero, size: scene.size)))
+        return scene
+    }
+
+    /// Levels are authored against a fixed canvas (M16). A replay built at the
+    /// view's size put every authored coordinate somewhere else, and
+    /// `.aspectFill` cropped whatever didn't fit — the owner's report was that
+    /// the right-hand side was cut off.
+    @Test func theReplayUsesTheSameCanvasAndFitAsTheGame() {
+        let game = GameScene(level: level, session: LevelSession(level: level))
+        let watching = replay()
+        #expect(watching.size == game.size)
+        #expect(watching.scaleMode == game.scaleMode)
+        #expect(watching.size == MoonshotTuning.sceneSize)
+    }
+
+    /// Scenery, but its absence made the replay read as a different place from
+    /// the one the shot was taken in.
+    @Test func theReplayShowsTheSlingshot() {
+        #expect(replay().children.contains { $0 is SlingshotNode })
+    }
+}
