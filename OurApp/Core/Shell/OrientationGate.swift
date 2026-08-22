@@ -54,6 +54,18 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         MainActor.assumeIsolated { Self.orientationMask }
     }
 
+    /// A silent push from CloudKit: sync, then decide whether to say anything.
+    ///
+    /// **The ordering matters.** The push carries no message — only the
+    /// receiving phone knows whether an arriving turn is yours, so it syncs
+    /// first and words the notification afterwards. Nothing anybody wrote ever
+    /// travels as notification text.
+    func application(_ application: UIApplication,
+                     didReceiveRemoteNotification userInfo: [AnyHashable: Any]) async
+        -> UIBackgroundFetchResult {
+        await CoupleTurnAlert.syncAndAnnounce()
+    }
+
     /// Accepting the couple's share — **the only place iOS hands this to us.**
     ///
     /// It arrives whether the app was running or launched by the link, so it

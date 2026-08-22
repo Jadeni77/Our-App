@@ -2,6 +2,29 @@
   "sourceLanguage": "en",
   "strings": {
     "": {},
+    "%@ is waiting for your shot.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ is waiting for your shot."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@在等你出手。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@在等你出手。"
+          }
+        }
+      }
+    },
     "%@ it is! 🎉": {
       "extractionState": "manual",
       "localizations": {
@@ -336,6 +359,29 @@
           "stringUnit": {
             "state": "translated",
             "value": "對決"
+          }
+        }
+      }
+    },
+    "A level is waiting for your shot.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A level is waiting for your shot."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有一关在等你出手。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有一關在等你出手。"
           }
         }
       }
