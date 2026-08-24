@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 
 /// How the app refers to the other person.
 ///
@@ -53,8 +54,30 @@ enum PartnerVoice {
         defaults.set(pronoun.rawValue, forKey: key)
     }
 
-    /// What to call the other person in a sentence: their name if you have set
-    /// one, otherwise their pronoun.
+    /// What to call the other person, **from their own profile when they have
+    /// sent one**.
+    ///
+    /// Their name and pronoun are theirs to state. The stored fallback below is
+    /// what your phone assumed before they had said anything, and it stays only
+    /// for that gap — including the whole of the time before you have paired.
+    @MainActor
+    static func label(from profile: Profile?, defaults: UserDefaults = .standard) -> String {
+        if let profile {
+            let stated = profile.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            return stated.isEmpty ? profile.voice.objectForm : stated
+        }
+        return label(defaults: defaults)
+    }
+
+    /// The form every screen should use: ask the store, which knows whether
+    /// they have introduced themselves yet.
+    @MainActor
+    static func label(in context: ModelContext) -> String {
+        label(from: ProfileStore.partner(in: context))
+    }
+
+    /// The last resort, from before profiles existed. Kept for the gap before
+    /// they have sent one — which includes all of the time before you pair.
     static func label(defaults: UserDefaults = .standard) -> String {
         let name = (defaults.string(forKey: CoupleIdentityStore.Keys.nameTwo) ?? "")
             .trimmingCharacters(in: .whitespacesAndNewlines)

@@ -4525,6 +4525,29 @@
         }
       }
     },
+    "Refer to me as": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refer to me as"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这样称呼我"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這樣稱呼我"
+          }
+        }
+      }
+    },
     "Relight our sky": {
       "extractionState": "manual",
       "localizations": {

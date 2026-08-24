@@ -102,7 +102,7 @@ struct CoopLobbyView: View {
             // Whose go it is, which is the only thing you came here to learn.
             match.turnHolder == me
                 ? Text("Your turn")
-                : Text("Waiting for \(PartnerVoice.label())")
+                : Text("Waiting for \(PartnerVoice.label(in: context))")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.white.opacity(match.turnHolder == me ? 0.95 : 0.6))
             }
