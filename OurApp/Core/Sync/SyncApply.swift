@@ -16,6 +16,8 @@ enum SyncApply {
         case Memory.syncTypeName: applyMemory(envelope, in: context)
         case CheckIn.syncTypeName: applyCheckIn(envelope, in: context)
         case CoopLevelResult.syncTypeName: applyCoopLevelResult(envelope, in: context)
+        case Profile.syncTypeName:
+            applyProfile(envelope, in: context, localAuthorID: localAuthorID)
         case CoopMatch.syncTypeName: applyCoopMatch(envelope, in: context)
         case CoopTurn.syncTypeName: applyCoopTurn(envelope, in: context)
         case MoonshotLevelResult.syncTypeName:
@@ -127,6 +129,46 @@ enum SyncApply {
         guard merged != row.snapshot || existing == nil else { return false }
         row.apply(merged)
         row.updatedAt = max(row.updatedAt, envelope.updatedAt)
+        row.deletedAt = envelope.deletedAt
+        return true
+    }
+
+    /// **Never applied to your own row.**
+    ///
+    /// A mirrored record has exactly one rightful author, so an envelope
+    /// claiming to be your profile is either your own write coming back — which
+    /// is a no-op — or something that should not be honoured. Refusing it here
+    /// means the phone you are holding is always the authority on you.
+    private static func applyProfile(_ envelope: SyncEnvelope,
+                                     in context: ModelContext,
+                                     localAuthorID: String) -> Bool {
+        // The guard is the whole category, exactly as it is for progress: this
+        // phone is the authority on you, and a remote copy of your own row is
+        // either your write coming back or something not to be honoured.
+        guard envelope.authorID != localAuthorID else { return false }
+
+        let id = envelope.id
+        let existing = try? context.fetch(
+            FetchDescriptor<Profile>(predicate: #Predicate { $0.id == id })).first
+        guard verdict(for: envelope,
+                      existingUpdatedAt: existing?.updatedAt,
+                      existingAuthorID: existing?.authorID,
+                      existingDeletedAt: existing?.deletedAt) else { return false }
+
+        let row = existing ?? {
+            let created = Profile(authorID: envelope.authorID)
+            created.id = envelope.id
+            context.insert(created)
+            return created
+        }()
+        row.authorID = envelope.authorID
+        row.name = envelope.string("name") ?? row.name
+        row.pronoun = envelope.string("pronoun") ?? row.pronoun
+        // Assigned unconditionally: clearing a photo is a thing somebody can
+        // choose to do, and a picture that could not be removed would be worse
+        // than one that arrives late.
+        row.photoID = envelope.string("photoID")
+        row.updatedAt = envelope.updatedAt
         row.deletedAt = envelope.deletedAt
         return true
     }

@@ -73,6 +73,7 @@ final class SyncEngine {
                 outgoing.append(row.envelope())
             }
         }
+        collect(Profile.self)
         collect(SpecialDate.self)
         collect(QuestionAnswer.self)
         collect(Memory.self)

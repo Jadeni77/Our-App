@@ -75,17 +75,31 @@ enum SchemaV3: VersionedSchema {
     }
 }
 
-/// Current. Adds the co-op ledger.
+/// Adds the co-op ledger.
 enum SchemaV4: VersionedSchema {
     static var versionIdentifier: Schema.Version { Schema.Version(4, 0, 0) }
     static var models: [any PersistentModel.Type] { SchemaV3.models + [CoopLevelResult.self] }
 }
 
+/// Current. Adds profiles, so each person's name and photo comes from their
+/// own phone instead of being typed on the other's.
+enum SchemaV5: VersionedSchema {
+    static var versionIdentifier: Schema.Version { Schema.Version(5, 0, 0) }
+    static var models: [any PersistentModel.Type] { SchemaV4.models + [Profile.self] }
+}
+
 enum AppMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
-        [SchemaV1.self, SchemaV2.self, SchemaV3.self, SchemaV4.self]
+        [SchemaV1.self, SchemaV2.self, SchemaV3.self, SchemaV4.self, SchemaV5.self]
     }
-    static var stages: [MigrationStage] { [dropRetiredEmoji, addCoop, addCoopLedger] }
+    static var stages: [MigrationStage] {
+        [dropRetiredEmoji, addCoop, addCoopLedger, addProfiles]
+    }
+
+    /// Lightweight: adding a model with every property defaulted takes nothing
+    /// away and asks nothing of what is already stored.
+    static let addProfiles = MigrationStage.lightweight(fromVersion: SchemaV4.self,
+                                                        toVersion: SchemaV5.self)
 
     static let addCoopLedger = MigrationStage.lightweight(fromVersion: SchemaV3.self,
                                                           toVersion: SchemaV4.self)
