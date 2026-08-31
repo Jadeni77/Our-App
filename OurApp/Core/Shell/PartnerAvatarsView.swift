@@ -35,8 +35,13 @@ struct PartnerAvatarsView: View {
             .buttonStyle(.plain)
             .accessibilityLabel(Text("Your profile"))
             Spacer()
-            badge(for: .two, name: theirs?.name ?? identity.nameTwo,
-                  image: ProfileStore.image(for: theirs) ?? identity.avatars[.two],
+            // **No local fallback for their half.** Falling back to a name you
+            // once typed for them is what made two paired phones disagree: one
+            // showed "Jade" from its own defaults while the other, which had
+            // never been told, showed the placeholder. Their name comes from
+            // them or it is not known yet, and both phones say the same thing.
+            badge(for: .two, name: theirs?.name ?? "",
+                  image: ProfileStore.image(for: theirs),
                   fallback: "My love")
         }
         .sheet(isPresented: $editingMine) { MyProfileSheet(identity: identity) }

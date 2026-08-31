@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 
 /// The themed couples home (P4, layout per P8) — now a hub (P16): moonlit
@@ -22,6 +23,12 @@ struct CouplesHomeView: View {
     @State private var pulse = false
     @State private var path = NavigationPath()
     @State private var didHandleLaunchArguments = false
+    @State private var editingProfile = false
+    @Query(filter: Profile.visible) private var profiles: [Profile]
+
+    private var myName: String {
+        profiles.first { $0.authorID == LocalAuthor.id() }?.name ?? ""
+    }
 
     /// The hero is hidden whenever something covers it — a pushed sub-page or
     /// the settings sheet. Pushing does NOT unmount Home, so without this the
@@ -98,11 +105,16 @@ struct CouplesHomeView: View {
                                     .foregroundStyle(.white.opacity(0.7))
                             }
                         }
-                        if identity.nameOne.isEmpty && identity.nameTwo.isEmpty {
+                        if myName.isEmpty {
                             Button {
-                                showSettings = true
+                                Haptics.tap()
+                                editingProfile = true
                             } label: {
-                                Text("Add your names")
+                                // Singular, and it goes to your profile. It
+                                // said "names" and opened Settings, which is
+                                // where names used to be edited — a dead end
+                                // the moment that screen stopped holding them.
+                                Text("Add your name")
                                     .font(.footnote)
                                     .foregroundStyle(.white.opacity(0.7))
                             }
@@ -142,6 +154,7 @@ struct CouplesHomeView: View {
         // exactly how the Daily Question page shipped crashing while the badge,
         // rendered inside the root, worked fine.
         .environment(identity)
+        .sheet(isPresented: $editingProfile) { MyProfileSheet(identity: identity) }
         .sheet(isPresented: $showSettings, onDismiss: { isPaired = SyncSecretStore.isPaired }) {
             CoupleSettingsSheet(identity: identity)
         }
@@ -151,6 +164,13 @@ struct CouplesHomeView: View {
         }) {
             SyncPairingSheet()
         }
+        // **Your profile exists from launch, not from the first time you open
+        // it.** It was created lazily inside the profile sheet, so a phone
+        // whose owner never tapped their own face had no record to send —
+        // which is exactly why one phone showed a name the other had never
+        // heard of. A record nobody has written yet cannot sync, and nothing
+        // said so.
+        .task { ProfileStore.mine(in: modelContext, seedingFrom: identity) }
         // Ticks on appear and on every foreground — no timers and no background
         // modes, both of which need entitlements this deliberately avoids.
         // Opening the app is the trigger.

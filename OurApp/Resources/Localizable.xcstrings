@@ -547,25 +547,25 @@
         }
       }
     },
-    "Add your names": {
+    "Add your name": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Add your names"
+            "value": "Add your name"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "填写我们的名字"
+            "value": "填写你的名字"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "填寫我們的名字"
+            "value": "填寫你的名字"
           }
         }
       }
