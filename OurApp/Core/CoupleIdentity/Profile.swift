@@ -49,9 +49,7 @@ final class Profile {
     /// every device that ever writes it — the same trick that makes a co-op
     /// match's id its level's id.
     static func id(for authorID: String) -> UUID {
-        UUID(uuidString: authorID) ?? UUID(
-            uuidString: "00000000-0000-4000-8000-" + String(
-                format: "%012x", abs(authorID.hashValue) % 0xFFFFFFFFFFFF)) ?? UUID()
+        UUID(uuidString: authorID) ?? DerivedUUID.from(authorID)
     }
 
     var voice: PartnerVoice.Pronoun {
