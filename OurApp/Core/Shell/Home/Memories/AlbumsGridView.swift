@@ -18,6 +18,10 @@ struct AlbumsGridView: View {
     @Query(filter: Album.visible) private var albums: [Album]
     @State private var naming = false
     @State private var newName = ""
+    // Same cache `MemoriesView.cell(_:)` reads its grid thumbnails from —
+    // one place that has already learned to load off-main-thread and to
+    // remember a miss, rather than a second copy of that lesson here.
+    private let thumbnails = MemoryThumbnails.shared
 
     private let columns = [GridItem(.flexible(), spacing: 12),
                            GridItem(.flexible(), spacing: 12)]
@@ -53,17 +57,22 @@ struct AlbumsGridView: View {
 
     @ViewBuilder
     private func cover(for album: Album) -> some View {
+        // One fetch of the album's memberships for both the cover and the
+        // count, rather than the two `AlbumStore.cover(of:)` and
+        // `AlbumStore.count(of:)` would each run alone, once per tile per
+        // render.
+        let summary = AlbumStore.summary(of: album, in: context)
         VStack(alignment: .leading, spacing: 6) {
             ZStack {
-                // `MemoryPhotoStore` reads the stored copy straight off disk —
-                // the same path `AlbumDetailView` will use, so a cover looks
-                // identical wherever it's shown rather than depending on
-                // which cache happened to warm first.
-                if let asset = AlbumStore.cover(of: album, in: context),
-                   let image = MemoryPhotoStore().image(for: asset) {
+                // Cache-first, same as `MemoriesView.cell(_:)`: a hit here is
+                // a thumbnail already decoded off-main-thread by an earlier
+                // `loadIfNeeded`, not a fresh disk read on every render.
+                if let asset = summary.cover, let image = thumbnails.image(for: asset) {
                     Image(uiImage: image).resizable().scaledToFill()
                 } else {
-                    // An empty album says so rather than showing a broken tile.
+                    // Covers a genuinely empty album and a cover still
+                    // loading alike — the load, once it lands, redraws this
+                    // in place because `MemoryThumbnails` is `@Observable`.
                     Image(systemName: "photo.on.rectangle.angled")
                         .font(.system(size: 26))
                         .foregroundStyle(.white.opacity(0.55))
@@ -73,11 +82,12 @@ struct AlbumsGridView: View {
             .frame(maxWidth: .infinity)
             .background(.white.opacity(0.10))
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .task { if let asset = summary.cover { await thumbnails.loadIfNeeded(asset) } }
 
             Text(verbatim: album.name)
                 .font(.system(.subheadline, design: .rounded).weight(.semibold))
                 .foregroundStyle(.white)
-            Text("\(AlbumStore.count(of: album, in: context)) photos")
+            Text("\(summary.count) photos")
                 .font(.system(.caption, design: .rounded))
                 .foregroundStyle(.white.opacity(0.7))
         }

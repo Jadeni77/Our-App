@@ -108,6 +108,22 @@ enum AlbumStore {
         return members.sorted { $0.addedAt > $1.addedAt }.first?.assetID
     }
 
+    /// `cover(of:)` and `count(of:)` together, off one fetch of the live
+    /// memberships instead of the two each would run alone — a grid asking
+    /// for both per tile, once per render, is exactly the case that turns a
+    /// single extra fetch into a noticeable number of them.
+    static func summary(of album: Album, in context: ModelContext) -> (cover: String?, count: Int) {
+        let members = entries(of: album, in: context)
+        let cover: String?
+        if let chosen = album.coverAssetID,
+           members.contains(where: { $0.assetID == chosen }) {
+            cover = chosen
+        } else {
+            cover = members.sorted { $0.addedAt > $1.addedAt }.first?.assetID
+        }
+        return (cover, members.count)
+    }
+
     /// Live memberships only. A tombstoned entry stopped counting the moment
     /// it was removed, which is the whole point of deriving rather than
     /// storing (`countsAreDerivedNotStored`).
