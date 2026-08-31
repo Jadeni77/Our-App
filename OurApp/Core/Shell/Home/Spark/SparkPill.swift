@@ -39,7 +39,7 @@ struct SparkPill: View {
         let days = SparkStreak.sharedDays(
             checkIns.map { (day: $0.day, authorID: $0.authorID) },
             mine: identity.authorID,
-            theirs: SyncSecretStore.partnerAuthorID())
+            theirs: ProfileStore.partnerAuthorID(in: context))
         return SparkStreak.status(for: days)
     }
 

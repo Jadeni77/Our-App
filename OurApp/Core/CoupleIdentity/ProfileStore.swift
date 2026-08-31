@@ -54,6 +54,16 @@ enum ProfileStore {
         return all.first { $0.authorID != me }
     }
 
+    /// Who the other person is, by the same robust answer `partner` uses.
+    ///
+    /// The one question, asked once. Reading the keychain directly is what left
+    /// 火花 counting a solo streak on a phone that had lost its pairing secret
+    /// but still held every one of their check-ins — the number would have gone
+    /// up while they were away, which is the exact bug it was just fixed for.
+    static func partnerAuthorID(in context: ModelContext) -> String? {
+        SyncSecretStore.partnerAuthorID() ?? partner(in: context)?.authorID
+    }
+
     private static func profile(for authorID: String, in context: ModelContext) -> Profile? {
         let all = try? context.fetch(FetchDescriptor<Profile>(predicate: Profile.visible))
         return all?.first { $0.authorID == authorID }

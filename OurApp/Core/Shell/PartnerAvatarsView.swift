@@ -14,10 +14,11 @@ struct PartnerAvatarsView: View {
     @Query(filter: Profile.visible) private var profiles: [Profile]
 
     private var mine: Profile? { profiles.first { $0.authorID == LocalAuthor.id() } }
-    private var theirs: Profile? {
-        guard let partner = SyncSecretStore.partnerAuthorID() else { return nil }
-        return profiles.first { $0.authorID == partner }
-    }
+    /// **Asked of `ProfileStore`, not reimplemented here.** This view had its
+    /// own copy of the lookup, so fixing the fragile one left this one wrong
+    /// and the screen unchanged — the rows were right and the face above them
+    /// still said "My love".
+    private var theirs: Profile? { ProfileStore.partner(in: context) }
 
     var body: some View {
         HStack(alignment: .top) {

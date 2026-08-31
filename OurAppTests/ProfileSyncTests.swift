@@ -171,3 +171,31 @@ struct PartnerLookupTests {
         #expect(ProfileStore.partner(in: store) == nil)
     }
 }
+
+/// One answer to "who is the other person", asked in one place.
+@MainActor
+struct PartnerIdentityTests {
+    private func context() throws -> ModelContext {
+        ModelContext(try Persistence.makeContainer(inMemory: true))
+    }
+
+    /// Reading the keychain directly left 火花 counting a solo streak on a
+    /// phone that had lost its pairing secret but still held every one of
+    /// their check-ins — the number would have climbed while they were away,
+    /// which is the exact bug the streak was just fixed for.
+    @Test func theirAuthorIDSurvivesALostPairingSecret() throws {
+        let store = try context()
+        ProfileStore.mine(in: store)
+        store.insert(Profile(authorID: "them", name: "Mei"))
+        try store.save()
+
+        #expect(ProfileStore.partnerAuthorID(in: store) == "them")
+    }
+
+    /// With nobody else known, there is no partner to invent.
+    @Test func aloneThereIsNoPartner() throws {
+        let store = try context()
+        ProfileStore.mine(in: store)
+        #expect(ProfileStore.partnerAuthorID(in: store) == nil)
+    }
+}
