@@ -81,20 +81,34 @@ enum SchemaV4: VersionedSchema {
     static var models: [any PersistentModel.Type] { SchemaV3.models + [CoopLevelResult.self] }
 }
 
-/// Current. Adds profiles, so each person's name and photo comes from their
-/// own phone instead of being typed on the other's.
+/// Adds profiles, so each person's name and photo comes from their own phone
+/// instead of being typed on the other's.
 enum SchemaV5: VersionedSchema {
     static var versionIdentifier: Schema.Version { Schema.Version(5, 0, 0) }
     static var models: [any PersistentModel.Type] { SchemaV4.models + [Profile.self] }
 }
 
+/// Current. Adds albums: a photo library, named collections, and the
+/// memberships that put one in the other.
+enum SchemaV6: VersionedSchema {
+    static var versionIdentifier: Schema.Version { Schema.Version(6, 0, 0) }
+    static var models: [any PersistentModel.Type] {
+        SchemaV5.models + [Photo.self, Album.self, AlbumEntry.self]
+    }
+}
+
 enum AppMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
-        [SchemaV1.self, SchemaV2.self, SchemaV3.self, SchemaV4.self, SchemaV5.self]
+        [SchemaV1.self, SchemaV2.self, SchemaV3.self, SchemaV4.self, SchemaV5.self, SchemaV6.self]
     }
     static var stages: [MigrationStage] {
-        [dropRetiredEmoji, addCoop, addCoopLedger, addProfiles]
+        [dropRetiredEmoji, addCoop, addCoopLedger, addProfiles, addAlbums]
     }
+
+    /// Lightweight: three new models, every property defaulted, nothing taken
+    /// away from what is already stored.
+    static let addAlbums = MigrationStage.lightweight(fromVersion: SchemaV5.self,
+                                                      toVersion: SchemaV6.self)
 
     /// Lightweight: adding a model with every property defaulted takes nothing
     /// away and asks nothing of what is already stored.

@@ -13,7 +13,7 @@ enum Persistence {
         // The schema is whatever the newest version says it is, and the plan
         // is how a store written by an older build gets there. Adding a model
         // type means adding it to the newest `SchemaVn`, not here.
-        let schema = Schema(versionedSchema: SchemaV5.self)
+        let schema = Schema(versionedSchema: SchemaV6.self)
         // **Explicit, not left to `.automatic` by omission.** The default flips
         // CloudKit mirroring on the moment the app carries an iCloud
         // entitlement — which is how adding that entitlement turned every

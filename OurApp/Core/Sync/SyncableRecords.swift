@@ -216,3 +216,59 @@ extension CoopLevelResult: SyncableRecord {
          "featCleanSweep": .bool(featCleanSweep)]
     }
 }
+
+/// **Shared.** A library both of you add to.
+extension Photo: SyncableRecord {
+    static var syncTypeName: String { "Photo" }
+    static var syncCategory: SyncCategory { .shared }
+
+    var syncID: UUID { id }
+    var syncAuthorID: String { authorID }
+    var syncUpdatedAt: Date { updatedAt }
+    var syncDeletedAt: Date? { deletedAt }
+
+    func syncFields() -> [String: SyncValue] {
+        var fields: [String: SyncValue] = [
+            "assetID": .string(assetID),
+            "caption": .string(caption),
+            "addedAt": .date(addedAt),
+        ]
+        if let takenAt { fields["takenAt"] = .date(takenAt) }
+        return fields
+    }
+}
+
+extension Album: SyncableRecord {
+    static var syncTypeName: String { "Album" }
+    static var syncCategory: SyncCategory { .shared }
+
+    var syncID: UUID { id }
+    var syncAuthorID: String { authorID }
+    var syncUpdatedAt: Date { updatedAt }
+    var syncDeletedAt: Date? { deletedAt }
+
+    func syncFields() -> [String: SyncValue] {
+        var fields: [String: SyncValue] = [
+            "name": .string(name),
+            "createdAt": .date(createdAt),
+        ]
+        if let coverAssetID { fields["coverAssetID"] = .string(coverAssetID) }
+        return fields
+    }
+}
+
+extension AlbumEntry: SyncableRecord {
+    static var syncTypeName: String { "AlbumEntry" }
+    static var syncCategory: SyncCategory { .shared }
+
+    var syncID: UUID { id }
+    var syncAuthorID: String { authorID }
+    var syncUpdatedAt: Date { updatedAt }
+    var syncDeletedAt: Date? { deletedAt }
+
+    func syncFields() -> [String: SyncValue] {
+        ["albumID": .string(albumID.uuidString),
+         "assetID": .string(assetID),
+         "addedAt": .date(addedAt)]
+    }
+}

@@ -22,6 +22,9 @@ enum SyncApply {
         case CoopTurn.syncTypeName: applyCoopTurn(envelope, in: context)
         case MoonshotLevelResult.syncTypeName:
             applyProgress(envelope, in: context, localAuthorID: localAuthorID)
+        case Photo.syncTypeName: applyPhoto(envelope, in: context)
+        case Album.syncTypeName: applyAlbum(envelope, in: context)
+        case AlbumEntry.syncTypeName: applyAlbumEntry(envelope, in: context)
         // An unknown type is a newer build's record. Dropping it is right:
         // guessing at a payload we have no model for would corrupt the store,
         // and the record is still on the other phone when we catch up.
@@ -384,6 +387,94 @@ enum SyncApply {
         }()
         row.day = envelope.date("day") ?? row.day
         row.authorID = envelope.authorID
+        row.updatedAt = envelope.updatedAt
+        row.deletedAt = envelope.deletedAt
+        return true
+    }
+
+    private static func applyPhoto(_ envelope: SyncEnvelope,
+                                   in context: ModelContext) -> Bool {
+        let id = envelope.id
+        let existing = try? context.fetch(
+            FetchDescriptor<Photo>(predicate: #Predicate { $0.id == id })).first
+        guard verdict(for: envelope,
+                      existingUpdatedAt: existing?.updatedAt,
+                      existingAuthorID: existing?.authorID,
+                      existingDeletedAt: existing?.deletedAt) else { return false }
+
+        let row = existing ?? {
+            let created = Photo(assetID: envelope.string("assetID") ?? "",
+                                authorID: envelope.authorID)
+            created.id = envelope.id
+            context.insert(created)
+            return created
+        }()
+        row.assetID = envelope.string("assetID") ?? row.assetID
+        row.authorID = envelope.authorID
+        row.caption = envelope.string("caption") ?? row.caption
+        row.addedAt = envelope.date("addedAt") ?? row.addedAt
+        // Assigned unconditionally: clearing a date is a thing somebody can do.
+        row.takenAt = envelope.date("takenAt")
+        row.updatedAt = envelope.updatedAt
+        row.deletedAt = envelope.deletedAt
+        return true
+    }
+
+    private static func applyAlbum(_ envelope: SyncEnvelope,
+                                   in context: ModelContext) -> Bool {
+        let id = envelope.id
+        let existing = try? context.fetch(
+            FetchDescriptor<Album>(predicate: #Predicate { $0.id == id })).first
+        guard verdict(for: envelope,
+                      existingUpdatedAt: existing?.updatedAt,
+                      existingAuthorID: existing?.authorID,
+                      existingDeletedAt: existing?.deletedAt) else { return false }
+
+        let row = existing ?? {
+            let created = Album(name: "", authorID: envelope.authorID)
+            created.id = envelope.id
+            context.insert(created)
+            return created
+        }()
+        row.name = envelope.string("name") ?? row.name
+        row.authorID = envelope.authorID
+        row.createdAt = envelope.date("createdAt") ?? row.createdAt
+        // Unconditional: removing a chosen cover falls back to the newest
+        // member, which is a choice somebody may make deliberately.
+        row.coverAssetID = envelope.string("coverAssetID")
+        row.updatedAt = envelope.updatedAt
+        row.deletedAt = envelope.deletedAt
+        return true
+    }
+
+    /// Append-and-tombstone: a membership is only ever added or removed, never
+    /// edited, so there is nothing here to conflict over beyond which of those
+    /// happened last.
+    private static func applyAlbumEntry(_ envelope: SyncEnvelope,
+                                        in context: ModelContext) -> Bool {
+        let id = envelope.id
+        let existing = try? context.fetch(
+            FetchDescriptor<AlbumEntry>(predicate: #Predicate { $0.id == id })).first
+        guard verdict(for: envelope,
+                      existingUpdatedAt: existing?.updatedAt,
+                      existingAuthorID: existing?.authorID,
+                      existingDeletedAt: existing?.deletedAt) else { return false }
+
+        guard let albumID = envelope.string("albumID").flatMap(UUID.init(uuidString:)),
+              let assetID = envelope.string("assetID")
+        else { return false }
+
+        let row = existing ?? {
+            let created = AlbumEntry(albumID: albumID, assetID: assetID,
+                                     authorID: envelope.authorID)
+            created.id = envelope.id
+            context.insert(created)
+            return created
+        }()
+        row.albumID = albumID
+        row.assetID = assetID
+        row.authorID = envelope.authorID
+        row.addedAt = envelope.date("addedAt") ?? row.addedAt
         row.updatedAt = envelope.updatedAt
         row.deletedAt = envelope.deletedAt
         return true

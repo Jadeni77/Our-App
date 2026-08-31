@@ -1121,7 +1121,7 @@ struct SyncCoverageTests {
     /// which is how a feature ships working perfectly on one phone.
     @Test func everyModelIsEitherSyncedOrDeliberatelyLocal() {
         var unclassified: [String] = []
-        for model in SchemaV5.models {
+        for model in SchemaV6.models {
             let name = String(describing: model)
             let syncs = model is any SyncableRecord.Type
             if !syncs && !Self.deliberatelyLocal.contains(name) {
@@ -1148,7 +1148,7 @@ struct SyncCoverageTests {
                                encoding: .utf8)
 
         var missing: [String] = []
-        for model in SchemaV5.models where model is any SyncableRecord.Type {
+        for model in SchemaV6.models where model is any SyncableRecord.Type {
             let name = String(describing: model)
             if !engine.contains("collect(\(name).self)") { missing.append("\(name): not collected") }
             if !apply.contains("case \(name).syncTypeName") { missing.append("\(name): not applied") }
