@@ -97,6 +97,22 @@ enum SchemaV6: VersionedSchema {
     }
 }
 
+/// The one name for "whichever `SchemaVn` is current."
+///
+/// `Persistence.swift` builds the real container from this, and
+/// `CloudKitSchemaTests` checks CloudKit-mirroring legality against this — the
+/// same alias, so the two can never drift apart. Before this existed, both
+/// sides spelled out a literal `SchemaVn`, and bumping the schema meant
+/// remembering to re-aim both by hand. Nobody did, twice: `CloudKitSchemaTests`
+/// was still checking `SchemaV4` after V5 and V6 had already shipped, so the
+/// one test whose entire purpose is catching a non-defaulted attribute before
+/// it reaches a device with an iCloud entitlement — the exact failure that
+/// once bricked this app — was quietly checking nothing about either.
+///
+/// Bumping the schema now means adding `SchemaVn+1` and moving this line;
+/// there is nowhere else that needs to change.
+typealias CurrentSchema = SchemaV6
+
 enum AppMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
         [SchemaV1.self, SchemaV2.self, SchemaV3.self, SchemaV4.self, SchemaV5.self, SchemaV6.self]

@@ -15,6 +15,13 @@ import Testing
 ///
 /// The regular suite can't catch it: those containers are in-memory, and
 /// mirroring needs a real store. So this one writes to disk.
+///
+/// Built from `CurrentSchema`, not a literal `SchemaVn` — this test's entire
+/// job is catching a non-defaulted attribute before it reaches a device, and a
+/// hardcoded version silently stops covering new models the moment a later
+/// schema ships. It already happened twice: this test kept checking `SchemaV4`
+/// after V5 (profiles) and V6 (albums) had both landed, so neither shipped
+/// with this guard actually run against it.
 @MainActor
 struct CloudKitSchemaTests {
     @Test func everyAttributeIsCloudKitLegal() throws {
@@ -22,7 +29,7 @@ struct CloudKitSchemaTests {
             .appendingPathComponent("cloudkit-check-\(UUID().uuidString).store")
         defer { try? FileManager.default.removeItem(at: url) }
 
-        let schema = Schema(versionedSchema: SchemaV4.self)
+        let schema = Schema(versionedSchema: CurrentSchema.self)
         let configuration = ModelConfiguration(schema: schema, url: url,
                                                cloudKitDatabase: .automatic)
         // Throws if any attribute is non-optional without a default. Not

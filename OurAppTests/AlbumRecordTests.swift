@@ -26,7 +26,14 @@ struct AlbumRecordTests {
         #expect(Photo.id(for: "asset-1") != Photo.id(for: "asset-2"))
     }
 
-    /// Every property defaulted, or CloudKit mirroring refuses the store.
+    /// Not a CloudKit-legality check — `Persistence.makeContainer(inMemory:
+    /// true)` sets `cloudKitDatabase: .none`, so mirroring's optional-or-default
+    /// rule is never enforced here; `CloudKitSchemaTests` is what actually
+    /// proves that. What this does prove: the three types insert and save with
+    /// nothing but their required init arguments, and come back with the
+    /// tombstone/optional shape §7 expects — deletedAt unset, an unset cover
+    /// falling back to nil rather than some sentinel, and a membership's
+    /// foreign key intact.
     @Test func theRecordsSatisfyTheCloudKitRules() throws {
         let store = try context()
         let photo = Photo(assetID: "a", authorID: "me")
