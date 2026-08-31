@@ -36,11 +36,14 @@ struct SparkPill: View {
     /// your own author id, as this did, made 火花 a solo streak that climbed
     /// happily while she was away.
     private var status: SparkStreak.Status {
-        let days = SparkStreak.sharedDays(
-            checkIns.map { (day: $0.day, authorID: $0.authorID) },
-            mine: identity.authorID,
-            theirs: ProfileStore.partnerAuthorID(in: context))
-        return SparkStreak.status(for: days)
+        let all = checkIns.map { (day: $0.day, authorID: $0.authorID) }
+        let days = SparkStreak.sharedDays(all,
+                                          mine: identity.authorID,
+                                          theirs: ProfileStore.partnerAuthorID(in: context))
+        // Your own days go in separately: the streak counts shared ones, but
+        // whether the button still has something to do today is about you.
+        let myDays = all.filter { $0.authorID == identity.authorID }.map(\.day)
+        return SparkStreak.status(for: days, mine: myDays)
     }
 
     var body: some View {
@@ -85,10 +88,17 @@ struct SparkPill: View {
     /// A zero streak is never shown as "0" — a number that says nothing and
     /// discourages. It reads as an invitation instead.
     private func label(for status: SparkStreak.Status) -> Text {
-        if status.current == 0 {
+        if !status.checkedInToday {
             return Text("Check in")
         }
-        if status.checkedInToday {
+        // **Done your half.** Without this the pill had nothing to say between
+        // your check-in and theirs, so the tap looked as though it had failed.
+        if !status.sharedToday {
+            return status.current == 0
+                ? Text("Checked in")
+                : Text("\(status.current) days — your half is done")
+        }
+        if status.current > 0 {
             return Text("\(status.current) days")
         }
         // Alive but not done today. Naming the risk is the whole point of the

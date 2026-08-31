@@ -156,6 +156,29 @@
         }
       }
     },
+    "%lld days — your half is done": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld days — your half is done"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 天 — 你这边已完成"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 天 — 你這邊已完成"
+          }
+        }
+      }
+    },
     "%lld photos couldn't be added": {
       "extractionState": "manual",
       "localizations": {
@@ -1118,6 +1141,29 @@
           "stringUnit": {
             "state": "translated",
             "value": "檢查一下網路，再試一次吧。"
+          }
+        }
+      }
+    },
+    "Checked in": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checked in"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已打卡"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已打卡"
           }
         }
       }

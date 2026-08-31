@@ -82,3 +82,51 @@ struct SparkMutualStreakTests {
         }
     }
 }
+
+/// Checking in has to *do* something the moment you do it.
+struct SparkCheckInFeedbackTests {
+    private let me = "author-a"
+    private let her = "author-b"
+
+    private func day(_ offset: Int) -> Date {
+        Calendar.current.date(byAdding: .day, value: offset,
+                              to: Calendar.current.startOfDay(
+                                for: Date(timeIntervalSinceReferenceDate: 800_000_000)))!
+    }
+
+    /// **The bug the owner hit.** Making the streak mutual made your own
+    /// check-in invisible: the shared set was empty, so the status was `.none`,
+    /// so the flame stayed dark and the label stayed "Check in". Tapping again
+    /// just wrote another row. The button looked dead.
+    @Test func yourOwnCheckInRegistersEvenBeforeTheirs() {
+        let status = SparkStreak.status(for: [], mine: [day(0)], on: day(0))
+        #expect(status.checkedInToday)
+        #expect(status.sharedToday == false)
+        #expect(status.current == 0)
+    }
+
+    /// And the day only *counts* once you have both been.
+    @Test func theDayCountsWhenBothHaveBeen() {
+        let status = SparkStreak.status(for: [day(0)], mine: [day(0)], on: day(0))
+        #expect(status.checkedInToday)
+        #expect(status.sharedToday)
+        #expect(status.current == 1)
+    }
+
+    /// Their check-in alone leaves you with something to do.
+    @Test func theirCheckInDoesNotTickYourBoxForYou() {
+        let status = SparkStreak.status(for: [], mine: [], on: day(0))
+        #expect(status.checkedInToday == false)
+    }
+
+    /// A live run with your half done today: still at risk, because the day is
+    /// not complete — but the button must not offer to check you in twice.
+    @Test func aHalfDoneDayIsAtRiskButNotUnchecked() {
+        let shared = [day(-1), day(-2)]
+        let status = SparkStreak.status(for: shared, mine: shared + [day(0)], on: day(0))
+        #expect(status.checkedInToday)
+        #expect(status.sharedToday == false)
+        #expect(status.current == 2)
+        #expect(status.atRisk)
+    }
+}
