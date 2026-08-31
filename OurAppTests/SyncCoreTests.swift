@@ -1025,3 +1025,134 @@ struct FileCloudResetTests {
         #expect(second.envelopes.isEmpty)
     }
 }
+
+/// The push watermark, and what it is allowed to bury.
+@MainActor
+struct PushWatermarkTests {
+    private func setUp() throws -> (ModelContext, UserDefaults, CountingTransport) {
+        let context = ModelContext(try Persistence.makeContainer(inMemory: true))
+        let suite = "sync.mark.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defaults.removePersistentDomain(forName: suite)
+        return (context, defaults, CountingTransport())
+    }
+
+    private func engine(_ context: ModelContext, _ transport: CountingTransport,
+                        _ defaults: UserDefaults) -> SyncEngine {
+        SyncEngine(context: context, transport: transport,
+                   authorID: "me", defaults: defaults)
+    }
+
+    /// **A memory stranded on one phone, unable to ever reach the other.**
+    ///
+    /// Records written together share a timestamp. The mark used to advance to
+    /// "now", so sending two of three buried the third below the line — and
+    /// nothing rescans below the line. Reproduced here by pushing one row, then
+    /// revealing a second that carries the identical timestamp.
+    @Test func aRecordSharingATimestampWithASentOneStillGoes() async throws {
+        let (context, defaults, transport) = try setUp()
+        let instant = Date()
+
+        let first = CheckIn(day: instant, authorID: "me")
+        first.updatedAt = instant
+        context.insert(first)
+        try context.save()
+        try await engine(context, transport, defaults).tick()
+        #expect(transport.pushed == 1)
+
+        // Same instant, seen only now — exactly the row the old rule buried.
+        let second = CheckIn(day: instant.addingTimeInterval(-86_400), authorID: "me")
+        second.updatedAt = instant
+        context.insert(second)
+        try context.save()
+
+        try await engine(context, transport, defaults).tick()
+        #expect(transport.pushed == 2, "a record at the watermark can never leave the phone")
+    }
+
+    /// And the boundary must not become a treadmill: what has been sent stays
+    /// sent, however many times the engine ticks.
+    @Test func nothingIsSentTwice() async throws {
+        let (context, defaults, transport) = try setUp()
+        let check = CheckIn(day: .now, authorID: "me")
+        context.insert(check)
+        try context.save()
+
+        for _ in 0..<4 {
+            try await engine(context, transport, defaults).tick()
+        }
+        #expect(transport.pushed == 1)
+    }
+
+    /// A partner's record carrying a clock running fast must not drag the mark
+    /// into our future and bury our own later writes — the failure this
+    /// watermark was rewritten for once already.
+    @Test func aFuturePartnerClockDoesNotBuryOurWrites() async throws {
+        let (context, defaults, transport) = try setUp()
+        let fromTheFuture = CheckIn(day: .now, authorID: "them")
+        fromTheFuture.updatedAt = .now.addingTimeInterval(600)
+        context.insert(fromTheFuture)
+        try context.save()
+        try await engine(context, transport, defaults).tick()
+
+        let mine = CheckIn(day: .now.addingTimeInterval(-86_400), authorID: "me")
+        context.insert(mine)
+        try context.save()
+        try await engine(context, transport, defaults).tick()
+
+        #expect(transport.pushed >= 2, "our own write fell below a partner's clock")
+    }
+}
+
+/// Nothing in the schema syncs by accident, or fails to by accident.
+@MainActor
+struct SyncCoverageTests {
+    /// Models that deliberately stay on the phone that wrote them, each with
+    /// the reason it does not belong to the couple.
+    private static let deliberatelyLocal: Set<String> = [
+        "DecisionRecord",          // what one of you picked for lunch, alone
+        "MoonshotCoachSeen",       // whether *this* phone has shown a hint
+        "MoonshotCosmeticSetting", // your own equipped trail and skin
+        "MoonshotMoondustEntry",   // your own wallet; solo play does not pool
+    ]
+
+    /// **Adding a model must be a decision, not an omission.** A new type that
+    /// nobody wires into the engine syncs nowhere and says nothing about it —
+    /// which is how a feature ships working perfectly on one phone.
+    @Test func everyModelIsEitherSyncedOrDeliberatelyLocal() {
+        var unclassified: [String] = []
+        for model in SchemaV5.models {
+            let name = String(describing: model)
+            let syncs = model is any SyncableRecord.Type
+            if !syncs && !Self.deliberatelyLocal.contains(name) {
+                unclassified.append(name)
+            }
+        }
+        #expect(unclassified.isEmpty,
+                """
+                \(unclassified.joined(separator: ", ")) neither syncs nor is listed as \
+                deliberately local. Conform it to SyncableRecord and wire it into \
+                SyncEngine and SyncApply, or add it to the list here with the reason.
+                """)
+    }
+
+    /// Conforming is not enough: a type the engine never collects, or the
+    /// applier never handles, is a record that travels in one direction or not
+    /// at all — and both fail in silence.
+    @Test func everySyncableTypeIsCollectedAndApplied() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent()
+        let engine = try String(contentsOf: root.appending(path: "OurApp/Core/Sync/SyncEngine.swift"),
+                                encoding: .utf8)
+        let apply = try String(contentsOf: root.appending(path: "OurApp/Core/Sync/SyncApply.swift"),
+                               encoding: .utf8)
+
+        var missing: [String] = []
+        for model in SchemaV5.models where model is any SyncableRecord.Type {
+            let name = String(describing: model)
+            if !engine.contains("collect(\(name).self)") { missing.append("\(name): not collected") }
+            if !apply.contains("case \(name).syncTypeName") { missing.append("\(name): not applied") }
+        }
+        #expect(missing.isEmpty, "\(missing.joined(separator: "; "))")
+    }
+}

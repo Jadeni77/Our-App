@@ -14,6 +14,14 @@ final class SyncEngine {
     /// one is treated as already sent to all of them. See `syncIdentity`.
     private var pullTokenKey: String { "sync.pullToken.\(transport.syncIdentity)" }
     private var pushedThroughKey: String { "sync.pushedThrough.\(transport.syncIdentity)" }
+    /// The ids already sent whose `updatedAt` is exactly the watermark.
+    ///
+    /// Records written in one batch share a timestamp to the millisecond. With
+    /// a strictly-greater-than test, sending some of them advances the mark to
+    /// that instant and buries the rest — which is how a memory ended up on one
+    /// phone and unreachable from the other. Remembering the handful at the
+    /// boundary lets the test include equals without ever re-sending.
+    private var pushedBoundaryKey: String { "sync.pushedBoundary.\(transport.syncIdentity)" }
 
     private let context: ModelContext
     private let transport: any SyncTransport
@@ -51,7 +59,22 @@ final class SyncEngine {
     /// between two phones — slice D replaces the cursor with CloudKit's own
     /// change tokens, which is the correct fix rather than a workaround.
     private func push() async throws {
+        // **One-time repair for anything the old rule buried.**
+        //
+        // Records stranded under a watermark that had already moved past them
+        // cannot rescue themselves: the fix above stops it happening again but
+        // cannot lower a mark that is already too high. The absence of the
+        // boundary key is exactly the signature of an install that ran the old
+        // rule, so the first pass under the new one rescans from the beginning.
+        //
+        // Safe to the point of being boring: applying a record twice is a no-op
+        // by construction, and there is a test that says so.
+        if defaults.object(forKey: pushedBoundaryKey) == nil {
+            defaults.removeObject(forKey: pushedThroughKey)
+            defaults.set([String](), forKey: pushedBoundaryKey)
+        }
         let through = defaults.object(forKey: pushedThroughKey) as? Date ?? .distantPast
+        let boundary = Set(defaults.stringArray(forKey: pushedBoundaryKey) ?? [])
         // **This phone's clock, not any record's timestamp.**
         //
         // The watermark used to be `max(updatedAt)` over everything collected —
@@ -69,7 +92,11 @@ final class SyncEngine {
 
         func collect<T: PersistentModel & SyncableRecord>(_ type: T.Type) {
             guard let rows = try? context.fetch(FetchDescriptor<T>()) else { return }
-            for row in rows where row.syncUpdatedAt > through {
+            for row in rows {
+                let at = row.syncUpdatedAt
+                let unsentAtBoundary = at == through
+                    && !boundary.contains(row.syncID.uuidString)
+                guard at > through || unsentAtBoundary else { continue }
                 outgoing.append(row.envelope())
             }
         }
@@ -85,7 +112,25 @@ final class SyncEngine {
 
         guard !outgoing.isEmpty else { return }
         try await transport.push(outgoing)
-        defaults.set(stamp, forKey: pushedThroughKey)
+
+        // **Advance only as far as we actually saw, never merely to "now".**
+        //
+        // Setting the mark to the clock buried anything saved around that
+        // instant which this fetch happened not to see — permanently, since
+        // nothing rescans below the line. Three memories written together, two
+        // sent, and the third could never leave the phone.
+        //
+        // Clamped to `stamp` so a partner's record carrying a clock running
+        // fast cannot drag the mark into our future and bury our own writes —
+        // the failure this watermark was rewritten for once already.
+        let observed = outgoing.map(\.updatedAt).filter { $0 <= stamp }.max() ?? through
+        let mark = max(through, observed)
+        // Everything sent at exactly the mark, so the next pass can include
+        // equals without re-sending these.
+        var atMark = outgoing.filter { $0.updatedAt == mark }.map { $0.id.uuidString }
+        if mark == through { atMark.append(contentsOf: boundary) }
+        defaults.set(mark, forKey: pushedThroughKey)
+        defaults.set(Array(Set(atMark)), forKey: pushedBoundaryKey)
     }
 
     private func pull() async throws {
