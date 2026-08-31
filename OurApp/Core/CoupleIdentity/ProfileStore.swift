@@ -33,8 +33,25 @@ enum ProfileStore {
     /// invented for them would be indistinguishable from one they wrote, and
     /// "they haven't set this up yet" is a real state worth being able to see.
     static func partner(in context: ModelContext) -> Profile? {
-        guard let partner = SyncSecretStore.partnerAuthorID() else { return nil }
-        return profile(for: partner, in: context)
+        let all = (try? context.fetch(FetchDescriptor<Profile>(predicate: Profile.visible))) ?? []
+        if let paired = SyncSecretStore.partnerAuthorID(),
+           let known = all.first(where: { $0.authorID == paired }) {
+            return known
+        }
+        // **Any profile that is not yours.**
+        //
+        // Asking the pairing secret alone was too fragile: a phone can hold
+        // their profile and still not know their author id — the secret lives
+        // in the keychain and can be cleared, re-paired, or lost to a reinstall
+        // while the records survive. That produced a phone displaying "My love"
+        // over a row that had their name in it.
+        //
+        // A profile only ever arrives from the person you sync with, and there
+        // is only ever one of them, so the record is its own evidence. It also
+        // means the greeting no longer depends on a second piece of state
+        // staying in step with the first.
+        let me = LocalAuthor.id()
+        return all.first { $0.authorID != me }
     }
 
     private static func profile(for authorID: String, in context: ModelContext) -> Profile? {

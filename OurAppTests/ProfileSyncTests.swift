@@ -139,3 +139,35 @@ struct ProfileSeedingTests {
         #expect(ProfileStore.partner(in: store) == nil)
     }
 }
+
+/// Finding them without needing a second piece of state to agree.
+@MainActor
+struct PartnerLookupTests {
+    private func context() throws -> ModelContext {
+        ModelContext(try Persistence.makeContainer(inMemory: true))
+    }
+
+    /// A phone held their profile and still showed "My love", because the
+    /// lookup went through the pairing secret and that had been cleared. The
+    /// record is its own evidence: a profile only ever arrives from the person
+    /// you sync with.
+    @Test func theirProfileIsFoundEvenWithoutThePairingSecret() throws {
+        let store = try context()
+        ProfileStore.mine(in: store)
+        let theirs = Profile(authorID: "somebody-else", name: "Mei")
+        store.insert(theirs)
+        try store.save()
+
+        #expect(ProfileStore.partner(in: store)?.name == "Mei")
+    }
+
+    /// Your own row is never mistaken for theirs, however the lookup gets there.
+    @Test func yourOwnProfileIsNeverTheirs() throws {
+        let store = try context()
+        let mine = ProfileStore.mine(in: store)
+        mine.name = "Xiaobin"
+        try store.save()
+
+        #expect(ProfileStore.partner(in: store) == nil)
+    }
+}
