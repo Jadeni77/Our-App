@@ -92,7 +92,7 @@ struct CoopMatchView: View {
     /// flung yet — and whoever taps first takes the first turn, which needs no
     /// negotiation: the other phone learns it from the record.
     private func startMatch() {
-        guard let partner = SyncSecretStore.partnerAuthorID() else {
+        guard let partner = ProfileStore.partnerAuthorID(in: context) else {
             // Never a silent no-op (principle 7): a button that does nothing
             // is indistinguishable from a frozen app, which is exactly how
             // this was reported.

@@ -20,6 +20,13 @@ struct CouplesHomeView: View {
     @State private var showSettings = false
     @State private var showPairing = false
     @State private var isPaired = SyncSecretStore.isPaired
+
+    /// Derived, not remembered. The stored flag only knows about the keychain;
+    /// this also counts "their records are here", which is the thing you can
+    /// actually see on screen.
+    private var isConnected: Bool {
+        isPaired || ProfileStore.isConnected(in: modelContext)
+    }
     @State private var pulse = false
     @State private var path = NavigationPath()
     @State private var didHandleLaunchArguments = false
@@ -89,7 +96,7 @@ struct CouplesHomeView: View {
                         // that makes the app *shared*, so hiding it made the
                         // single most important setup action look absent.
                         // Two footnote lines is a cheaper price than that.
-                        if !isPaired {
+                        if !isConnected {
                             // **Invitation first, pairing code second.** The
                             // code needs two phones in one room at one moment,
                             // which is the situation this app exists for you

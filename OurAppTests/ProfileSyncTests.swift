@@ -199,3 +199,33 @@ struct PartnerIdentityTests {
         #expect(ProfileStore.partnerAuthorID(in: store) == nil)
     }
 }
+
+/// Whether the two phones are connected, decided from evidence.
+@MainActor
+struct CoupleConnectionTests {
+    private func context() throws -> ModelContext {
+        ModelContext(try Persistence.makeContainer(inMemory: true))
+    }
+
+    /// **The bug on screen:** one phone offered to invite someone it was
+    /// already syncing with, while the other, holding the same records, knew
+    /// better. The keychain secret had been cleared on one of them by a
+    /// reinstall; every record they had exchanged survived.
+    @Test func holdingTheirRecordsCountsAsConnected() throws {
+        let store = try context()
+        ProfileStore.mine(in: store)
+        #expect(ProfileStore.isConnected(in: store) == false)
+
+        store.insert(Profile(authorID: "them", name: "Mei"))
+        try store.save()
+        #expect(ProfileStore.isConnected(in: store))
+    }
+
+    /// A phone that has met nobody is not connected, and must still be able to
+    /// say so — otherwise the invitation would never be offered at all.
+    @Test func aloneIsNotConnected() throws {
+        let store = try context()
+        ProfileStore.mine(in: store)
+        #expect(ProfileStore.isConnected(in: store) == false)
+    }
+}

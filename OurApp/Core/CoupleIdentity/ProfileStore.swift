@@ -54,6 +54,20 @@ enum ProfileStore {
         return all.first { $0.authorID != me }
     }
 
+    /// Whether this phone knows who the other person is at all.
+    ///
+    /// **Not "is the keychain secret present".** That secret can be cleared by
+    /// a reinstall, a re-pair, or a restore while every record the two of you
+    /// have exchanged survives — leaving a phone that offers to invite someone
+    /// it is already syncing with, next to a phone that knows better. Two
+    /// devices in one relationship gave different answers to the same question.
+    ///
+    /// Knowing their author id is the honest test: it means something of theirs
+    /// has actually arrived here.
+    static func isConnected(in context: ModelContext) -> Bool {
+        partnerAuthorID(in: context) != nil
+    }
+
     /// Who the other person is, by the same robust answer `partner` uses.
     ///
     /// The one question, asked once. Reading the keychain directly is what left
