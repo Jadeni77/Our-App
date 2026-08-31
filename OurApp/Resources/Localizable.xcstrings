@@ -2180,29 +2180,6 @@
         }
       }
     },
-    "Forget the other phone": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Forget the other phone"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "解除配对"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "解除配對"
-          }
-        }
-      }
-    },
     "Free": {
       "extractionState": "manual",
       "localizations": {
@@ -7845,29 +7822,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "你"
-          }
-        }
-      }
-    },
-    "You'd pair again from the home screen.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "You'd pair again from the home screen."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "要重新配对的话，回首页就能弄。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "要重新配對的話，回首頁就能弄。"
           }
         }
       }

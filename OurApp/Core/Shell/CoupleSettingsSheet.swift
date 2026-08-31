@@ -13,28 +13,24 @@ struct CoupleSettingsSheet: View {
     let identity: CoupleIdentityStore
     @Environment(\.dismiss) private var dismiss
     @AppStorage(AppLanguage.storageKey) private var languageRaw = AppLanguage.system.rawValue
-    @State private var isPaired = SyncSecretStore.isPaired
 
     var body: some View {
         NavigationStack {
             Form {
-                // Only what you'd come here to *change*. Pairing lives on Home
-                // where it's actually seen, and "last synced" was status
-                // dressed as a setting — a stale timestamp worries you without
-                // telling you anything you can act on. If sync is working,
-                // their memories are simply there.
-                if isPaired {
-                    Section {
-                        Button(role: .destructive) {
-                            SyncSecretStore.clear()
-                            isPaired = false
-                        } label: {
-                            Text("Forget the other phone")
-                        }
-                    } footer: {
-                        Text("You'd pair again from the home screen.")
-                    }
-                }
+                // **"Forget the other phone" used to live here, and is gone.**
+                //
+                // It cleared the pairing secret, and that stopped being a
+                // disconnection the moment the app started deciding it knows
+                // you two by the records you have exchanged. You could tap it
+                // and still see their name, their check-ins and their memories,
+                // still syncing. A destructive-looking button that changes
+                // almost nothing is worse than no button.
+                //
+                // A real one would revoke the CloudKit share, stop the sync,
+                // and delete what has arrived — and would have to say so before
+                // doing it. That is a deliberate feature, not a settings row,
+                // and nobody has asked for it yet. Re-inviting overwrites the
+                // secret anyway, which covers pairing with the wrong device.
 
                 Section("Language") {
                     Picker(selection: $languageRaw) {
