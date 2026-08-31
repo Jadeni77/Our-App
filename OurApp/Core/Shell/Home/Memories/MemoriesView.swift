@@ -14,6 +14,7 @@ struct MemoriesView: View {
                   SortDescriptor(\Memory.updatedAt, order: .reverse)])
     private var memories: [Memory]
 
+    @Environment(\.modelContext) var context
     private let thumbnails = MemoryThumbnails.shared
     @State private var composing = MemoriesView.opensComposerAtLaunch
     @State private var showing: Memory?
@@ -63,6 +64,7 @@ struct MemoriesView: View {
         .sheet(item: $showing) { memory in
             MemoryDetailView(memory: memory)
         }
+        .task { PhotoLibrary.seed(in: context, authorID: LocalAuthor.id()) }
     }
 
 private var grid: some View {
