@@ -6,9 +6,9 @@ import SwiftUI
 /// Two columns with a name and a count under each — the layout cue taken from
 /// 微爱's 相册 tab. The art, type and colour are this app's own.
 ///
-/// Tiles don't navigate yet — that lands with `AlbumDetailView` in the next
-/// task. Until then this is a read-only grid plus the one write the feature
-/// already needs: naming a new album.
+/// A tile opens `AlbumDetailView`; the row above the grid opens `AllPhotosView`
+/// — the library itself, not just what's been filed, so nothing either of you
+/// owns is unreachable for want of an album.
 struct AlbumsGridView: View {
     @Environment(\.modelContext) private var context
     // Never read directly — `AlbumStore.albums(in:)` below is the one true
@@ -28,13 +28,32 @@ struct AlbumsGridView: View {
 
     var body: some View {
         ScrollView {
+            NavigationLink { AllPhotosView() } label: {
+                HStack {
+                    Image(systemName: "photo.stack")
+                    Text("All photos")
+                    Spacer()
+                    Text("\(PhotoLibrary.all(in: context).count)")
+                }
+                .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+            }
+            .glassCard(cornerRadius: 18)
+            .padding(.horizontal, 14)
+            .padding(.top, 8)
+
             LazyVGrid(columns: columns, spacing: 18) {
                 ForEach(AlbumStore.albums(in: context)) { album in
-                    cover(for: album)
+                    NavigationLink { AlbumDetailView(albumID: album.id) } label: {
+                        cover(for: album)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             .padding(.horizontal, 14)
-            .padding(.top, 8)
+            .padding(.top, 12)
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
