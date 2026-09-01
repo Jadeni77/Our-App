@@ -17,7 +17,7 @@ struct PhotoLibraryTests {
                             photoIDs: ["a", "b"]))
         try store.save()
 
-        PhotoLibrary.seed(in: store, authorID: "me")
+        PhotoLibrary.seed(in: store)
         #expect(PhotoLibrary.all(in: store).map(\.assetID).sorted() == ["a", "b"])
     }
 
@@ -28,8 +28,8 @@ struct PhotoLibraryTests {
         store.insert(Memory(note: "Kyoto", day: .now, authorID: "me", photoIDs: ["a"]))
         try store.save()
 
-        PhotoLibrary.seed(in: store, authorID: "me")
-        PhotoLibrary.seed(in: store, authorID: "me")
+        PhotoLibrary.seed(in: store)
+        PhotoLibrary.seed(in: store)
         #expect(PhotoLibrary.all(in: store).count == 1)
     }
 
@@ -41,7 +41,7 @@ struct PhotoLibraryTests {
         store.insert(Memory(note: "theirs", day: .now, authorID: "them", photoIDs: ["a"]))
         try store.save()
 
-        PhotoLibrary.seed(in: store, authorID: "me")
+        PhotoLibrary.seed(in: store)
         #expect(PhotoLibrary.all(in: store).first?.authorID == "them")
     }
 
@@ -52,7 +52,7 @@ struct PhotoLibraryTests {
         store.insert(Memory(note: "theirs", day: .now, authorID: "them", photoIDs: ["new"]))
         try store.save()
 
-        PhotoLibrary.seed(in: store, authorID: "me")
+        PhotoLibrary.seed(in: store)
         #expect(PhotoLibrary.all(in: store).first?.authorID == "them")
     }
 
@@ -66,11 +66,76 @@ struct PhotoLibraryTests {
         store.insert(Memory(note: "had it once", day: .now, authorID: "me", photoIDs: ["deleted"]))
         try store.save()
 
-        PhotoLibrary.seed(in: store, authorID: "me")
+        PhotoLibrary.seed(in: store)
         // Should have only the deleted one, and it should still be deleted
         #expect(PhotoLibrary.all(in: store).isEmpty)
         let all = try? store.fetch(FetchDescriptor<Photo>())
         #expect(all?.first?.deletedAt != nil)
+    }
+
+    /// **The order has to be the same on both phones.**
+    ///
+    /// Seeding used to leave `takenAt` nil, so `sortDate` fell back to
+    /// `addedAt` — when *this* phone happened to run the seed. Two phones that
+    /// seeded in different orders, or on different days, sorted the same
+    /// pictures differently and neither order meant anything. The memory's day
+    /// is a floating civil day both already agree on (H8).
+    @Test func seedingTakesTheDateFromTheMemory() throws {
+        let store = try context()
+        let day = Date(timeIntervalSinceReferenceDate: 700_000)
+        store.insert(Memory(note: "Kyoto", day: day, authorID: "me", photoIDs: ["a"]))
+        try store.save()
+
+        PhotoLibrary.seed(in: store)
+        let photo = try #require(PhotoLibrary.all(in: store).first)
+        #expect(photo.takenAt == SpecialDateSchedule.anchor(for: day))
+        #expect(photo.sortDate == photo.takenAt)
+    }
+
+    /// A row seeded before the date rule existed gets one on the next pass —
+    /// otherwise the fix only helps pictures nobody had yet, and the phones
+    /// this branch has already run on keep sorting by when they seeded.
+    @Test func seedingBackfillsADateOntoAnExistingRow() throws {
+        let store = try context()
+        store.insert(Photo(assetID: "a", authorID: "them"))
+        let day = Date(timeIntervalSinceReferenceDate: 700_000)
+        store.insert(Memory(note: "Kyoto", day: day, authorID: "them", photoIDs: ["a"]))
+        try store.save()
+
+        PhotoLibrary.seed(in: store)
+        let photo = try #require(PhotoLibrary.all(in: store).first)
+        #expect(photo.takenAt == SpecialDateSchedule.anchor(for: day))
+        // Backfill, not re-creation: the row it already had, author and all.
+        #expect(photo.authorID == "them")
+        #expect(PhotoLibrary.all(in: store).count == 1)
+    }
+
+    /// **The same answer on both phones, whatever order their fetches come
+    /// back in.** A picture can sit in two memories; taking whichever the fetch
+    /// returned first would hand the two libraries different dates for it,
+    /// which is the divergence the date exists to remove. Earliest wins.
+    @Test func aPhotoInTwoMemoriesTakesTheEarlierDay() throws {
+        let store = try context()
+        let earlier = Date(timeIntervalSinceReferenceDate: 100_000)
+        let later = Date(timeIntervalSinceReferenceDate: 900_000)
+        store.insert(Memory(note: "later", day: later, authorID: "me", photoIDs: ["a"]))
+        store.insert(Memory(note: "earlier", day: earlier, authorID: "me", photoIDs: ["a"]))
+        try store.save()
+
+        PhotoLibrary.seed(in: store)
+        #expect(PhotoLibrary.all(in: store).first?.takenAt
+                == SpecialDateSchedule.anchor(for: earlier))
+    }
+
+    /// An undated memory stays undated. A guessed date would be wrong forever,
+    /// which is worse than none (H23).
+    @Test func seedingLeavesAnUndatedMemorysPhotosUndated() throws {
+        let store = try context()
+        store.insert(Memory(note: "shoebox", day: nil, authorID: "me", photoIDs: ["a"]))
+        try store.save()
+
+        PhotoLibrary.seed(in: store)
+        #expect(PhotoLibrary.all(in: store).first?.takenAt == nil)
     }
 
     /// Newest first, falling back to when it arrived for anything with no

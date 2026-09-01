@@ -102,7 +102,14 @@ struct MemoriesView: View {
         .sheet(item: $showing) { memory in
             MemoryDetailView(memory: memory)
         }
-        .task { PhotoLibrary.seed(in: context, authorID: LocalAuthor.id()) }
+        // **Keyed on the count, not bare.** A plain `.task` runs once per
+        // appearance and nothing else creates `Photo` rows —
+        // `MemoryComposeSheet.save()` inserts only the `Memory` — so a memory
+        // added just now, or one arriving from her phone while this page is
+        // open, had no library rows until you left Memories and came back.
+        // Add three photos, tap Save, switch to Albums, tap Add photos, and
+        // they simply were not there.
+        .task(id: memories.count) { PhotoLibrary.seed(in: context) }
     }
 
 private var grid: some View {
