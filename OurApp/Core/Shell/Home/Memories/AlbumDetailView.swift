@@ -32,6 +32,10 @@ struct AlbumDetailView: View {
 
     private var album: Album? { albums.first { $0.id == albumID } }
 
+    private var trimmedName: String {
+        name.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 3), count: 3)
 
     var body: some View {
@@ -73,14 +77,36 @@ struct AlbumDetailView: View {
                 }
             }
         }
+        // **Leave when the album does, however it went.**
+        //
+        // `deleteAlbum()` already dismisses after my own tap, but that covers
+        // exactly one of the two ways an album disappears. The other is hers:
+        // I'm in 🎀 picking a cover, she deletes it, `album` goes nil, and this
+        // screen used to sit there rendering nothing but the background under
+        // an empty title — with a menu still offering three actions that
+        // silently did nothing ("Add photos" opened an empty sheet, "Rename"
+        // and "Delete album" hit `guard let album else { return }`).
+        //
+        // Dismissing rather than showing "This album was deleted": there is
+        // nothing left on this screen to look at, every action it offers is
+        // gone with the record, and popping back to the grid is where the album
+        // no longer being there is legible. A dedicated dead-end state would be
+        // a page whose only content is an apology.
+        .onChange(of: album == nil) { _, gone in
+            if gone { dismiss() }
+        }
         .alert("Rename", isPresented: $renaming) {
-            TextField("Name", text: $name)
+            // `Album name`, not the shared `Name` key — that one's Chinese is
+            // 名字, a person's given name. Same reasoning as the New album
+            // alert in `AlbumsGridView`.
+            TextField("Album name", text: $name)
             Button("Save") {
-                guard let album else { return }
-                let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !trimmed.isEmpty else { return }
-                AlbumStore.rename(album, to: trimmed, in: context)
+                guard let album, !trimmedName.isEmpty else { return }
+                AlbumStore.rename(album, to: trimmedName, in: context)
             }
+            // Blank or all-spaces used to dismiss as though it had saved. The
+            // house pattern is `SpecialDateEditorSheet`'s: disable the confirm.
+            .disabled(trimmedName.isEmpty)
             Button("Cancel", role: .cancel) {}
         }
         // A tombstone is forever here — there's no trash or restore anywhere
@@ -103,6 +129,11 @@ struct AlbumDetailView: View {
     /// moment `@Query` excludes it and the screen collapses into a blank
     /// grid under an empty title instead of popping back, the same fix
     /// `MemoryDetailView.delete()` makes for the same reason.
+    ///
+    /// The `onChange(of: album == nil)` above would catch this too, and does
+    /// catch the case this cannot — her delete. Kept anyway: dismissing on the
+    /// tap that caused it is immediate and doesn't wait on a query update, and
+    /// dismissing twice costs nothing.
     private func deleteAlbum() {
         guard let album else { return }
         Haptics.tap()
