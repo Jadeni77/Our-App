@@ -396,9 +396,15 @@ struct LocalizationTests {
         // The album detail hero and its date sections: caption editing and
         // hand-set dates, both reached through `Label`/`TextField`, neither
         // of which `StringCatalogCoverageTests` can see.
-        #expect(localizedValue("Edit caption", language: "zh-Hans") == "编辑说明")
-        #expect(localizedValue("Edit caption", language: "zh-Hant") == "編輯說明")
-        #expect(localizedValue("Caption", language: "zh-Hans") == "说明")
+        #expect(localizedValue("Edit caption", language: "zh-Hans") == "编辑描述")
+        #expect(localizedValue("Edit caption", language: "zh-Hant") == "編輯描述")
+        // `Caption`'s Chinese is 描述, not 说明 — 说明 is the register of
+        // 使用说明 (instructions), clerical for a line the couple writes
+        // about their own album. 描述 is what Apple Photos itself uses.
+        // Both languages pinned, unlike the review round that shipped this
+        // with only zh-Hans checked and zh-Hant silently unpinned.
+        #expect(localizedValue("Caption", language: "zh-Hans") == "描述")
+        #expect(localizedValue("Caption", language: "zh-Hant") == "描述")
         #expect(localizedValue("Set date", language: "zh-Hans") == "设置日期")
         #expect(localizedValue("Set date", language: "zh-Hant") == "設定日期")
         // The section heading's own affordance — visible text now, not just

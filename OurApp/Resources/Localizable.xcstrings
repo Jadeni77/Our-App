@@ -1123,13 +1123,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "说明"
+            "value": "描述"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "說明"
+            "value": "描述"
           }
         }
       }
@@ -2250,13 +2250,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "编辑说明"
+            "value": "编辑描述"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "編輯說明"
+            "value": "編輯描述"
           }
         }
       }
