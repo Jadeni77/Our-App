@@ -20,10 +20,21 @@ struct AlbumDetailView: View {
     // filed or removed while this exact screen is open — by the other phone,
     // mid-sync — would sit invisible until the view was torn down and rebuilt.
     @Query(filter: AlbumEntry.visible) private var entries: [AlbumEntry]
+    // Same reasoning again, one model further down: `AlbumSections` groups by
+    // `Photo.takenAt`, and a photo dated — or simply filed — by the other
+    // phone mid-sync has to regroup and redraw here without leaving the
+    // screen, the same way a membership change already does.
+    @Query(filter: Photo.visible) private var photos: [Photo]
     @State private var picking = false
     @State private var renaming = false
     @State private var confirmingDelete = false
     @State private var name = ""
+    @State private var editingCaption = false
+    @State private var captionText = ""
+    /// What "Set date" changes — one photo from its own context menu, or
+    /// every photo in a section from the section heading's own action. Both
+    /// funnel into the same sheet, so there is one date-setting UI, not two.
+    @State private var settingDate: DateTarget?
     // Same cache the grid reads from (`AlbumsGridView.cover(for:)`,
     // `MemoriesView.cell(_:)`) — a third copy of "read the full 2048px file
     // synchronously on every render" is exactly the mistake Task 5 already
@@ -43,18 +54,34 @@ struct AlbumDetailView: View {
             DreamyBackground(showsMoon: false)
 
             if let album {
-                let assets = AlbumStore.assets(of: album, in: context)
-                if assets.isEmpty {
-                    emptyState
-                } else {
-                    ScrollView {
-                        LazyVGrid(columns: columns, spacing: 3) {
-                            ForEach(assets, id: \.self) { asset in
-                                tile(asset, in: album)
+                // The album's own members, then the `Photo` rows behind them —
+                // `AlbumSections` groups by day, and the day lives on `Photo`,
+                // not on the bare asset id the old flat grid was content with.
+                let assetIDs = AlbumStore.assets(of: album, in: context)
+                let assetSet = Set(assetIDs)
+                let albumPhotos = photos.filter { assetSet.contains($0.assetID) }
+                let sections = AlbumSections.sections(for: albumPhotos)
+
+                ScrollView {
+                    // The generous gap the reference has between sections —
+                    // applies equally above the first one, so the hero reads
+                    // as its own block rather than crowding the first date.
+                    LazyVStack(alignment: .leading, spacing: 28) {
+                        hero(for: album, count: assetIDs.count)
+
+                        if sections.isEmpty {
+                            // Centered rather than left-hugging the leading
+                            // edge the section headings use — this is a
+                            // message about the whole page, not a heading of
+                            // its own.
+                            emptyState.frame(maxWidth: .infinity)
+                        } else {
+                            ForEach(sections) { section in
+                                sectionView(section, in: album)
                             }
                         }
-                        .padding(.horizontal, 3)
                     }
+                    .padding(.bottom, 24)
                 }
             }
         }
@@ -68,6 +95,9 @@ struct AlbumDetailView: View {
                     Button { picking = true } label: { Label("Add photos", systemImage: "plus") }
                     Button { name = album?.name ?? ""; renaming = true } label: {
                         Label("Rename", systemImage: "pencil")
+                    }
+                    Button { captionText = album?.caption ?? ""; editingCaption = true } label: {
+                        Label("Edit caption", systemImage: "text.quote")
                     }
                     Button(role: .destructive) { confirmingDelete = true } label: {
                         Label("Delete album", systemImage: "trash")
@@ -123,6 +153,30 @@ struct AlbumDetailView: View {
         .sheet(isPresented: $picking) {
             if let album { PhotoPickerSheet(album: album) }
         }
+        .sheet(isPresented: $editingCaption) {
+            NavigationStack {
+                Form {
+                    // Free text, and no guard on Save below — a blank caption
+                    // is `Album.caption`'s own default state, not an invalid
+                    // one, unlike the name the `Rename` alert above refuses
+                    // to leave empty.
+                    TextField("Caption", text: $captionText, axis: .vertical)
+                }
+                .navigationTitle(Text("Edit caption"))
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { editingCaption = false }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Save") { saveCaption() }
+                    }
+                }
+            }
+        }
+        .sheet(item: $settingDate) { target in
+            SetDateSheet(photos: target.photos)
+        }
     }
 
     /// Dismisses after the tombstone lands — otherwise `album` goes nil the
@@ -141,10 +195,147 @@ struct AlbumDetailView: View {
         dismiss()
     }
 
+    /// The couple's own line about the album — allowed to land blank, unlike
+    /// a name. Trimmed the same way `rename` trims one, so a stray leading or
+    /// trailing return from the keyboard doesn't linger forever.
+    private func saveCaption() {
+        guard let album else { return }
+        Haptics.tap()
+        album.caption = captionText.trimmingCharacters(in: .whitespacesAndNewlines)
+        album.updatedAt = .now
+        try? context.save()
+        editingCaption = false
+    }
+
+    /// The album's cover, full-bleed, with its name, count and caption
+    /// legible over it — the "this is a place, not a pile of squares" cue
+    /// 微爱's album screen has and the old flat grid never did. Art, colour
+    /// and type are this app's own; only the layout idea is borrowed.
     @ViewBuilder
-    private func tile(_ asset: String, in album: Album) -> some View {
+    private func hero(for album: Album, count: Int) -> some View {
+        let cover = AlbumStore.cover(of: album, in: context)
+        GeometryReader { geometry in
+            ZStack(alignment: .bottomLeading) {
+                if let cover, let image = thumbnails.image(for: cover) {
+                    // `scaledToFill` reports the *scaled-up* image size, not
+                    // the frame it was asked to fill — for a square photo in
+                    // a wide hero that's taller than 220pt, which would push
+                    // the whole `ZStack` (and the bottom-aligned text below)
+                    // that much taller too, clipping the text mostly off the
+                    // bottom rather than sizing it correctly. Pinning the
+                    // image to the geometry reader's own resolved size, and
+                    // clipping right here, keeps that overflow from ever
+                    // reaching the `ZStack`'s layout at all.
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .clipped()
+                } else {
+                    // No cover — because the album is genuinely empty, or
+                    // because the chosen one just hasn't finished loading —
+                    // reads as the shell's own art, not a grey slab waiting
+                    // for a picture that may never come.
+                    DreamyBackground(showsMoon: false)
+                }
+
+                LinearGradient(colors: [.clear, .black.opacity(0.7)],
+                               startPoint: .top, endPoint: .bottom)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(verbatim: album.name)
+                        .font(.system(.title2, design: .rounded).weight(.bold))
+                        .foregroundStyle(.white)
+                    Text("\(count) photos")
+                        .font(.system(.subheadline, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.85))
+                    // The line the couple writes about the album itself, not
+                    // about any one photo in it (`Album.caption`'s own doc).
+                    // Nothing shown at all until they write one — a blank
+                    // line under the count would read as a mistake, not an
+                    // invitation.
+                    if !album.caption.isEmpty {
+                        Text(verbatim: album.caption)
+                            .font(.system(.footnote, design: .rounded))
+                            .foregroundStyle(.white.opacity(0.75))
+                            .lineLimit(2)
+                    }
+                }
+                .padding(16)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 220)
+        .clipped()
+        // Keyed on the cover, not bare — `AlbumsGridView.cover(for:)`'s own
+        // reasoning: a plain `.task` fires once per tile identity, so a cover
+        // changed to a photo nothing had thumbnailed yet would never trigger
+        // the one load that fixes it.
+        .task(id: cover) {
+            if let cover { await thumbnails.loadIfNeeded(cover) }
+        }
+    }
+
+    @ViewBuilder
+    private func sectionView(_ section: AlbumSections.Section, in album: Album) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionHeading(section)
+                .padding(.horizontal, 12)
+            LazyVGrid(columns: columns, spacing: 3) {
+                ForEach(section.photos, id: \.id) { photo in
+                    tile(photo, in: album)
+                }
+            }
+            .padding(.horizontal, 3)
+        }
+    }
+
+    /// "6.11" large next to a smaller "/2024" — the reference's cue, in this
+    /// app's own type (`.rounded`, white at two opacities) rather than a copy
+    /// of theirs. The calendar button sets one date for every photo the
+    /// heading covers at once; the reference shows five photos under one
+    /// day, and dating them one at a time would be tedious.
+    @ViewBuilder
+    private func sectionHeading(_ section: AlbumSections.Section) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
+            if let day = section.day {
+                // `day` already came out of `SpecialDateSchedule.localDay` in
+                // this same (`.current`) calendar, so re-reading its
+                // components back through `.current` can't disagree with the
+                // grouping that produced it.
+                let parts = Calendar.current.dateComponents([.month, .day, .year], from: day)
+                Text(verbatim: "\(parts.month ?? 0).\(parts.day ?? 0)")
+                    .font(.system(.title3, design: .rounded).weight(.bold))
+                    .foregroundStyle(.white)
+                Text(verbatim: "/\(parts.year ?? 0)")
+                    .font(.system(.footnote, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.55))
+            } else {
+                // The couple sets dates by hand, so this is the trailing
+                // section for whichever photos nobody has gotten to yet — the
+                // same word `MemoriesView` already uses for undated memories.
+                Text("Sometime")
+                    .font(.system(.title3, design: .rounded).weight(.bold))
+                    .foregroundStyle(.white)
+            }
+
+            Spacer()
+
+            Button {
+                Haptics.tap()
+                settingDate = DateTarget(photos: section.photos)
+            } label: {
+                Image(systemName: "calendar")
+                    .foregroundStyle(.white.opacity(0.7))
+            }
+            .accessibilityLabel(Text("Set date"))
+        }
+    }
+
+    @ViewBuilder
+    private func tile(_ photo: Photo, in album: Album) -> some View {
         ZStack {
-            if let image = thumbnails.image(for: asset) {
+            if let image = thumbnails.image(for: photo.assetID) {
                 Image(uiImage: image).resizable().scaledToFill()
             } else {
                 // The record arrived before its picture, which is deliberate:
@@ -154,14 +345,17 @@ struct AlbumDetailView: View {
             }
         }
         .frame(height: 116)
-        .clipped()
-        .task { await thumbnails.loadIfNeeded(asset) }
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .task { await thumbnails.loadIfNeeded(photo.assetID) }
         .contextMenu {
-            Button { AlbumStore.setCover(album, to: asset, in: context) } label: {
+            Button { AlbumStore.setCover(album, to: photo.assetID, in: context) } label: {
                 Label("Use as cover", systemImage: "star")
             }
+            Button { settingDate = DateTarget(photos: [photo]) } label: {
+                Label("Set date", systemImage: "calendar")
+            }
             Button(role: .destructive) {
-                AlbumStore.remove(assetID: asset, from: album, in: context)
+                AlbumStore.remove(assetID: photo.assetID, from: album, in: context)
             } label: {
                 Label("Remove from album", systemImage: "minus.circle")
             }
@@ -178,6 +372,75 @@ struct AlbumDetailView: View {
                 .foregroundStyle(.white.opacity(0.85))
         }
         .padding(32)
+    }
+}
+
+/// What "Set date" changes, whether it came from one photo's own context menu
+/// or a whole section's heading action — one sheet, one Save, regardless of
+/// how many `Photo` rows ended up in the list.
+private struct DateTarget: Identifiable {
+    let id = UUID()
+    let photos: [Photo]
+}
+
+/// Setting a capture date by hand — the only way this app can put one on a
+/// photo at all. Import keeps only the bytes; the owner chose this over
+/// asking for photo-library permission just to read a date off it.
+///
+/// `.graphical`, not the compact wheel: picking a day for a photo from months
+/// back is exactly the case a full calendar gets to faster than scrolling
+/// wheels one tick at a time.
+private struct SetDateSheet: View {
+    let photos: [Photo]
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var context
+    @State private var date: Date
+
+    init(photos: [Photo]) {
+        self.photos = photos
+        // Seeded from whichever day the group already has, so re-opening an
+        // already-dated section doesn't silently reset it to today. An
+        // undated section, or a photo that's never been dated, starts on
+        // today as the least surprising guess to correct from.
+        _date = State(initialValue: photos.first?.takenAt.map {
+            SpecialDateSchedule.localDay(of: $0)
+        } ?? .now)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                DatePicker(selection: $date, displayedComponents: .date) {
+                    Text("Date")
+                }
+                .datePickerStyle(.graphical)
+            }
+            .navigationTitle(Text("Set date"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") { save() }
+                }
+            }
+        }
+    }
+
+    private func save() {
+        Haptics.tap()
+        // Anchored the same way a Special Date is: noon UTC of the chosen
+        // civil day, so the day `AlbumSections` groups it under agrees on
+        // both phones no matter which timezone either is in when this saves
+        // or later reads it back (`SpecialDateSchedule.anchor`).
+        let anchor = SpecialDateSchedule.anchor(for: date)
+        for photo in photos {
+            photo.takenAt = anchor
+            photo.updatedAt = .now
+        }
+        try? context.save()
+        dismiss()
     }
 }
 

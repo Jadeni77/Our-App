@@ -393,6 +393,14 @@ struct LocalizationTests {
         #expect(localizedValue("All photos", language: "zh-Hans") == "全部照片")
         #expect(localizedValue("Moments", language: "zh-Hant") == "時光")
         #expect(localizedValue("Albums", language: "zh-Hans") == "相册")
+        // The album detail hero and its date sections: caption editing and
+        // hand-set dates, both reached through `Label`/`TextField`, neither
+        // of which `StringCatalogCoverageTests` can see.
+        #expect(localizedValue("Edit caption", language: "zh-Hans") == "编辑说明")
+        #expect(localizedValue("Edit caption", language: "zh-Hant") == "編輯說明")
+        #expect(localizedValue("Caption", language: "zh-Hans") == "说明")
+        #expect(localizedValue("Set date", language: "zh-Hans") == "设置日期")
+        #expect(localizedValue("Set date", language: "zh-Hant") == "設定日期")
     }
 
     /// **English needs a plural rule; Chinese doesn't have one.**

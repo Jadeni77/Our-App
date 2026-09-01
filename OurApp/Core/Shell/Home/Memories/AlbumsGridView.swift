@@ -85,11 +85,16 @@ struct AlbumsGridView: View {
                 AlbumStore.create(name: trimmedNewName, authorID: LocalAuthor.id(),
                                   in: context)
             }
-            // The house pattern (`SpecialDateEditorSheet`): a confirm button
-            // that can't do anything says so, rather than accepting the tap and
-            // dismissing as though it had worked. The guard above stays as the
-            // rule; this is how the rule becomes visible.
-            .disabled(trimmedNewName.isEmpty)
+            // No `.disabled` here on purpose, even though the house pattern
+            // elsewhere (`SpecialDateEditorSheet`) is to disable a confirm
+            // button that can't do anything yet. `newName` starts empty every
+            // time this alert opens, so a `.disabled(trimmedNewName.isEmpty)`
+            // button would start disabled on first presentation — and on
+            // iOS 17 (this project's deployment target) a `Button` inside an
+            // `.alert` that starts disabled never fires its action at all,
+            // even after the field is filled in and the button re-enables.
+            // The guard above is the only validation this needs; a button
+            // that can't do anything already says so by doing nothing.
             Button("Cancel", role: .cancel) {}
         }
     }
