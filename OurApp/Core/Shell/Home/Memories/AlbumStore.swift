@@ -54,6 +54,12 @@ enum AlbumStore {
     /// a second row — the id is derived from the album and the asset, so
     /// there is only ever one row to find, whichever phone or however many
     /// times either of you taps "add".
+    ///
+    /// The revival is only half the feature: it replicates because
+    /// `SyncApply.applyAlbumEntry` is the one type exempted from the
+    /// sticky-tombstone rule. Without that exemption this line is a local-only
+    /// resurrection the other phone refuses forever, which is exactly what
+    /// shipped for one review round.
     static func add(assetID: String, to album: Album, authorID: String,
                     in context: ModelContext) {
         let id = AlbumEntry.id(album: album.id, asset: assetID)

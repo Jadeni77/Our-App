@@ -43,12 +43,33 @@ enum SyncApply {
     ///   timestamps say. The cost is a lost edit; the alternative is a memory
     ///   you deliberately deleted reappearing days later.
     /// - Otherwise: last-writer-wins with the `authorID` tiebreak.
+    ///
+    /// **One type does not come through here**: `applyAlbumEntry` calls
+    /// `lastWriterWins` directly, because a membership is toggleable state
+    /// rather than content and a sticky tombstone makes re-filing a photo
+    /// impossible to replicate. Its own doc comment carries the full reasoning.
     static func verdict(for envelope: SyncEnvelope,
                         existingUpdatedAt: Date?,
                         existingAuthorID: String?,
                         existingDeletedAt: Date?) -> Bool {
+        guard existingDeletedAt == nil else { return false }
+        return lastWriterWins(envelope,
+                              existingUpdatedAt: existingUpdatedAt,
+                              existingAuthorID: existingAuthorID)
+    }
+
+    /// `verdict` **without** the sticky-tombstone gate: pure last-writer-wins
+    /// with the deterministic `authorID` tiebreak.
+    ///
+    /// Split out rather than copied so there is still exactly one place that
+    /// knows how two writes are compared. Convergence lives here; whether a
+    /// tombstone is final is the caller's rule, and only `applyAlbumEntry`
+    /// answers that differently.
+    static func lastWriterWins(_ envelope: SyncEnvelope,
+                               existingUpdatedAt: Date?,
+                               existingAuthorID: String?) -> Bool {
+        // Nothing local to compare against: take it, tombstone or not.
         guard let existingUpdatedAt, let existingAuthorID else { return true }
-        if existingDeletedAt != nil { return false }
         return envelope.supersedes(SyncEnvelope(recordType: envelope.recordType,
                                                 id: envelope.id,
                                                 authorID: existingAuthorID,
@@ -447,18 +468,46 @@ enum SyncApply {
         return true
     }
 
-    /// Append-and-tombstone: a membership is only ever added or removed, never
-    /// edited, so there is nothing here to conflict over beyond which of those
+    /// Add or remove, and nothing else — so the only conflict is which of those
     /// happened last.
+    ///
+    /// **The one documented exception to the sticky-tombstone rule (P21).**
+    /// This calls `lastWriterWins` instead of `verdict`, so a tombstoned
+    /// membership can come back.
+    ///
+    /// Why this type and no other: a membership is *toggleable state*, not user
+    /// content. Taking a photo out of an album destroys nothing — the picture,
+    /// its file and its other albums are all untouched (`AlbumStore.remove`) —
+    /// so the worst a revived row can do is put a photo back in an album
+    /// somebody can take out again with one tap. P21 exists to stop a memory
+    /// you deliberately deleted reappearing days later; there is no equivalent
+    /// loss here, and there is a real one on the other side.
+    ///
+    /// What the sticky rule actually cost: a photo is in 🎀 on both phones, I
+    /// remove it, the tombstone syncs, her count goes to 0. Tomorrow I tap it
+    /// again — `AlbumStore.add` un-tombstones my row and my album reads 1. My
+    /// envelope reaches her, `verdict` sees her tombstone, returns false, and
+    /// nothing happens and nothing is logged. Mine says 1, hers says 0,
+    /// **permanently**: the push watermark only moves forward, so that envelope
+    /// is never sent again. Re-filing a photo could not replicate at all.
+    ///
+    /// If you are tempted to "fix" this back to `verdict`, that failure is what
+    /// you are restoring. The alternative that does not work is deleting the
+    /// revival branch in `AlbumStore.add` — that makes tapping an
+    /// already-removed photo do nothing, which this codebase treats as a
+    /// cardinal sin.
+    ///
+    /// Convergence is not lost: the id is derived from `(albumID, assetID)` so
+    /// both phones are always writing one row, and LWW's `authorID` tiebreak
+    /// makes the winner the same on both sides in any delivery order.
     private static func applyAlbumEntry(_ envelope: SyncEnvelope,
                                         in context: ModelContext) -> Bool {
         let id = envelope.id
         let existing = try? context.fetch(
             FetchDescriptor<AlbumEntry>(predicate: #Predicate { $0.id == id })).first
-        guard verdict(for: envelope,
-                      existingUpdatedAt: existing?.updatedAt,
-                      existingAuthorID: existing?.authorID,
-                      existingDeletedAt: existing?.deletedAt) else { return false }
+        guard lastWriterWins(envelope,
+                             existingUpdatedAt: existing?.updatedAt,
+                             existingAuthorID: existing?.authorID) else { return false }
 
         guard let albumID = envelope.string("albumID").flatMap(UUID.init(uuidString:)),
               let assetID = envelope.string("assetID")

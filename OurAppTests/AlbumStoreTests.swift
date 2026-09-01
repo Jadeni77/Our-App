@@ -116,6 +116,35 @@ struct AlbumConvergenceTests {
         ModelContext(try Persistence.makeContainer(inMemory: true))
     }
 
+    /// One tick of sync in both directions: every membership either phone
+    /// holds is offered to the other, which is what the real engine does and
+    /// the only way a merge rule's *refusals* are visible at all.
+    private func exchange(_ mine: ModelContext, _ theirs: ModelContext) throws {
+        let fromMe = try mine.fetch(FetchDescriptor<AlbumEntry>()).map { $0.envelope() }
+        let fromThem = try theirs.fetch(FetchDescriptor<AlbumEntry>()).map { $0.envelope() }
+        for envelope in fromThem {
+            SyncApply.apply(envelope, in: mine, localAuthorID: "me")
+        }
+        for envelope in fromMe {
+            SyncApply.apply(envelope, in: theirs, localAuthorID: "them")
+        }
+        try mine.save()
+        try theirs.save()
+    }
+
+    /// The same album on both phones, which is what the derived ids give us.
+    private func sharedAlbum(_ mine: ModelContext,
+                             _ theirs: ModelContext) throws -> (Album, Album) {
+        let album = Album(name: "🎀", authorID: "me")
+        mine.insert(album)
+        let hers = Album(name: "🎀", authorID: "me")
+        hers.id = album.id
+        theirs.insert(hers)
+        try mine.save()
+        try theirs.save()
+        return (album, hers)
+    }
+
     /// **The property the whole design rests on.** Both of you filing one
     /// picture into one album, from different phones, must converge on a single
     /// membership — not two rows that can never be reconciled, which is what
@@ -144,5 +173,65 @@ struct AlbumConvergenceTests {
         #expect(try mine.fetch(FetchDescriptor<AlbumEntry>()).count == 1)
         #expect(try theirs.fetch(FetchDescriptor<AlbumEntry>()).count == 1)
         #expect(AlbumStore.count(of: album, in: mine) == 1)
+    }
+
+    /// **Re-filing a photo after a removal has synced must reach both phones.**
+    ///
+    /// This is the failure that made `AlbumEntry` the documented exception to
+    /// the sticky-tombstone rule (P21). With `verdict` in `applyAlbumEntry`,
+    /// the last step below is where it broke: her row is tombstoned, so the
+    /// envelope reviving mine was refused silently, my album read 1 and hers
+    /// read 0 for good — the push watermark only moves forward, so that
+    /// envelope never gets a second chance.
+    ///
+    /// Deliberately not a local-only test. Everything before the last exchange
+    /// passed on the broken build; only two contexts trading envelopes both
+    /// ways shows it.
+    @Test func refilingAfterASyncedRemovalReachesBothPhones() throws {
+        let mine = try context()
+        let theirs = try context()
+        let (album, hers) = try sharedAlbum(mine, theirs)
+
+        AlbumStore.add(assetID: "a", to: album, authorID: "me", in: mine)
+        try exchange(mine, theirs)
+        #expect(AlbumStore.count(of: album, in: mine) == 1)
+        #expect(AlbumStore.count(of: hers, in: theirs) == 1)
+
+        // I take it out; the tombstone travels and her count follows.
+        AlbumStore.remove(assetID: "a", from: album, in: mine)
+        try exchange(mine, theirs)
+        #expect(AlbumStore.count(of: album, in: mine) == 0)
+        #expect(AlbumStore.count(of: hers, in: theirs) == 0)
+
+        // Tomorrow I tap it again. One row, revived — and it must replicate.
+        AlbumStore.add(assetID: "a", to: album, authorID: "me", in: mine)
+        #expect(AlbumStore.count(of: album, in: mine) == 1)
+        try exchange(mine, theirs)
+
+        #expect(AlbumStore.count(of: album, in: mine) == 1)
+        #expect(AlbumStore.count(of: hers, in: theirs) == 1)
+        // Still one row each: reviving is a write to the membership that was
+        // already there, never a second one that could never be reconciled.
+        #expect(try mine.fetch(FetchDescriptor<AlbumEntry>()).count == 1)
+        #expect(try theirs.fetch(FetchDescriptor<AlbumEntry>()).count == 1)
+    }
+
+    /// The other half of the exception: **a removal still wins when it is the
+    /// newer write.** Dropping the tombstone gate must not make tombstones
+    /// weightless — a photo she takes out after I put it in has to leave my
+    /// album too, or "remove" is the action that silently does nothing.
+    @Test func aNewerRemovalStillBeatsAnOlderAdd() throws {
+        let mine = try context()
+        let theirs = try context()
+        let (album, hers) = try sharedAlbum(mine, theirs)
+
+        AlbumStore.add(assetID: "a", to: album, authorID: "me", in: mine)
+        try exchange(mine, theirs)
+
+        AlbumStore.remove(assetID: "a", from: hers, in: theirs)
+        try exchange(mine, theirs)
+
+        #expect(AlbumStore.count(of: album, in: mine) == 0)
+        #expect(AlbumStore.count(of: hers, in: theirs) == 0)
     }
 }
