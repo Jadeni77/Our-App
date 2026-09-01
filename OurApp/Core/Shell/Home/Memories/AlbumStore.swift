@@ -90,15 +90,16 @@ enum AlbumStore {
         try? context.save()
     }
 
-    /// The album's photos, newest-added first — the same ordering `cover(of:)`
-    /// relies on to find the newest member.
+    /// The album's photos, newest-added first — the same ordering `summary(of:)`
+    /// relies on to find the newest member. Delegates there rather than
+    /// running its own fetch: `AlbumDetailView` used to call this *and*
+    /// `cover(of:)` separately on every render, paying for the live-entries
+    /// fetch twice for numbers that were always going to agree.
     static func assets(of album: Album, in context: ModelContext) -> [String] {
-        entries(of: album, in: context)
-            .sorted { $0.addedAt > $1.addedAt }
-            .map(\.assetID)
+        summary(of: album, in: context).assetIDs
     }
 
-    /// **Both delegate to `summary(of:)`**, which is what the app actually
+    /// **All three delegate to `summary(of:)`**, which is what the app actually
     /// calls. They used to re-implement the same two rules a few lines apart,
     /// so the shipped cover rule had no test and the tested one had no caller —
     /// three tests exercising code the app never ran, which is worse than no
@@ -114,24 +115,43 @@ enum AlbumStore {
         summary(of: album, in: context).cover
     }
 
-    /// The cover and the count together, off **one** fetch of the live
-    /// memberships instead of the two they would each run alone — a grid asking
-    /// for both per tile, once per render, is exactly the case that turns a
-    /// single extra fetch into a noticeable number of them.
+    /// The cover, the count, and the member asset ids together, off **one**
+    /// fetch of the live memberships instead of the two or three separate
+    /// calls a screen asking for each in turn would run — a grid asking for
+    /// cover and count per tile, once per render, is exactly the case that
+    /// turns a single extra fetch into a noticeable number of them, and
+    /// `AlbumDetailView`'s hero and grid asking separately for cover and for
+    /// the member list is the same mistake one screen further in.
     ///
     /// This is where the cover rule lives, and the only place it lives:
     /// the chosen cover while it is still a member, otherwise the newest
     /// member, otherwise nothing.
-    static func summary(of album: Album, in context: ModelContext) -> (cover: String?, count: Int) {
-        let members = entries(of: album, in: context)
+    static func summary(of album: Album, in context: ModelContext)
+        -> (cover: String?, count: Int, assetIDs: [String]) {
+        let assetIDs = entries(of: album, in: context)
+            .sorted { $0.addedAt > $1.addedAt }
+            .map(\.assetID)
         let cover: String?
-        if let chosen = album.coverAssetID,
-           members.contains(where: { $0.assetID == chosen }) {
+        if let chosen = album.coverAssetID, assetIDs.contains(chosen) {
             cover = chosen
         } else {
-            cover = members.sorted { $0.addedAt > $1.addedAt }.first?.assetID
+            cover = assetIDs.first
         }
-        return (cover, members.count)
+        return (cover, assetIDs.count, assetIDs)
+    }
+
+    /// Which of `assetIDs` (typically `summary(of:).assetIDs`) have no
+    /// matching row in `knownPhotos`. Pure — no fetch of its own, so the
+    /// caller decides what "known" means — because this is exactly the
+    /// "membership arrived before its photo" case `entries(of:)` deliberately
+    /// keeps rather than drops (its own doc comment covers the *counting*
+    /// half; this is the *rendering* half). A screen that grouped photos by
+    /// day straight off `Photo` rows, with nothing kept for this list, would
+    /// silently drop such a membership from the grid while the count above it
+    /// still included it — one screen contradicting itself.
+    static func orphanedAssets(in assetIDs: [String], notMatching knownPhotos: [Photo]) -> [String] {
+        let known = Set(knownPhotos.map(\.assetID))
+        return assetIDs.filter { !known.contains($0) }
     }
 
     /// Live memberships only. A tombstoned entry stopped counting the moment

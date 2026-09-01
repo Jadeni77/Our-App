@@ -57,9 +57,23 @@ struct AlbumDetailView: View {
                 // The album's own members, then the `Photo` rows behind them —
                 // `AlbumSections` groups by day, and the day lives on `Photo`,
                 // not on the bare asset id the old flat grid was content with.
-                let assetIDs = AlbumStore.assets(of: album, in: context)
-                let assetSet = Set(assetIDs)
-                let albumPhotos = photos.filter { assetSet.contains($0.assetID) }
+                //
+                // One fetch of the live memberships serves the cover, the
+                // count and the member list together (`AlbumStore.summary(of:)`'s
+                // own reasoning) — asking `cover(of:)` and `assets(of:)`
+                // separately paid for the same fetch twice on every render.
+                let summary = AlbumStore.summary(of: album, in: context)
+                let memberSet = Set(summary.assetIDs)
+                let albumPhotos = photos.filter { memberSet.contains($0.assetID) }
+                // A membership can arrive before its `Photo` row does
+                // (`AlbumStore.entries(of:)`'s own doc comment). Grouping by
+                // day needs a `Photo` to know which heading a photo belongs
+                // under, so one of these can't go through `AlbumSections` —
+                // but dropping it from the screen entirely would make it
+                // invisible *and* unremovable: no tile to long-press, and
+                // `PhotoPickerSheet` only ever lists `Photo` rows.
+                let orphanAssetIDs = AlbumStore.orphanedAssets(in: summary.assetIDs,
+                                                               notMatching: albumPhotos)
                 let sections = AlbumSections.sections(for: albumPhotos)
 
                 ScrollView {
@@ -67,9 +81,9 @@ struct AlbumDetailView: View {
                     // applies equally above the first one, so the hero reads
                     // as its own block rather than crowding the first date.
                     LazyVStack(alignment: .leading, spacing: 28) {
-                        hero(for: album, count: assetIDs.count)
+                        hero(for: album, cover: summary.cover, count: summary.count)
 
-                        if sections.isEmpty {
+                        if sections.isEmpty && orphanAssetIDs.isEmpty {
                             // Centered rather than left-hugging the leading
                             // edge the section headings use — this is a
                             // message about the whole page, not a heading of
@@ -78,6 +92,9 @@ struct AlbumDetailView: View {
                         } else {
                             ForEach(sections) { section in
                                 sectionView(section, in: album)
+                            }
+                            if !orphanAssetIDs.isEmpty {
+                                orphanGrid(orphanAssetIDs, in: album)
                             }
                         }
                     }
@@ -288,6 +305,33 @@ struct AlbumDetailView: View {
             }
             .padding(.horizontal, 3)
         }
+    }
+
+    /// Members with no `Photo` row to key a day-section on
+    /// (`AlbumStore.orphanedAssets`'s own reasoning) — trailing, past every
+    /// dated section and "Sometime", because there's nothing here to sort by
+    /// day at all. Always the placeholder glyph, never an attempted image
+    /// load: without a `Photo` row there's no confirmed picture behind the id
+    /// yet, only a membership. Removable, the one thing that still makes
+    /// sense with no `Photo` row present — there's no cover or date to set on
+    /// a picture that hasn't arrived.
+    @ViewBuilder
+    private func orphanGrid(_ assetIDs: [String], in album: Album) -> some View {
+        LazyVGrid(columns: columns, spacing: 3) {
+            ForEach(assetIDs, id: \.self) { assetID in
+                PhotoPlaceholder()
+                    .frame(height: 116)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .contextMenu {
+                        Button(role: .destructive) {
+                            AlbumStore.remove(assetID: assetID, from: album, in: context)
+                        } label: {
+                            Label("Remove from album", systemImage: "minus.circle")
+                        }
+                    }
+            }
+        }
+        .padding(.horizontal, 3)
     }
 
     /// "6.11" large next to a smaller "/2024" — the reference's cue, in this
