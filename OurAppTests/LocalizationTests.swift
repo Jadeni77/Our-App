@@ -366,6 +366,68 @@ struct LocalizationTests {
                 == "巨影不怕撞——慢慢磨")
     }
 
+    /// **Checked by hand because nothing else can check them.**
+    ///
+    /// `StringCatalogCoverageTests` scans literal `Text("…")` only, and the
+    /// albums feature reaches the user almost entirely through `Label`,
+    /// `.alert`, `TextField` and `Button("…")` — so its suite passing says
+    /// nothing at all about these keys.
+    @Test func albumStringsAreTranslated() {
+        #expect(localizedValue("New album", language: "zh-Hans") == "新建相册")
+        #expect(localizedValue("New album", language: "zh-Hant") == "新增相簿")
+        // **A distinct key from `Name`.** `Name`'s Chinese is 名字 — a person's
+        // *given* name, which is what it means in the profile sheet it was
+        // written for. Asking 名字 for an album reads like asking a photo album
+        // what it is called personally.
+        #expect(localizedValue("Album name", language: "zh-Hans") == "名称")
+        #expect(localizedValue("Album name", language: "zh-Hant") == "名稱")
+        #expect(localizedValue("Name", language: "zh-Hans") == "名字")
+        #expect(localizedValue("Add photos", language: "zh-Hans") == "添加照片")
+        #expect(localizedValue("Add photos", language: "zh-Hant") == "加入照片")
+        #expect(localizedValue("Delete album", language: "zh-Hans") == "删除相册")
+        #expect(localizedValue("Delete album", language: "zh-Hant") == "刪除相簿")
+        #expect(localizedValue("Use as cover", language: "zh-Hant") == "設為封面")
+        #expect(localizedValue("Remove from album", language: "zh-Hans") == "从相册移除")
+        #expect(localizedValue("Rename", language: "zh-Hans") == "重命名")
+        #expect(localizedValue("Rename", language: "zh-Hant") == "重新命名")
+        #expect(localizedValue("All photos", language: "zh-Hans") == "全部照片")
+        #expect(localizedValue("Moments", language: "zh-Hant") == "時光")
+        #expect(localizedValue("Albums", language: "zh-Hans") == "相册")
+    }
+
+    /// **English needs a plural rule; Chinese doesn't have one.**
+    ///
+    /// Every album with one photo in it read "1 photos". Asserted against the
+    /// catalog rather than the bundle: a plural variation compiles to
+    /// `Localizable.stringsdict`, which `localizedString(forKey:)` above does
+    /// not read, so a bundle lookup here would prove the opposite of what it
+    /// looked like it proved.
+    @Test func theAlbumCountHasAnEnglishPluralRule() throws {
+        let url = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("OurApp/Resources/Localizable.xcstrings")
+        let root = try JSONSerialization.jsonObject(with: try Data(contentsOf: url))
+            as! [String: Any]
+        let strings = root["strings"] as! [String: Any]
+        let entry = try #require(strings["%lld photos"] as? [String: Any])
+        let localizations = try #require(entry["localizations"] as? [String: Any])
+        let english = try #require(localizations["en"] as? [String: Any])
+        let plural = try #require(
+            (english["variations"] as? [String: Any])?["plural"] as? [String: Any])
+
+        func value(_ category: String) -> String? {
+            ((plural[category] as? [String: Any])?["stringUnit"]
+                as? [String: Any])?["value"] as? String
+        }
+        #expect(value("one") == "%lld photo")
+        #expect(value("other") == "%lld photos")
+        // Chinese counts the same way whatever the number, so a variation there
+        // would be three copies of one string.
+        #expect((localizations["zh-Hans"] as? [String: Any])?["stringUnit"] != nil)
+        #expect((localizations["zh-Hant"] as? [String: Any])?["stringUnit"] != nil)
+    }
+
     @Test func springboardStringsAreTranslated() {
         #expect(localizedValue("Home", language: "zh-Hans") == "首页")
         #expect(localizedValue("Home", language: "zh-Hant") == "首頁")
