@@ -36,9 +36,10 @@ struct AlbumDetailView: View {
     /// funnel into the same sheet, so there is one date-setting UI, not two.
     @State private var settingDate: DateTarget?
     // Same cache the grid reads from (`AlbumsGridView.cover(for:)`,
-    // `MemoriesView.cell(_:)`) — a third copy of "read the full 2048px file
-    // synchronously on every render" is exactly the mistake Task 5 already
-    // caught and fixed once.
+    // `MemoriesView.cell(_:)`) — a third copy of "read a file synchronously
+    // on every render" is exactly the mistake Task 5 already caught and
+    // fixed once. The hero below reads this object's *full-size* tier
+    // (`MemoryThumbnails.fullImage`), not the 400px one the grid tiles use.
     private let thumbnails = MemoryThumbnails.shared
 
     private var album: Album? { albums.first { $0.id == albumID } }
@@ -229,11 +230,15 @@ struct AlbumDetailView: View {
     /// 微爱's album screen has and the old flat grid never did. Art, colour
     /// and type are this app's own; only the layout idea is borrowed.
     @ViewBuilder
-    private func hero(for album: Album, count: Int) -> some View {
-        let cover = AlbumStore.cover(of: album, in: context)
+    private func hero(for album: Album, cover: String?, count: Int) -> some View {
         GeometryReader { geometry in
             ZStack(alignment: .bottomLeading) {
-                if let cover, let image = thumbnails.image(for: cover) {
+                // `.fullImage`, not `.image` — the grid's 400px tier, which is
+                // what this used to read, upscales about 3x onto a surface
+                // this much wider than a grid tile. `MemoryPhotoStore`'s own
+                // 2048px copy exists precisely so a full-width, non-grid image
+                // like this one doesn't have to.
+                if let cover, let image = thumbnails.fullImage(for: cover) {
                     // `scaledToFill` reports the *scaled-up* image size, not
                     // the frame it was asked to fill — for a square photo in
                     // a wide hero that's taller than 220pt, which would push
@@ -250,10 +255,18 @@ struct AlbumDetailView: View {
                         .clipped()
                 } else {
                     // No cover — because the album is genuinely empty, or
-                    // because the chosen one just hasn't finished loading —
-                    // reads as the shell's own art, not a grey slab waiting
-                    // for a picture that may never come.
-                    DreamyBackground(showsMoon: false)
+                    // because the chosen one's full-size copy just hasn't
+                    // finished loading — `Color.clear` rather than a second
+                    // `DreamyBackground`: the page behind this whole screen
+                    // already draws one (a 30fps `TimelineView` with 26
+                    // particles and two animated gradients), and stacking a
+                    // second copy here showed for the first few frames of
+                    // *every* album while its cover loaded, not only a
+                    // genuinely empty one. Pinned to the same resolved size
+                    // as the image branch above, so which branch is showing
+                    // never changes this `ZStack`'s own layout.
+                    Color.clear
+                        .frame(width: geometry.size.width, height: geometry.size.height)
                 }
 
                 LinearGradient(colors: [.clear, .black.opacity(0.7)],
@@ -286,10 +299,11 @@ struct AlbumDetailView: View {
         .clipped()
         // Keyed on the cover, not bare — `AlbumsGridView.cover(for:)`'s own
         // reasoning: a plain `.task` fires once per tile identity, so a cover
-        // changed to a photo nothing had thumbnailed yet would never trigger
-        // the one load that fixes it.
+        // changed to a photo nothing had loaded yet would never trigger the
+        // one load that fixes it. Loads the **full** copy, not the grid's
+        // 400px thumbnail — see `MemoryThumbnails.fullImage`.
         .task(id: cover) {
-            if let cover { await thumbnails.loadIfNeeded(cover) }
+            if let cover { await thumbnails.loadFullIfNeeded(cover) }
         }
     }
 
