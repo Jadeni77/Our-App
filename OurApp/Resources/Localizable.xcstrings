@@ -1927,6 +1927,29 @@
         }
       }
     },
+    "Delete this album?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete this album?"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除此相册？"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刪除此相簿？"
+          }
+        }
+      }
+    },
     "Delete this memory?": {
       "extractionState": "manual",
       "localizations": {
@@ -2824,6 +2847,29 @@
         }
       }
     },
+    "Its photos aren't deleted — only the album is.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Its photos aren't deleted — only the album is."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "相册内的照片不会被删除，只会删除这个相册。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "相簿內的照片不會被刪除，只會刪除這個相簿。"
+          }
+        }
+      }
+    },
     "Its shell breaks first — hit it twice": {
       "extractionState": "manual",
       "localizations": {
@@ -3624,6 +3670,52 @@
           "stringUnit": {
             "state": "translated",
             "value": "還沒有別的日子，想記住的都可以加進來"
+          }
+        }
+      }
+    },
+    "No photos in this album yet": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No photos in this album yet"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个相册还没有照片"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這個相簿還沒有照片"
+          }
+        }
+      }
+    },
+    "No photos yet": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No photos yet"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没有照片"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "還沒有照片"
           }
         }
       }
