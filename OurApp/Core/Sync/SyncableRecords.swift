@@ -1,12 +1,19 @@
 import Foundation
 import SwiftData
 
-/// The four shared record types, each spelling out what travels.
+/// Every record type that travels, each spelling out what it sends.
 ///
 /// Kept in one file rather than scattered across the model definitions: this is
-/// the wire format, and seeing all four together is how you notice that one of
-/// them forgot a field. The `apply` side lives here too, so the read and the
-/// write of a given field are never more than a few lines apart.
+/// the wire format, and seeing them together is how you notice that one of them
+/// forgot a field. The matching `apply` rules live in `SyncApply.swift`, one
+/// function per type.
+///
+/// **There is no registry.** A type syncs because `SyncEngine.push` collects it
+/// and `SyncApply.apply` has a case for it — those two lists are the whole
+/// mechanism, and both are in `Core/Sync`. A `SyncRegistry` enum used to sit
+/// here claiming otherwise; it had zero call sites, named four of the twelve
+/// types, and its comment told whoever added the next model to register it in a
+/// place that did nothing.
 ///
 /// **Deliberate omissions**, so they read as decisions rather than oversights:
 /// `SpecialDate.emoji` (retired, and owed for deletion once the icon migration
@@ -77,26 +84,6 @@ extension CheckIn: SyncableRecord {
 
     func syncFields() -> [String: SyncValue] {
         ["day": .date(day)]
-    }
-}
-
-/// The registry the engine dispatches through. Adding a type means adding it
-/// here *and* to `apply` below; a type listed in neither simply doesn't sync,
-/// which is the safe direction.
-@MainActor
-enum SyncRegistry {
-    static let sharedTypes: [any SyncableRecord.Type] = [
-        SpecialDate.self, QuestionAnswer.self, Memory.self, CheckIn.self,
-    ]
-
-    static func category(of recordType: String) -> SyncCategory? {
-        switch recordType {
-        case SpecialDate.syncTypeName, QuestionAnswer.syncTypeName,
-             Memory.syncTypeName, CheckIn.syncTypeName:
-            .shared
-        default:
-            nil
-        }
     }
 }
 
