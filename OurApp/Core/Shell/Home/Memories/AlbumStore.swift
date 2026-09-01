@@ -98,26 +98,30 @@ enum AlbumStore {
             .map(\.assetID)
     }
 
+    /// **Both delegate to `summary(of:)`**, which is what the app actually
+    /// calls. They used to re-implement the same two rules a few lines apart,
+    /// so the shipped cover rule had no test and the tested one had no caller —
+    /// three tests exercising code the app never ran, which is worse than no
+    /// tests because it reads like coverage.
     static func count(of album: Album, in context: ModelContext) -> Int {
-        entries(of: album, in: context).count
+        summary(of: album, in: context).count
     }
 
     /// The chosen cover if it's still a member, otherwise the newest member,
     /// otherwise nothing at all. An empty album has to say it's empty rather
     /// than invent a picture nobody put there.
     static func cover(of album: Album, in context: ModelContext) -> String? {
-        let members = entries(of: album, in: context)
-        if let chosen = album.coverAssetID,
-           members.contains(where: { $0.assetID == chosen }) {
-            return chosen
-        }
-        return members.sorted { $0.addedAt > $1.addedAt }.first?.assetID
+        summary(of: album, in: context).cover
     }
 
-    /// `cover(of:)` and `count(of:)` together, off one fetch of the live
-    /// memberships instead of the two each would run alone — a grid asking
+    /// The cover and the count together, off **one** fetch of the live
+    /// memberships instead of the two they would each run alone — a grid asking
     /// for both per tile, once per render, is exactly the case that turns a
     /// single extra fetch into a noticeable number of them.
+    ///
+    /// This is where the cover rule lives, and the only place it lives:
+    /// the chosen cover while it is still a member, otherwise the newest
+    /// member, otherwise nothing.
     static func summary(of album: Album, in context: ModelContext) -> (cover: String?, count: Int) {
         let members = entries(of: album, in: context)
         let cover: String?
