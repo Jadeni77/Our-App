@@ -16,6 +16,18 @@ struct AlbumsGridView: View {
     // when an album is created, renamed or tombstoned; a plain function call
     // to the store wouldn't be observed on its own.
     @Query(filter: Album.visible) private var albums: [Album]
+    // Never read directly either, and here for the same reason — but for the
+    // two models this view *renders* rather than the one it lists. The body
+    // below reads `AlbumEntry` through `AlbumStore.summary(of:)`, once per tile,
+    // for every cover and count; and `Photo` through `PhotoLibrary.all(in:)`,
+    // for the All photos total. Both are plain fetches, and a plain fetch of a
+    // model nothing here observes is a number that stops changing: she files
+    // four photos into an album while I'm sitting on this grid, her tiles
+    // update, and mine keep the old count and the old cover indefinitely.
+    // `AlbumDetailView` states this rule and names this file; it was true of
+    // that screen and not of this one.
+    @Query(filter: AlbumEntry.visible) private var entries: [AlbumEntry]
+    @Query(filter: Photo.visible) private var photos: [Photo]
     @State private var naming = false
     @State private var newName = ""
     // Same cache `MemoriesView.cell(_:)` reads its grid thumbnails from —
@@ -64,14 +76,26 @@ struct AlbumsGridView: View {
             }
         }
         .alert("New album", isPresented: $naming) {
-            TextField("Name", text: $newName)
+            // Not the shared `Name` key: its Chinese is 名字, a *person's* given
+            // name, which is what it means everywhere else it is used. An album
+            // is 名称.
+            TextField("Album name", text: $newName)
             Button("Create") {
-                let name = newName.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !name.isEmpty else { return }
-                AlbumStore.create(name: name, authorID: LocalAuthor.id(), in: context)
+                guard !trimmedNewName.isEmpty else { return }
+                AlbumStore.create(name: trimmedNewName, authorID: LocalAuthor.id(),
+                                  in: context)
             }
+            // The house pattern (`SpecialDateEditorSheet`): a confirm button
+            // that can't do anything says so, rather than accepting the tap and
+            // dismissing as though it had worked. The guard above stays as the
+            // rule; this is how the rule becomes visible.
+            .disabled(trimmedNewName.isEmpty)
             Button("Cancel", role: .cancel) {}
         }
+    }
+
+    private var trimmedNewName: String {
+        newName.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     @ViewBuilder
@@ -101,7 +125,14 @@ struct AlbumsGridView: View {
             .frame(maxWidth: .infinity)
             .background(.white.opacity(0.10))
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .task { if let asset = summary.cover { await thumbnails.loadIfNeeded(asset) } }
+            // **Keyed on the cover, not bare.** A tile's identity is its album,
+            // so a plain `.task` fires once and never again — set the cover to
+            // a photo nothing had thumbnailed yet and the tile sat on the
+            // "empty album" glyph, because the one load that would have fixed
+            // it had already run against the previous cover.
+            .task(id: summary.cover) {
+                if let asset = summary.cover { await thumbnails.loadIfNeeded(asset) }
+            }
 
             Text(verbatim: album.name)
                 .font(.system(.subheadline, design: .rounded).weight(.semibold))
