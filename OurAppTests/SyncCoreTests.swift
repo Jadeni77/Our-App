@@ -912,3 +912,247 @@ struct SyncFramingTests {
         #expect(data?.count == 400_000)
     }
 }
+
+/// Sync progress belongs to a transport, not to the app.
+@MainActor
+struct SyncTransportProgressTests {
+    /// **A record pushed over one channel must still be pushed over the next.**
+    ///
+    /// This is how a co-op turn disappeared. A plain launch ticked over the
+    /// local network, which pushes into a local outbox and always succeeds, so
+    /// the watermark advanced. The shared folder the other phone was reading
+    /// never received the turn — and a high-water mark only moves forward, so
+    /// nothing ever rescanned below it. One phone waited forever for a shot
+    /// that had already been taken.
+    @Test func switchingTransportsResendsEverything() async throws {
+        let context = ModelContext(try Persistence.makeContainer(inMemory: true))
+        let suite = "sync.transport.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defaults.removePersistentDomain(forName: suite)
+
+        let match = CoopMatch(levelID: UUID(), participants: ["a", "b"], turnHolder: "a")
+        context.insert(match)
+        try context.save()
+
+        // First channel: takes the record and marks its own progress.
+        let first = CountingTransport()
+        try await SyncEngine(context: context, transport: first,
+                             authorID: "a", defaults: defaults).tick()
+        #expect(first.pushed == 1)
+
+        // Second channel, same store, same defaults. It has never seen this
+        // record, so it must receive it.
+        let second = CountingTransport()
+        try await SyncEngine(context: context, transport: second,
+                             authorID: "a", defaults: defaults).tick()
+        #expect(second.pushed == 1)
+    }
+
+    /// And the same channel still refuses to re-send what it already has.
+    @Test func oneTransportDoesNotResendWhatItAlreadyTook() async throws {
+        let context = ModelContext(try Persistence.makeContainer(inMemory: true))
+        let suite = "sync.transport.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defaults.removePersistentDomain(forName: suite)
+
+        context.insert(CoopMatch(levelID: UUID(), participants: ["a", "b"], turnHolder: "a"))
+        try context.save()
+
+        let transport = CountingTransport()
+        for _ in 0..<2 {
+            try await SyncEngine(context: context, transport: transport,
+                                 authorID: "a", defaults: defaults).tick()
+        }
+        #expect(transport.pushed == 1)
+    }
+}
+
+/// Counts what it is handed and keeps nothing — the question here is what the
+/// engine decides to send, not what a channel does with it.
+private final class CountingTransport: SyncTransport, @unchecked Sendable {
+    private(set) var pushed = 0
+    let syncIdentity = "counting:\(UUID().uuidString)"
+
+    func push(_ envelopes: [SyncEnvelope]) async throws { pushed += envelopes.count }
+    func pull(since token: SyncToken?) async throws -> SyncBatch {
+        SyncBatch(envelopes: [], token: token ?? "")
+    }
+}
+
+/// A cursor can outlive the log it points into.
+@MainActor
+struct FileCloudResetTests {
+    /// The folder is wiped and recreated — which the two-phone script does on
+    /// every run — so the partner's sequences restart at 1 while our cursor is
+    /// still up at 21. Every record they write is then skipped forever, in
+    /// total silence. One phone waited on a turn the other had already taken.
+    @Test func aRewoundLogIsReadAgainRatherThanSkipped() async throws {
+        let directory = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let theirs = FileCloudTransport(directory: directory, authorID: "them")
+        let mine = FileCloudTransport(directory: directory, authorID: "me")
+
+        // A cursor from a previous incarnation of this folder, far above
+        // anything now in it.
+        let stale = try #require(String(data: try JSONEncoder().encode(["them": 21]),
+                                        encoding: .utf8))
+
+        let match = CoopMatch(levelID: UUID(), participants: ["them", "me"], turnHolder: "me")
+        try await theirs.push([match.envelope()])
+
+        let batch = try await mine.pull(since: stale)
+        #expect(batch.envelopes.count == 1,
+                "a partner whose log restarted is skipped forever")
+    }
+
+    /// And a cursor that is merely *current* still skips what it has read, or
+    /// every tick would redeliver the whole history.
+    @Test func anUpToDateCursorStillSkipsWhatItHasSeen() async throws {
+        let directory = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let theirs = FileCloudTransport(directory: directory, authorID: "them")
+        let mine = FileCloudTransport(directory: directory, authorID: "me")
+        try await theirs.push([CoopMatch(levelID: UUID(), participants: ["them", "me"],
+                                         turnHolder: "me").envelope()])
+
+        let first = try await mine.pull(since: nil)
+        #expect(first.envelopes.count == 1)
+        let second = try await mine.pull(since: first.token)
+        #expect(second.envelopes.isEmpty)
+    }
+}
+
+/// The push watermark, and what it is allowed to bury.
+@MainActor
+struct PushWatermarkTests {
+    private func setUp() throws -> (ModelContext, UserDefaults, CountingTransport) {
+        let context = ModelContext(try Persistence.makeContainer(inMemory: true))
+        let suite = "sync.mark.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defaults.removePersistentDomain(forName: suite)
+        return (context, defaults, CountingTransport())
+    }
+
+    private func engine(_ context: ModelContext, _ transport: CountingTransport,
+                        _ defaults: UserDefaults) -> SyncEngine {
+        SyncEngine(context: context, transport: transport,
+                   authorID: "me", defaults: defaults)
+    }
+
+    /// **A memory stranded on one phone, unable to ever reach the other.**
+    ///
+    /// Records written together share a timestamp. The mark used to advance to
+    /// "now", so sending two of three buried the third below the line — and
+    /// nothing rescans below the line. Reproduced here by pushing one row, then
+    /// revealing a second that carries the identical timestamp.
+    @Test func aRecordSharingATimestampWithASentOneStillGoes() async throws {
+        let (context, defaults, transport) = try setUp()
+        let instant = Date()
+
+        let first = CheckIn(day: instant, authorID: "me")
+        first.updatedAt = instant
+        context.insert(first)
+        try context.save()
+        try await engine(context, transport, defaults).tick()
+        #expect(transport.pushed == 1)
+
+        // Same instant, seen only now — exactly the row the old rule buried.
+        let second = CheckIn(day: instant.addingTimeInterval(-86_400), authorID: "me")
+        second.updatedAt = instant
+        context.insert(second)
+        try context.save()
+
+        try await engine(context, transport, defaults).tick()
+        #expect(transport.pushed == 2, "a record at the watermark can never leave the phone")
+    }
+
+    /// And the boundary must not become a treadmill: what has been sent stays
+    /// sent, however many times the engine ticks.
+    @Test func nothingIsSentTwice() async throws {
+        let (context, defaults, transport) = try setUp()
+        let check = CheckIn(day: .now, authorID: "me")
+        context.insert(check)
+        try context.save()
+
+        for _ in 0..<4 {
+            try await engine(context, transport, defaults).tick()
+        }
+        #expect(transport.pushed == 1)
+    }
+
+    /// A partner's record carrying a clock running fast must not drag the mark
+    /// into our future and bury our own later writes — the failure this
+    /// watermark was rewritten for once already.
+    @Test func aFuturePartnerClockDoesNotBuryOurWrites() async throws {
+        let (context, defaults, transport) = try setUp()
+        let fromTheFuture = CheckIn(day: .now, authorID: "them")
+        fromTheFuture.updatedAt = .now.addingTimeInterval(600)
+        context.insert(fromTheFuture)
+        try context.save()
+        try await engine(context, transport, defaults).tick()
+
+        let mine = CheckIn(day: .now.addingTimeInterval(-86_400), authorID: "me")
+        context.insert(mine)
+        try context.save()
+        try await engine(context, transport, defaults).tick()
+
+        #expect(transport.pushed >= 2, "our own write fell below a partner's clock")
+    }
+}
+
+/// Nothing in the schema syncs by accident, or fails to by accident.
+@MainActor
+struct SyncCoverageTests {
+    /// Models that deliberately stay on the phone that wrote them, each with
+    /// the reason it does not belong to the couple.
+    private static let deliberatelyLocal: Set<String> = [
+        "DecisionRecord",          // what one of you picked for lunch, alone
+        "MoonshotCoachSeen",       // whether *this* phone has shown a hint
+        "MoonshotCosmeticSetting", // your own equipped trail and skin
+        "MoonshotMoondustEntry",   // your own wallet; solo play does not pool
+    ]
+
+    /// **Adding a model must be a decision, not an omission.** A new type that
+    /// nobody wires into the engine syncs nowhere and says nothing about it —
+    /// which is how a feature ships working perfectly on one phone.
+    @Test func everyModelIsEitherSyncedOrDeliberatelyLocal() {
+        var unclassified: [String] = []
+        for model in SchemaV5.models {
+            let name = String(describing: model)
+            let syncs = model is any SyncableRecord.Type
+            if !syncs && !Self.deliberatelyLocal.contains(name) {
+                unclassified.append(name)
+            }
+        }
+        #expect(unclassified.isEmpty,
+                """
+                \(unclassified.joined(separator: ", ")) neither syncs nor is listed as \
+                deliberately local. Conform it to SyncableRecord and wire it into \
+                SyncEngine and SyncApply, or add it to the list here with the reason.
+                """)
+    }
+
+    /// Conforming is not enough: a type the engine never collects, or the
+    /// applier never handles, is a record that travels in one direction or not
+    /// at all — and both fail in silence.
+    @Test func everySyncableTypeIsCollectedAndApplied() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent()
+        let engine = try String(contentsOf: root.appending(path: "OurApp/Core/Sync/SyncEngine.swift"),
+                                encoding: .utf8)
+        let apply = try String(contentsOf: root.appending(path: "OurApp/Core/Sync/SyncApply.swift"),
+                               encoding: .utf8)
+
+        var missing: [String] = []
+        for model in SchemaV5.models where model is any SyncableRecord.Type {
+            let name = String(describing: model)
+            if !engine.contains("collect(\(name).self)") { missing.append("\(name): not collected") }
+            if !apply.contains("case \(name).syncTypeName") { missing.append("\(name): not applied") }
+        }
+        #expect(missing.isEmpty, "\(missing.joined(separator: "; "))")
+    }
+}

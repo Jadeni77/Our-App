@@ -13,8 +13,12 @@ enum SyncWire {
     }
 
     enum Request: Codable, Equatable {
-        /// The one-time code, exchanged for a real secret.
-        case pair(code: String)
+        /// The one-time code, exchanged for a real secret **and an identity**.
+        /// Carrying the caller's `authorID` is what lets each side record who
+        /// it paired with — without it both phones hold a shared secret and
+        /// still cannot name the person on the other end, which makes a
+        /// two-participant match impossible to create.
+        case pair(code: String, authorID: String)
         /// `cursor` is author → last sequence this device already has.
         case records(cursor: [String: Int])
         /// Photo bytes, asked for only once the record naming them has arrived.
@@ -22,7 +26,7 @@ enum SyncWire {
     }
 
     enum Response: Codable, Equatable {
-        case paired(secret: Data)
+        case paired(secret: Data, authorID: String)
         /// Wrong code, expired offer, or a request that couldn't prove itself.
         /// Deliberately one answer for all three: telling a caller *why* it was
         /// refused tells an attacker which part to work on.

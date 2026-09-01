@@ -14,20 +14,108 @@ struct CoopMatchStoreTests {
         ModelContext(try Persistence.makeContainer(inMemory: true))
     }
 
+    /// **Every board here carries a gloom**, added automatically, because a
+    /// board with nothing gloomy left standing is a *cleared* board — so a test
+    /// that forgot one would quietly be playing a level that was already won.
     private func board(_ ids: [String]) -> BoardSnapshot {
-        BoardSnapshot(levelID: UUID(), bodies: ids.map {
-            BoardSnapshot.Body(id: $0, kind: "piece", x: 0, y: 0, angle: 0, alive: true)
+        BoardSnapshot(levelID: UUID(), bodies: (ids + [gloom]).map {
+            BoardSnapshot.Body(id: $0, kind: $0 == gloom ? "gloom" : "piece",
+                               x: 0, y: 0, angle: 0, alive: true)
         })
     }
 
-    /// A fling that shifts everything a little and destroys nothing.
-    private func clip(_ ids: [String], shift: Double) -> FlingClip {
-        FlingClip(frameRate: 30, bodyIDs: ids, frames: [
-            .init(poses: ids.map { _ in BodyPose(x: 0, y: 0, angle: 0) },
-                  present: ids.map { _ in true }),
-            .init(poses: ids.map { _ in BodyPose(x: shift, y: shift, angle: 0) },
-                  present: ids.map { _ in true }),
+    private let gloom = "g0"
+
+    /// A fling that shifts everything a little. `clearing` is the shot that
+    /// wins it: the gloom stops being present, which is how a clip says a body
+    /// is gone.
+    private func clip(_ ids: [String], shift: Double, clearing: Bool = false) -> FlingClip {
+        let all = ids + [gloom]
+        return FlingClip(frameRate: 30, bodyIDs: all, frames: [
+            .init(poses: all.map { _ in BodyPose(x: 0, y: 0, angle: 0) },
+                  present: all.map { _ in true }),
+            .init(poses: all.map { _ in BodyPose(x: shift, y: shift, angle: 0) },
+                  present: all.map { !clearing || $0 != gloom }),
         ])
+    }
+
+    /// Winning has to *end* the match. It didn't: nothing in the app wrote
+    /// `finishedAt`, so clearing a level just passed the cleared board to the
+    /// other player and both phones sat on "waiting" over a finished game.
+    @Test func clearingTheBoardFinishesTheMatch() throws {
+        let store = try context()
+        let ids = ["p0", "p1"]
+        let match = CoopMatchStore.start(levelID: UUID(), participants: [me, her],
+                                         firstTurn: me, board: board(ids), in: store)
+
+        #expect(CoopMatchStore.takeTurn(clip: clip(ids, shift: 4, clearing: true),
+                                        by: me, in: match, context: store) != nil)
+        #expect(match.finishedAt != nil)
+    }
+
+    /// And it has to end on *her* phone too, which never took the winning shot
+    /// — she only watched it. Both derive the ending from the same board, so
+    /// neither has to be told.
+    @Test func theWatchingPhoneAlsoSeesTheMatchFinish() throws {
+        let mine = try context()
+        let hers = try context()
+        let ids = ["p0", "p1"]
+        let levelID = UUID()
+        let startingBoard = board(ids)
+
+        let myMatch = CoopMatchStore.start(levelID: levelID, participants: [me, her],
+                                           firstTurn: me, board: startingBoard, in: mine)
+        let herMatch = CoopMatchStore.start(levelID: levelID, participants: [me, her],
+                                            firstTurn: me, board: startingBoard, in: hers)
+
+        let winning = try #require(CoopMatchStore.takeTurn(
+            clip: clip(ids, shift: 4, clearing: true), by: me, in: myMatch, context: mine))
+
+        // The turn as it arrives on her phone.
+        let arrived = CoopTurn(matchID: herMatch.id, index: winning.index, authorID: me,
+                               clip: winning.clip, resultingState: winning.resultingState)
+        hers.insert(arrived)
+        #expect(CoopMatchStore.apply(arrived, to: herMatch, context: hers))
+        #expect(herMatch.finishedAt != nil)
+    }
+
+    /// A match already sitting on a cleared board — which is what the build
+    /// that couldn't finish a match left behind on both simulators — heals on
+    /// load rather than waiting forever for a turn that will never come.
+    @Test func aMatchLeftOnAClearedBoardFinishesOnLoad() throws {
+        let store = try context()
+        var cleared = board(["p0"])
+        for index in cleared.bodies.indices where cleared.bodies[index].kind == "gloom" {
+            cleared.bodies[index].alive = false
+        }
+        let match = CoopMatchStore.start(levelID: UUID(), participants: [me, her],
+                                         firstTurn: me, board: cleared, in: store)
+        #expect(match.finishedAt == nil)
+
+        #expect(CoopMatchStore.reconcile(match, context: store))
+        #expect(match.finishedAt != nil)
+        // Idempotent: a second load must not keep rewriting the timestamp, or
+        // every open would look like a change worth syncing.
+        #expect(CoopMatchStore.reconcile(match, context: store) == false)
+    }
+
+    /// Re-entering a level you cleared together must not insert a second match.
+    /// A match's id *is* its level's id, so two rows would mean one identity
+    /// with two records and a merge that picks between them arbitrarily.
+    @Test func startingAClearedLevelReturnsTheMatchYouAlreadyPlayed() throws {
+        let store = try context()
+        let ids = ["p0", "p1"]
+        let levelID = UUID()
+        let match = CoopMatchStore.start(levelID: levelID, participants: [me, her],
+                                         firstTurn: me, board: board(ids), in: store)
+        CoopMatchStore.takeTurn(clip: clip(ids, shift: 4, clearing: true),
+                                by: me, in: match, context: store)
+
+        let again = CoopMatchStore.start(levelID: levelID, participants: [me, her],
+                                         firstTurn: me, board: board(ids), in: store)
+        #expect(again === match)
+        let all = try store.fetch(FetchDescriptor<CoopMatch>())
+        #expect(all.count == 1)
     }
 
     @Test func aFullAlternationRunsTheTurnBackAndForth() throws {
@@ -179,5 +267,147 @@ struct CoopWatchedTurnsTests {
         // make you re-watch flings you have already seen.
         CoopWatchedTurns.markWatched(2, of: id, defaults: store)
         #expect(CoopWatchedTurns.lastWatchedIndex(id, defaults: store) == 5)
+    }
+}
+
+@MainActor
+struct PairedPartnerTests {
+    @Test func pairingRecordsWhoYouPairedWith() {
+        SyncSecretStore.clear()
+        defer { SyncSecretStore.clear() }
+
+        // Without this, both phones hold a shared secret and still cannot name
+        // the person on the other end — which makes a two-participant match
+        // impossible to create. Co-op was unbuildable until pairing carried an
+        // identity as well as a secret.
+        #expect(SyncSecretStore.partnerAuthorID() == nil)
+        SyncSecretStore.savePartner("her-install-id")
+        #expect(SyncSecretStore.partnerAuthorID() == "her-install-id")
+    }
+
+    @Test func forgettingThePhoneForgetsThePartnerToo() {
+        SyncSecretStore.save(Data([1, 2, 3]))
+        SyncSecretStore.savePartner("her-install-id")
+        SyncSecretStore.clear()
+
+        // A phone that kept the secret but forgot who it belonged to would be
+        // paired with nobody, and every match it created would name a stranger.
+        #expect(SyncSecretStore.partnerAuthorID() == nil)
+        #expect(SyncSecretStore.isPaired == false)
+    }
+
+    @Test func bothPairMessageKindsSurviveTheWire() throws {
+        for request in [SyncWire.Request.pair(code: "123456", authorID: "me"),
+                        SyncWire.Request.records(cursor: ["a": 1])] {
+            let data = try JSONEncoder().encode(request)
+            #expect(try JSONDecoder().decode(SyncWire.Request.self, from: data) == request)
+        }
+        let response = SyncWire.Response.paired(secret: Data([9]), authorID: "her")
+        let data = try JSONEncoder().encode(response)
+        #expect(try JSONDecoder().decode(SyncWire.Response.self, from: data) == response)
+    }
+}
+
+@MainActor
+struct PairedStateTests {
+    @Test func aSecretWithoutAPartnerIsNotPaired() {
+        SyncSecretStore.clear()
+        defer { SyncSecretStore.clear() }
+
+        // The state an older build left behind: a secret, and no idea whose it
+        // is. Reporting that as paired let the lobby offer a Start button that
+        // silently did nothing — reported, reasonably, as the app freezing.
+        SyncSecretStore.save(Data([1, 2, 3]))
+        #expect(SyncSecretStore.isPaired == false)
+
+        SyncSecretStore.savePartner("her-install-id")
+        #expect(SyncSecretStore.isPaired)
+    }
+}
+
+@MainActor
+struct CoopMatchIdentityTests {
+    private func context() throws -> ModelContext {
+        ModelContext(try Persistence.makeContainer(inMemory: true))
+    }
+
+    private func board() -> BoardSnapshot {
+        BoardSnapshot(levelID: UUID(), bodies: [])
+    }
+
+    @Test func bothPhonesStartingTheSameLevelProduceOneMatch() throws {
+        let level = UUID()
+        let mine = try context()
+
+        // She tapped Start too, a second earlier, on her phone.
+        let hers = CoopMatch(levelID: level, participants: ["her", "me"], turnHolder: "her")
+        SyncApply.apply(hers.envelope(), in: mine, localAuthorID: "me")
+        try mine.save()
+
+        CoopMatchStore.start(levelID: level, participants: ["me", "her"],
+                             firstTurn: "me", board: board(), in: mine)
+
+        // Two matches for one level means each device picks a different one and
+        // both sit on "Waiting for her" forever — which is exactly what shipped.
+        #expect(try mine.fetchCount(FetchDescriptor<CoopMatch>()) == 1)
+    }
+
+    @Test func aMatchesIdentityIsItsLevel() {
+        let level = UUID()
+        let a = CoopMatch(levelID: level, participants: ["a", "b"], turnHolder: "a")
+        let b = CoopMatch(levelID: level, participants: ["b", "a"], turnHolder: "b")
+        // Independently created on two phones, they must be the same record.
+        #expect(a.id == b.id)
+    }
+}
+
+/// Continuing a board, rather than starting the level again.
+@MainActor
+struct CoopBoardContinuityTests {
+    private func context() throws -> ModelContext {
+        ModelContext(try Persistence.makeContainer(inMemory: true))
+    }
+
+    /// **The clip has to be replayed over the board it was recorded against.**
+    ///
+    /// The view handed it `match.boardState`, which is the board *after* the
+    /// turn — so every piece the shot destroyed was already gone before the
+    /// replay began, and all you saw was the survivors moving a little at the
+    /// end. The board a turn started from is the previous turn's result.
+    @Test func aTurnReplaysOverTheBoardItWasPlayedOn() throws {
+        let store = try context()
+        let level = CampaignCatalog.bundled.levels[0]
+        let matchID = UUID()
+
+        let first = CoopTurn(matchID: matchID, index: 1, authorID: "a", clip: Data(),
+                             resultingState: BoardSnapshotCodec.encode(
+                                BoardSnapshot(levelID: level.id, bodies: [
+                                    .init(id: "p0", kind: "piece", x: 7, y: 7,
+                                          angle: 0, alive: true)])))
+        store.insert(first)
+        let second = CoopTurn(matchID: matchID, index: 2, authorID: "b",
+                              clip: Data(), resultingState: Data())
+        store.insert(second)
+        try store.save()
+
+        let board = try #require(CoopMatchStore.startingBoard(for: second, level: level,
+                                                              context: store))
+        #expect(board.bodies.first?.x == 7)
+    }
+
+    /// The first turn of a match has no previous turn, and starts from the
+    /// level as authored rather than from nothing.
+    @Test func theFirstTurnStartsFromTheLevelItself() throws {
+        let store = try context()
+        let level = CampaignCatalog.bundled.levels[0]
+        let turn = CoopTurn(matchID: UUID(), index: 1, authorID: "a",
+                            clip: Data(), resultingState: Data())
+
+        let board = try #require(CoopMatchStore.startingBoard(for: turn, level: level,
+                                                              context: store))
+        let opening = BoardSnapshot(startOf: level)
+        let allAlive = board.bodies.allSatisfy(\.alive)
+        #expect(board.bodies.count == opening.bodies.count)
+        #expect(allAlive)
     }
 }

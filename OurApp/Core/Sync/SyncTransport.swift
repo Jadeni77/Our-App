@@ -4,9 +4,31 @@ import Foundation
 /// network** — no entitlement, no paid team, nothing that needs the $99
 /// program. Slice D adds a `CKSyncEngine`-backed third and deletes neither.
 protocol SyncTransport: Sendable {
+    /// Which channel this is, so progress through it is remembered separately.
+    ///
+    /// **Sync progress belongs to a transport, not to the app.** The engine
+    /// records how far it has pushed and pulled; those marks describe one
+    /// channel's contents and mean nothing about another. Sharing them loses
+    /// records outright: a phone that ticks over the local network, then later
+    /// over a shared folder, has a watermark saying everything up to now was
+    /// sent — while the folder never received any of it, and a high-water mark
+    /// only moves forward, so nothing rescans below it.
+    ///
+    /// That is exactly how a co-op turn went missing. It was pushed into the
+    /// Bonjour outbox by a plain launch, the mark advanced, and the folder the
+    /// other phone was reading never saw it. One phone waited forever for a
+    /// shot that had already been taken.
+    var syncIdentity: String { get }
+
     func push(_ envelopes: [SyncEnvelope]) async throws
     /// Everything the other side has written since `token`, plus a new cursor.
     func pull(since token: SyncToken?) async throws -> SyncBatch
+}
+
+extension SyncTransport {
+    /// The type name is enough to tell one channel from another; transports
+    /// that can point at different destinations say so themselves.
+    var syncIdentity: String { String(describing: Self.self) }
 }
 
 /// An in-memory queue shared by two engines in one test process. This is how

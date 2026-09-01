@@ -4,6 +4,12 @@ import SwiftData
 /// Moonshot's front door, rebuilt as a progress hub (M27): Continue where
 /// you left off, every world at a glance, the cast with their powers
 /// a tap away — and the roadmap shrunk to one quiet line.
+/// Where Moonshot's home screen can go. A value rather than a closure, so a
+/// destination is built on navigation instead of on layout.
+enum MoonshotDestination: Hashable {
+    case campaign, coop
+}
+
 struct MoonshotHomeView: View {
     @Environment(\.modelContext) private var modelContext
     /// **Not** scoped to this phone, deliberately: the star pool is shared —
@@ -159,6 +165,17 @@ struct MoonshotHomeView: View {
             .navigationDestination(item: $pushedLevelIndex) { index in
                 MoonshotGameView(levelIndex: index)
             }
+            // **Value-based.** A `NavigationLink { Destination() }` has its
+            // destination evaluated *eagerly*, so simply showing this screen
+            // built the whole co-op lobby — and the lobby in turn built a match
+            // view per row. The cascade froze the app. Destinations must be
+            // built when navigated to, not when a link is laid out.
+            .navigationDestination(for: MoonshotDestination.self) { destination in
+                switch destination {
+                case .campaign: LevelSelectView()
+                case .coop: CoopLobbyView()
+                }
+            }
             .navigationDestination(isPresented: $debugShowConstellation) { LevelSelectView() }
             .navigationDestination(isPresented: $debugShowRewards) { RewardTrackView() }
             .navigationDestination(isPresented: $debugShowAbilities) { AbilityDashboardView() }
@@ -241,9 +258,7 @@ struct MoonshotHomeView: View {
             .buttonStyle(.plain)
             .accessibilityElement(children: .combine)
         } else {
-            NavigationLink {
-                LevelSelectView()
-            } label: {
+            NavigationLink(value: MoonshotDestination.campaign) {
                 HStack(spacing: 14) {
                     Text("🌌").font(.system(size: 32))
                     Text("All clear — replay your sky")
@@ -266,9 +281,7 @@ struct MoonshotHomeView: View {
     /// constellation; the other two wait visibly on the roadmap.
     private var modesColumn: some View {
         VStack(spacing: 8) {
-            NavigationLink {
-                LevelSelectView()
-            } label: {
+            NavigationLink(value: MoonshotDestination.campaign) {
                 HStack(spacing: 8) {
                     Text("🌌").font(.system(size: 15))
                     Text("Campaign")
@@ -284,9 +297,7 @@ struct MoonshotHomeView: View {
             }
             .buttonStyle(.plain)
             .glassCard(cornerRadius: 14)
-            NavigationLink {
-                CoopLobbyView()
-            } label: {
+            NavigationLink(value: MoonshotDestination.coop) {
                 HStack(spacing: 8) {
                     Text(verbatim: "🤝").font(.system(size: 15))
                     Text("Co-op")

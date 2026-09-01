@@ -8,13 +8,60 @@ enum SparkStreak {
     struct Status: Equatable {
         var current: Int
         var longest: Int
+        /// **Whether *you* have checked in today** — not whether the day
+        /// counted. Those are different questions and collapsing them made the
+        /// button look broken: you tapped, the day was not shared yet, so
+        /// nothing on screen changed and tapping again did nothing visible.
         var checkedInToday: Bool
+        /// Whether the day is complete — both of you. This is what the streak
+        /// counts.
+        var sharedToday: Bool
         /// Alive, but today is not done yet. What the reminder keys off, and
         /// what makes the pill look different at a glance.
         var atRisk: Bool
 
         static let none = Status(current: 0, longest: 0,
-                                 checkedInToday: false, atRisk: false)
+                                 checkedInToday: false, sharedToday: false,
+                                 atRisk: false)
+    }
+
+    /// The days you were **both** here.
+    ///
+    /// A couple's streak has to mean the couple. Counting only your own days
+    /// made 火花 two solo streaks wearing one number: it climbed while she was
+    /// away and told you nothing about the two of you, which is the only thing
+    /// it is for.
+    ///
+    /// Intersection, not union or sum. A day either has both of you or it does
+    /// not, and no amount of showing up alone substitutes.
+    ///
+    /// **Before there is a partner, it is your own days.** Requiring two people
+    /// when the app only knows about one would show a permanent zero and read
+    /// as broken rather than as a rule — and an unpaired phone is the normal
+    /// state on the day the app is installed.
+    static func sharedDays(_ checkIns: [(day: Date, authorID: String)],
+                           mine: String,
+                           theirs: String?,
+                           calendar: Calendar = .current) -> [Date] {
+        // **Grouped by civil day, but the raw dates come back out.**
+        //
+        // `status` maps what it is given through `localDay` itself, and mapping
+        // twice is not idempotent in every timezone — the sweep below caught it
+        // returning a streak of zero in three of the six. So localisation stays
+        // in exactly one place, and this only decides *which* days survive.
+        func daysByCivil(of author: String) -> [Date: Date] {
+            var found: [Date: Date] = [:]
+            for checkIn in checkIns where checkIn.authorID == author {
+                let civil = SpecialDateSchedule.localDay(of: checkIn.day, calendar: calendar)
+                found[civil] = checkIn.day
+            }
+            return found
+        }
+
+        let ours = daysByCivil(of: mine)
+        guard let theirs else { return Array(ours.values) }
+        let both = Set(ours.keys).intersection(daysByCivil(of: theirs).keys)
+        return both.compactMap { ours[$0] }
     }
 
     /// **The rule that matters:** a streak that includes yesterday but not yet
@@ -27,7 +74,13 @@ enum SparkStreak {
     /// UTC and made question selection timezone-dependent; it was invisible
     /// because every test ran in UTC. Hence the `calendar` parameter, and hence
     /// the tests that sweep timezones.
+    /// - Parameters:
+    ///   - days: the days that *count* — shared by both of you.
+    ///   - mine: your own days, which decide whether the button has anything
+    ///     left to do today. Defaults to `days` for callers that have only one
+    ///     set, which is every test of the run-counting rule itself.
     static func status(for days: [Date],
+                       mine: [Date]? = nil,
                        on today: Date = .now,
                        calendar: Calendar = .current) -> Status {
         // `calendar:` must be threaded through — `localDay` defaults to
@@ -35,16 +88,26 @@ enum SparkStreak {
         // function used the passed calendar shifted every streak by a day.
         // It already returns midnight in that calendar, so no `startOfDay`.
         let civil = Set(days.map { SpecialDateSchedule.localDay(of: $0, calendar: calendar) })
-        guard !civil.isEmpty else { return .none }
-
         let todayCivil = calendar.startOfDay(for: today)
-        let checkedInToday = civil.contains(todayCivil)
+        let myCivil = Set((mine ?? days).map {
+            SpecialDateSchedule.localDay(of: $0, calendar: calendar)
+        })
+        let checkedInToday = myCivil.contains(todayCivil)
+
+        // No shared day yet is still a real state: you may have checked in and
+        // be waiting for them, which the pill has to be able to say.
+        guard !civil.isEmpty else {
+            return Status(current: 0, longest: 0, checkedInToday: checkedInToday,
+                          sharedToday: false, atRisk: false)
+        }
+
+        let sharedToday = civil.contains(todayCivil)
 
         // Count back from today if today is done, otherwise from yesterday —
         // that is the whole "at risk" idea. If neither is present the run has
         // already ended and the current streak is zero.
         var anchor: Date?
-        if checkedInToday {
+        if sharedToday {
             anchor = todayCivil
         } else if let yesterday = calendar.date(byAdding: .day, value: -1, to: todayCivil),
                   civil.contains(yesterday) {
@@ -61,7 +124,8 @@ enum SparkStreak {
         return Status(current: current,
                       longest: max(longestRun(in: civil, calendar: calendar), current),
                       checkedInToday: checkedInToday,
-                      atRisk: current > 0 && !checkedInToday)
+                      sharedToday: sharedToday,
+                      atRisk: current > 0 && !sharedToday)
     }
 
     /// The longest run anywhere in the history — kept so a missed day doesn't

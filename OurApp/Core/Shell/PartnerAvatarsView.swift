@@ -1,22 +1,58 @@
+import SwiftData
 import SwiftUI
 
 /// The two of us in the top corners (P8: reference-inspired structure):
 /// avatar photos (or monogram circles) with names beneath.
 struct PartnerAvatarsView: View {
+    @State private var editingMine = false
     let identity: CoupleIdentityStore
+
+    @Environment(\.modelContext) private var context
+    /// Both halves come from records now — yours because you wrote it, theirs
+    /// because they did. A name typed on the wrong phone was the whole
+    /// complaint.
+    @Query(filter: Profile.visible) private var profiles: [Profile]
+
+    private var mine: Profile? { profiles.first { $0.authorID == LocalAuthor.id() } }
+    /// **Asked of `ProfileStore`, not reimplemented here.** This view had its
+    /// own copy of the lookup, so fixing the fragile one left this one wrong
+    /// and the screen unchanged — the rows were right and the face above them
+    /// still said "My love".
+    private var theirs: Profile? { ProfileStore.partner(in: context) }
 
     var body: some View {
         HStack(alignment: .top) {
-            badge(for: .one, name: identity.nameOne, fallback: "Me")
+            // **Yours is a button; theirs is not.** You edit your half, they
+            // edit theirs — and a face that does nothing when tapped reads as
+            // broken, which is how this was reported.
+            Button {
+                Haptics.tap()
+                editingMine = true
+            } label: {
+                badge(for: .one, name: mine?.name ?? identity.nameOne,
+                      image: ProfileStore.image(for: mine) ?? identity.avatars[.one],
+                      fallback: "Me")
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("Your profile"))
             Spacer()
-            badge(for: .two, name: identity.nameTwo, fallback: "My love")
+            // **No local fallback for their half.** Falling back to a name you
+            // once typed for them is what made two paired phones disagree: one
+            // showed "Jade" from its own defaults while the other, which had
+            // never been told, showed the placeholder. Their name comes from
+            // them or it is not known yet, and both phones say the same thing.
+            badge(for: .two, name: theirs?.name ?? "",
+                  image: ProfileStore.image(for: theirs),
+                  fallback: "My love")
         }
+        .sheet(isPresented: $editingMine) { MyProfileSheet(identity: identity) }
     }
 
-    private func badge(for partner: Partner, name: String, fallback: LocalizedStringKey) -> some View {
+    private func badge(for partner: Partner, name: String, image: UIImage?,
+                       fallback: LocalizedStringKey) -> some View {
         VStack(spacing: 6) {
             Group {
-                if let image = identity.avatars[partner] {
+                if let image {
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFill()

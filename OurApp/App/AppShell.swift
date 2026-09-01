@@ -46,6 +46,9 @@ struct AppShell: View {
                 .tabItem { Label("Apps", systemImage: "square.grid.2x2.fill") }
                 .tag(AppTab.games)
         }
+        // **At the root, so every page is live.** Ticking only on Home left
+        // every sub-page frozen at whatever had arrived before you opened it.
+        .syncingWhileVisible()
         .tint(Theme.indigo)   // reads on the gradient's peach bottom, where the bar sits
         .environment(Self.store)
         .environment(Self.artwork)

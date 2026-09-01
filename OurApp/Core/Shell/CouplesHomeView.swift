@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 
 /// The themed couples home (P4, layout per P8) — now a hub (P16): moonlit
@@ -19,9 +20,22 @@ struct CouplesHomeView: View {
     @State private var showSettings = false
     @State private var showPairing = false
     @State private var isPaired = SyncSecretStore.isPaired
+
+    /// Derived, not remembered. The stored flag only knows about the keychain;
+    /// this also counts "their records are here", which is the thing you can
+    /// actually see on screen.
+    private var isConnected: Bool {
+        isPaired || ProfileStore.isConnected(in: modelContext)
+    }
     @State private var pulse = false
     @State private var path = NavigationPath()
     @State private var didHandleLaunchArguments = false
+    @State private var editingProfile = false
+    @Query(filter: Profile.visible) private var profiles: [Profile]
+
+    private var myName: String {
+        profiles.first { $0.authorID == LocalAuthor.id() }?.name ?? ""
+    }
 
     /// The hero is hidden whenever something covers it — a pushed sub-page or
     /// the settings sheet. Pushing does NOT unmount Home, so without this the
@@ -33,20 +47,16 @@ struct CouplesHomeView: View {
     /// Turning sync off drops the engine, which drops its listener — the phone
     /// stops advertising rather than merely ignoring what arrives.
     private func configureSync() {
-        #if DEBUG
-        if let directory = FakeCloudLaunch.directory {
-            syncEngine = SyncEngine(context: modelContext,
-                                    transport: FileCloudTransport(directory: directory,
-                                                                  authorID: identity.authorID),
-                                    authorID: identity.authorID)
-            return
-        }
-        #endif
         // The engine always exists; **pairing gates the network, not the
         // engine**. Pushing appends to our own outbox, which is a local file,
         // so an unpaired phone builds its history and hands the whole of it
         // over the moment it pairs. `LocalPeerService` refuses to advertise
         // until there is a reason to, which is where the privacy line sits.
+        //
+        // Which transport that is belongs to `SyncStack`, not here. Home
+        // choosing its own gave the app two of them at once — a debug run on a
+        // shared folder had Home on the folder and co-op on Bonjour, so turns
+        // taken in Moonshot went somewhere Home never looked.
         syncEngine = SyncEngine(context: modelContext,
                                 transport: SyncStack.transport,
                                 authorID: identity.authorID)
@@ -80,26 +90,38 @@ struct CouplesHomeView: View {
                         // the group is here to absorb.
                         SparkPill()
 
-                        // Setup prompts, one at a time. Both vanish for good
-                        // once done, which is the only reason a permanent line
-                        // on the hero canvas is acceptable at all.
-                        if identity.nameOne.isEmpty && identity.nameTwo.isEmpty {
-                            Button {
-                                showSettings = true
-                            } label: {
-                                Text("Add your names")
-                                    .font(.footnote)
-                                    .foregroundStyle(.white.opacity(0.7))
-                            }
-                        } else if !isPaired {
-                            // Here rather than in Settings: pairing is a
-                            // once-ever setup step, and nobody goes looking in
-                            // Settings for something they have never done.
+                        // Both prompts show when both apply. They were once
+                        // one-at-a-time to keep the hero uncluttered, which
+                        // hid pairing behind naming — and pairing is the step
+                        // that makes the app *shared*, so hiding it made the
+                        // single most important setup action look absent.
+                        // Two footnote lines is a cheaper price than that.
+                        if !isConnected {
+                            // **Invitation first, pairing code second.** The
+                            // code needs two phones in one room at one moment,
+                            // which is the situation this app exists for you
+                            // not being in. The link works across a continent
+                            // and is the only route that carries a push.
+                            CoupleInviteButton()
                             Button {
                                 Haptics.tap()
                                 showPairing = true
                             } label: {
-                                Text("Pair with your partner's phone")
+                                Text("Or pair on the same network")
+                                    .font(.footnote)
+                                    .foregroundStyle(.white.opacity(0.7))
+                            }
+                        }
+                        if myName.isEmpty {
+                            Button {
+                                Haptics.tap()
+                                editingProfile = true
+                            } label: {
+                                // Singular, and it goes to your profile. It
+                                // said "names" and opened Settings, which is
+                                // where names used to be edited — a dead end
+                                // the moment that screen stopped holding them.
+                                Text("Add your name")
                                     .font(.footnote)
                                     .foregroundStyle(.white.opacity(0.7))
                             }
@@ -139,6 +161,7 @@ struct CouplesHomeView: View {
         // exactly how the Daily Question page shipped crashing while the badge,
         // rendered inside the root, worked fine.
         .environment(identity)
+        .sheet(isPresented: $editingProfile) { MyProfileSheet(identity: identity) }
         .sheet(isPresented: $showSettings, onDismiss: { isPaired = SyncSecretStore.isPaired }) {
             CoupleSettingsSheet(identity: identity)
         }
@@ -148,6 +171,13 @@ struct CouplesHomeView: View {
         }) {
             SyncPairingSheet()
         }
+        // **Your profile exists from launch, not from the first time you open
+        // it.** It was created lazily inside the profile sheet, so a phone
+        // whose owner never tapped their own face had no record to send —
+        // which is exactly why one phone showed a name the other had never
+        // heard of. A record nobody has written yet cannot sync, and nothing
+        // said so.
+        .task { ProfileStore.mine(in: modelContext, seedingFrom: identity) }
         // Ticks on appear and on every foreground — no timers and no background
         // modes, both of which need entitlements this deliberately avoids.
         // Opening the app is the trigger.

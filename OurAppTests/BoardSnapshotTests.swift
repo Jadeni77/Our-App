@@ -1,4 +1,5 @@
 import Foundation
+import SpriteKit
 import Testing
 @testable import OurApp
 
@@ -92,5 +93,41 @@ struct BoardSnapshotTests {
         // Written once per turn alongside a ~15KB clip, so a couple of KB is
         // the budget. JSON is the right tool here precisely because it's cheap.
         #expect(BoardSnapshotCodec.encode(big).count < 12_000)
+    }
+}
+
+@MainActor
+struct InitialBoardSnapshotTests {
+    private var level: MoonshotLevel { CampaignCatalog.bundled.levels[0] }
+
+    @Test func theStartingBoardMatchesWhatASceneWouldBuild() throws {
+        // The whole point of computing it: tapping Start used to build a
+        // GameScene on the main thread — sky texture, every sprite, every
+        // physics body — and froze the app. This must agree with that scene
+        // exactly, or the first turn starts from a different board than it
+        // renders.
+        let scene = GameScene(level: level, session: LevelSession(level: level))
+        scene.didMove(to: SKView(frame: CGRect(origin: .zero, size: scene.size)))
+        let world = try #require(scene.children.first { node in
+            node.children.contains { $0 is PieceNode }
+        })
+
+        let fromScene = CoopSceneBridge.snapshot(of: world, level: level)
+        let computed = BoardSnapshot(startOf: level)
+
+        #expect(computed.bodies.map(\.id) == fromScene.bodies.map(\.id))
+        for (a, b) in zip(computed.bodies, fromScene.bodies) {
+            #expect(abs(a.x - b.x) < 0.001, "x differs for \(a.id)")
+            #expect(abs(a.y - b.y) < 0.001, "y differs for \(a.id)")
+            #expect(a.alive == b.alive)
+        }
+    }
+
+    @Test func theStartingBoardIsEveryBodyTheLevelDeclares() {
+        let computed = BoardSnapshot(startOf: level)
+        #expect(computed.bodies.count == level.pieces.count + level.glooms.count)
+        #expect(computed.bodies.map(\.id) == CoopSceneBridge.orderedIDs(for: level))
+        let allAlive = computed.bodies.allSatisfy(\.alive)
+        #expect(allAlive)
     }
 }

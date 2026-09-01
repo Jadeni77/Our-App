@@ -29,6 +29,20 @@ struct OurAppApp: App {
     var body: some Scene {
         WindowGroup {
             AppShell()
+                // A push arrives with no view hierarchy and therefore no
+                // environment, so the container has to be reachable without
+                // one. Set here because this is the only place that holds it
+                // before any view exists.
+                .task {
+                    SharedContext.current = ModelContext(container)
+                    // Unconditional, and before anything else: a silent push
+                    // needs a token, not permission.
+                    CoupleSubscription.registerForSilentPushes()
+                    if let target = await CoupleZone.syncTarget() {
+                        SyncStack.cloudTarget = target
+                        await CoupleSubscription.ensure(on: target.database)
+                    }
+                }
                 .environment(
                     \.locale,
                     AppLanguage(rawValue: languageRaw)?.localeOverride ?? Locale.current

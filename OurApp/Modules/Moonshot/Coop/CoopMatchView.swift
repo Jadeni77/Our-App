@@ -10,10 +10,31 @@ import SwiftUI
 struct CoopMatchView: View {
     let level: MoonshotLevel
 
+    /// **`LocalAuthor.id()`, never `@Environment(CoupleIdentityStore.self)`.**
+    /// That store is declared on Home's `NavigationStack`; the Moonshot module
+    /// mounts from the springboard and is not a child of it, so reading it here
+    /// traps at launch. Daily Question shipped that crash once, I wrote a
+    /// comment in `MoonshotHomeView` warning about it, and then wrote it again
+    /// here anyway — hence this note, at the place someone would repeat it.
+
     @Environment(\.modelContext) private var context
-    @Environment(CoupleIdentityStore.self) private var identity
-    @Query(filter: CoopMatch.live) private var matches: [CoopMatch]
+    /// Not `CoopMatch.live`: a finished match has to stay visible here, or
+    /// clearing a level makes it vanish from the query, drop back to the Start
+    /// screen, and offer a button that correctly refuses to make a second match
+    /// for a level that already has one — a button that does nothing.
+    @Query(filter: CoopMatch.notDeleted) private var matches: [CoopMatch]
     @State private var watchedNow = false
+    @State private var playing = false
+    @State private var cannotStart = false
+    /// A fling that didn't count. Never silent: for weeks a refused turn looked
+    /// exactly like a taken one, and the match simply stopped advancing.
+    @State private var turnRefused = false
+    /// Resolved in `.task`, **never in `body`**. Fetching during body
+    /// evaluation invalidates the `@Query` that drives this view, which re-runs
+    /// body, which fetches again — an infinite loop that freezes the app. It
+    /// only bit once a match existed, which is why tapping Start was the
+    /// trigger and everything before it felt fine.
+    @State private var pendingWatch: CoopTurn?
 
     private var match: CoopMatch? { matches.first { $0.levelID == level.id } }
 
@@ -22,6 +43,13 @@ struct CoopMatchView: View {
             DreamyBackground()
             content
         }
+        .task(id: match?.turnIndex) { refreshPendingWatch() }
+        // An arrival tick, because this screen's whole purpose is to show
+        // what they did. The *repeating* poll that used to live here moved to
+        // the app root — it was fixing one screen's symptom of a problem every
+        // page had.
+        .task { await syncNow() }
+        .onChange(of: watchedNow) { _, _ in refreshPendingWatch() }
         .navigationTitle(Text(verbatim: level.title ?? ""))
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
@@ -31,10 +59,27 @@ struct CoopMatchView: View {
     @ViewBuilder
     private var content: some View {
         if let match {
-            if let turn = watchableTurn(in: match) {
+            if let turn = pendingWatch {
+                // Ahead of the cleared state on purpose: if her shot was the
+                // one that won it, she should get to watch it land before
+                // being told the level is over.
                 replay(of: turn, in: match)
-            } else if CoopTurnRules.mayFling(identity.authorID, in: match) {
-                yourTurn
+            } else if match.finishedAt != nil {
+                cleared
+            } else if CoopTurnRules.mayFling(LocalAuthor.id(), in: match) {
+                if playing {
+                    CoopTurnGameView(level: level, match: match) { recorded in
+                        playing = false
+                        watchedNow = false
+                        turnRefused = !recorded
+                        // Push it the moment it exists rather than waiting for
+                        // the next poll — this is the one event on this screen
+                        // the other phone is actually waiting for.
+                        Task { await syncNow() }
+                    }
+                } else {
+                    yourTurn
+                }
             } else {
                 waiting
             }
@@ -43,17 +88,48 @@ struct CoopMatchView: View {
         }
     }
 
-    private func watchableTurn(in match: CoopMatch) -> CoopTurn? {
-        guard !watchedNow,
-              CoopWatchedTurns.hasUnwatchedTurn(in: match, viewer: identity.authorID)
-        else { return nil }
-        return CoopMatchStore.turnToWatch(in: match, viewer: identity.authorID, context: context)
+    /// Starts the match. The board is the level, untouched, because nobody has
+    /// flung yet — and whoever taps first takes the first turn, which needs no
+    /// negotiation: the other phone learns it from the record.
+    private func startMatch() {
+        guard let partner = ProfileStore.partnerAuthorID(in: context) else {
+            // Never a silent no-op (principle 7): a button that does nothing
+            // is indistinguishable from a frozen app, which is exactly how
+            // this was reported.
+            cannotStart = true
+            return
+        }
+        CoopMatchStore.start(levelID: level.id,
+                             participants: [LocalAuthor.id(), partner],
+                             firstTurn: CoopTurnRules.firstTurn(
+                                 among: [LocalAuthor.id(), partner]),
+                             board: BoardSnapshot(startOf: level),
+                             in: context)
+    }
+
+    /// One exchange, then bring the screen up to date with whatever it brought.
+    private func syncNow() async {
+        await SyncStack.tick(context: context)
+        if let match { CoopMatchStore.reconcile(match, context: context) }
+        refreshPendingWatch()
+    }
+
+    /// Recomputed when the match moves, off the body evaluation path.
+    private func refreshPendingWatch() {
+        guard let match, !watchedNow,
+              CoopWatchedTurns.hasUnwatchedTurn(in: match, viewer: LocalAuthor.id())
+        else {
+            pendingWatch = nil
+            return
+        }
+        pendingWatch = CoopMatchStore.turnToWatch(in: match, viewer: LocalAuthor.id(),
+                                                  context: context)
     }
 
     @ViewBuilder
     private func replay(of turn: CoopTurn, in match: CoopMatch) -> some View {
         if let clip = FlingClipCodec.decode(turn.clip),
-           let board = BoardSnapshotCodec.decode(match.boardState) {
+           let board = CoopMatchStore.startingBoard(for: turn, level: level, context: context) {
             CoopReplayView(level: level, snapshot: board, clip: clip) {
                 CoopWatchedTurns.markWatched(turn.index, of: match.id)
                 watchedNow = true
@@ -69,18 +145,61 @@ struct CoopMatchView: View {
     }
 
     private var yourTurn: some View {
-        message(icon: "🎯", title: Text("Your turn"),
-                detail: Text("Take your shot — she'll see it when she next opens this."))
+        VStack(spacing: 20) {
+            message(icon: "🎯", title: Text("Your turn"),
+                    detail: Text("Take your shot — it'll be waiting for \(PartnerVoice.label(in: context))."))
+            Button {
+                Haptics.tap()
+                playing = true
+            } label: {
+                Text("Take your shot")
+                    .font(.system(.body, design: .rounded).weight(.semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 26)
+                    .padding(.vertical, 13)
+            }
+            .glassCard(cornerRadius: 22)
+            if turnRefused {
+                Text("That shot didn't count — the level moved on. Reopen it to catch up.")
+                    .font(.footnote)
+                    .foregroundStyle(.white.opacity(0.75))
+                    .multilineTextAlignment(.center)
+            }
+            if cannotStart {
+                Text("Pair your phones again — this one doesn't know who it's paired with")
+                    .font(.footnote)
+                    .foregroundStyle(.white.opacity(0.75))
+                    .multilineTextAlignment(.center)
+            }
+        }
+    }
+
+    private var cleared: some View {
+        message(icon: "🌕", title: Text("Cleared together"),
+                detail: Text("Nothing gloomy left standing. That one's yours."))
     }
 
     private var waiting: some View {
-        message(icon: "⏳", title: Text("Waiting for her"),
-                detail: Text("You've taken your shot. It's with her now."))
+        message(icon: "⏳", title: Text("Waiting for \(PartnerVoice.label(in: context))"),
+                detail: Text("You've taken your shot. It's with \(PartnerVoice.label(in: context)) now."))
     }
 
     private var start: some View {
-        message(icon: "🤝", title: Text("Start together"),
-                detail: Text("One of you flings, then the other. It keeps its place between you."))
+        VStack(spacing: 20) {
+            message(icon: "🤝", title: Text("Start together"),
+                    detail: Text("One of you flings, then the other. It keeps its place between you."))
+            Button {
+                Haptics.tap()
+                startMatch()
+            } label: {
+                Text("Start")
+                    .font(.system(.body, design: .rounded).weight(.semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 30)
+                    .padding(.vertical, 13)
+            }
+            .glassCard(cornerRadius: 22)
+        }
     }
 
     private func message(icon: String, title: Text, detail: Text) -> some View {

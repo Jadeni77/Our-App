@@ -8,7 +8,10 @@ import SwiftUI
 /// she has played, not to start something.
 struct CoopLobbyView: View {
     @Environment(\.modelContext) private var context
-    @Query(filter: CoopMatch.live) private var matches: [CoopMatch]
+    /// Not `CoopMatch.live`: a cleared level has to keep showing that it is
+    /// cleared. Filtering finished matches out made it read "Start" again, as
+    /// though the two of you had never played it.
+    @Query(filter: CoopMatch.notDeleted) private var matches: [CoopMatch]
 
     private let catalog = CampaignCatalog.bundled
     private var me: String { LocalAuthor.id() }
@@ -22,6 +25,12 @@ struct CoopLobbyView: View {
                 levels
             }
         }
+        .navigationDestination(for: UUID.self) { levelID in
+            if let level = catalog.levels.first(where: { $0.id == levelID }) {
+                CoopMatchView(level: level)
+            }
+        }
+        .task { await SyncStack.tick(context: context) }
         .navigationTitle(Text("Co-op"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
@@ -45,9 +54,15 @@ struct CoopLobbyView: View {
         ScrollView {
             VStack(spacing: 10) {
                 ForEach(Array(catalog.levels.enumerated()), id: \.element.id) { index, level in
-                    NavigationLink {
-                        CoopMatchView(level: level)
-                    } label: {
+                    // **Value-based, not a destination closure.** A
+                    // `NavigationLink { CoopMatchView(level:) }` inside a
+                    // ForEach has its destination evaluated *eagerly*, so every
+                    // row built a whole match view — each with its own
+                    // `@Query` — during the lobby's own body evaluation. The
+                    // resulting invalidation cascade re-ran body, rebuilt them
+                    // all, and froze the app. A sample showed CoopMatchView on
+                    // the stack 224 times, nested.
+                    NavigationLink(value: level.id) {
                         row(for: level, number: index + 1)
                     }
                     .buttonStyle(.plain)
@@ -79,10 +94,18 @@ struct CoopLobbyView: View {
     @ViewBuilder
     private func status(for match: CoopMatch?) -> some View {
         if let match {
+            if match.finishedAt != nil {
+                Text("Cleared")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.95))
+            } else {
             // Whose go it is, which is the only thing you came here to learn.
-            Text(match.turnHolder == me ? "Your turn" : "Her turn")
+            match.turnHolder == me
+                ? Text("Your turn")
+                : Text("Waiting for \(PartnerVoice.label(in: context))")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.white.opacity(match.turnHolder == me ? 0.95 : 0.6))
+            }
         } else {
             Text("Start")
                 .font(.caption.weight(.semibold))

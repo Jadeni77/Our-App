@@ -53,6 +53,43 @@ struct FlingClipCodecTests {
         #expect(decoded.frames[3].present == [true, false, false])
     }
 
+    /// The crash that took the app down mid-fling on level 2, on real hardware.
+    ///
+    /// Every angle these tests fed the encoder was a tidy positive — which is
+    /// why a suite this size never saw it. A body at rest sits at a negative
+    /// epsilon constantly, and that is the one input that overflows: adding a
+    /// full turn to it rounds to *exactly* a full turn in binary floating
+    /// point, so the tick lands on 65536, one past what a `UInt16` holds.
+    @Test func anAngleJustBelowZeroDoesNotOverflow() throws {
+        // -1e-16 is not a contrived value: it is a settled body, and a fling's
+        // last frame is nothing but settled bodies. The rest bracket the same
+        // boundary from the other side and from several turns out.
+        let angles: [Double] = [-1e-16, -.ulpOfOne, -0.0,
+                                2 * .pi - 1e-16, -2 * .pi, -19.9,
+                                .nan, .infinity, -.infinity]
+
+        for angle in angles {
+            let clip = FlingClip(frameRate: 30, bodyIDs: ["settled"],
+                                 frames: [.init(poses: [BodyPose(x: 0, y: 0, angle: angle)],
+                                                present: [true])])
+            // Encoding is the assertion — the failure mode was a trap, not a
+            // wrong number.
+            let decoded = try #require(FlingClipCodec.decode(FlingClipCodec.encode(clip)))
+            let round = try #require(decoded.frames.first?.poses.first?.angle)
+            #expect(round >= 0 && round < 2 * .pi)
+        }
+    }
+
+    /// A full turn and no turn are the same angle, so the wrap has to land on
+    /// zero rather than merely somewhere in range.
+    @Test func aFullTurnReadsBackAsNoTurn() throws {
+        let clip = FlingClip(frameRate: 30, bodyIDs: ["spun"],
+                             frames: [.init(poses: [BodyPose(x: 0, y: 0, angle: -1e-16)],
+                                            present: [true])])
+        let decoded = try #require(FlingClipCodec.decode(FlingClipCodec.encode(clip)))
+        #expect(decoded.frames[0].poses[0].angle == 0)
+    }
+
     @Test func aBodyFlungWellOffScreenClampsRatherThanWrapping() throws {
         let far = FlingClip(frameRate: 30, bodyIDs: ["escapee"],
                             frames: [.init(poses: [BodyPose(x: 500_000, y: -500_000, angle: 0)],

@@ -43,6 +43,16 @@ enum CoopTurnRules {
         return .accept
     }
 
+    /// Who takes the opening shot.
+    ///
+    /// **Decided by the ids, not by who tapped Start first.** Both phones
+    /// compute the same answer from the same two strings with nothing to
+    /// negotiate — where "whoever tapped first" is a race that, without sync in
+    /// between, has both of them believing they won.
+    static func firstTurn(among participants: [String]) -> String {
+        participants.sorted().first ?? ""
+    }
+
     /// The other participant. Two players, so "next" is "not you".
     static func nextHolder(after authorID: String, in match: CoopMatch) -> String {
         match.participants.first { $0 != authorID } ?? authorID

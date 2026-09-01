@@ -879,3 +879,16 @@ extension GloomNode: RecordableBody {
     var recordedPose: BodyPose { BodyPose(x: position.x, y: position.y, angle: zRotation) }
     var isRecordingAlive: Bool { parent != nil }
 }
+
+/// The shot itself, so a replay shows the fling and not only its aftermath.
+///
+/// Its id carries **which** character was flung, because the watching phone has
+/// to build the right sprite and the clip is all it has to go on. The prefix
+/// keeps it out of the `p`/`g` namespace, whose ids are positions in the
+/// level's roster and must keep meaning exactly that.
+extension StarSpriteNode: RecordableBody {
+    static let recordingPrefix = "s:"
+    var recordingID: String { Self.recordingPrefix + character.rawValue }
+    var recordedPose: BodyPose { BodyPose(x: position.x, y: position.y, angle: zRotation) }
+    var isRecordingAlive: Bool { parent != nil }
+}

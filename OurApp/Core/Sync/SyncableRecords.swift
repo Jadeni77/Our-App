@@ -127,6 +127,29 @@ extension MoonshotLevelResult: SyncableRecord {
     }
 }
 
+/// **Mirrored, not shared.** Each person owns their own profile row; the other
+/// phone displays it and never writes it. Two authors never touch one record,
+/// so there is nothing to merge — a stronger guarantee than the LWW the shared
+/// types need, and the reason "whose name is this?" has an answer in the data.
+extension Profile: SyncableRecord {
+    static var syncTypeName: String { "Profile" }
+    static var syncCategory: SyncCategory { .mirrored }
+
+    var syncID: UUID { id }
+    var syncAuthorID: String { authorID }
+    var syncUpdatedAt: Date { updatedAt }
+    var syncDeletedAt: Date? { deletedAt }
+
+    func syncFields() -> [String: SyncValue] {
+        var fields: [String: SyncValue] = [
+            "name": .string(name),
+            "pronoun": .string(pronoun),
+        ]
+        if let photoID { fields["photoID"] = .string(photoID) }
+        return fields
+    }
+}
+
 /// Co-op is **shared**: one match, both people writing into it.
 extension CoopMatch: SyncableRecord {
     static var syncTypeName: String { "CoopMatch" }

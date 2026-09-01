@@ -23,6 +23,11 @@ struct FileCloudTransport: SyncTransport, SyncAssetTransport {
     /// records directory, never has to filter megabytes of JPEG out of its way.
     private var assetsDirectory: URL { directory.appendingPathComponent("assets", isDirectory: true) }
 
+    /// Includes the folder: a different folder is a different cloud, and
+    /// pointing at a fresh one should hand it everything rather than assume it
+    /// already has what the last one did.
+    var syncIdentity: String { "file:\(directory.path)" }
+
     func putAsset(_ data: Data, id: String) async throws {
         try FileManager.default.createDirectory(at: assetsDirectory, withIntermediateDirectories: true)
         let final = assetsDirectory.appendingPathComponent("\(id).jpg")
@@ -67,6 +72,28 @@ struct FileCloudTransport: SyncTransport, SyncAssetTransport {
         let names = ((try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? [])
             .filter { $0.hasSuffix(".json") }
             .sorted()
+
+        // **A cursor can outlive the log it points into.**
+        //
+        // Sequences only ever climb within one log, so a writer whose highest
+        // file sits *below* our cursor is not a writer who has gone quiet — it
+        // is a different log wearing the same name. That happens whenever this
+        // folder is wiped and recreated, which the two-phone script does on
+        // every run, and the effect is total and silent: the cursor stays above
+        // everything the partner writes, so every record they send is skipped
+        // forever. Observed at cursor 21 against files numbered 3 and 4, with
+        // one phone waiting on a turn the other had already taken.
+        //
+        // Rewinding is safe in a way that guessing never is: applying a record
+        // twice is a no-op by construction, and there is a test that says so.
+        var highest: [String: Int] = [:]
+        for name in names {
+            guard let (author, sequence) = Self.parse(name) else { continue }
+            highest[author] = max(highest[author] ?? 0, sequence)
+        }
+        for (author, mark) in cursor where mark > (highest[author] ?? 0) {
+            cursor[author] = 0
+        }
 
         var envelopes: [SyncEnvelope] = []
         for name in names {

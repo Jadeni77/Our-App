@@ -1,3 +1,5 @@
+import CloudKit
+import OSLog
 import UIKit
 
 /// Rotates the app for landscape modules (M13). Two masks cooperate here —
@@ -50,5 +52,45 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
         MainActor.assumeIsolated { Self.orientationMask }
+    }
+
+    /// A silent push from CloudKit: sync, then decide whether to say anything.
+    ///
+    /// **The ordering matters.** The push carries no message — only the
+    /// receiving phone knows whether an arriving turn is yours, so it syncs
+    /// first and words the notification afterwards. Nothing anybody wrote ever
+    /// travels as notification text.
+    /// The **completion-handler** form, not the `async` one.
+    ///
+    /// UIKit decides whether an app wants background pushes by asking the
+    /// delegate whether it responds to this selector. The `async` spelling is
+    /// bridged, and on at least one platform here it was never called at all —
+    /// with no error, because "the app did not implement it" is a legitimate
+    /// answer. Given this route runs with nobody watching, the spelling that is
+    /// definitely asked for is the one to use.
+    func application(_ application: UIApplication,
+                     didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+                     fetchCompletionHandler completionHandler:
+                        @escaping (UIBackgroundFetchResult) -> Void) {
+        Task { @MainActor in
+            completionHandler(await CoupleTurnAlert.syncAndAnnounce())
+        }
+    }
+
+    /// Accepting the couple's share — **the only place iOS hands this to us.**
+    ///
+    /// It arrives whether the app was running or launched by the link, so it
+    /// cannot live in a view: a screen that happened not to be on screen would
+    /// silently drop the one invitation there is.
+    func application(_ application: UIApplication,
+                     userDidAcceptCloudKitShareWith metadata: CKShare.Metadata) {
+        Task { @MainActor in
+            do {
+                try await CoupleZone.accept(metadata)
+            } catch {
+                Logger(subsystem: "OurApp", category: "cloudkit")
+                    .error("could not accept the share: \(error.localizedDescription)")
+            }
+        }
     }
 }

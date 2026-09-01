@@ -17,12 +17,21 @@ final class CoopReplayScene: SKScene {
     /// over rather than leaving the watcher staring at settled rubble.
     var onFinished: (() -> Void)?
 
-    init(size: CGSize, level: MoonshotLevel, snapshot: BoardSnapshot, clip: FlingClip) {
+    /// **The design canvas, and `.aspectFit` — the same two choices the game
+    /// makes.** Levels are authored against a fixed 840×390 space (M16), so a
+    /// scene built at the view's size puts every authored coordinate somewhere
+    /// else, and `.aspectFill` then crops whatever will not fit. Watching a
+    /// turn showed a different, smaller world than taking one, with the right
+    /// side cut off.
+    ///
+    /// It takes no size for the same reason `GameScene` takes none: there is
+    /// only one right answer and a caller cannot know it better.
+    init(level: MoonshotLevel, snapshot: BoardSnapshot, clip: FlingClip) {
         self.level = level
         self.snapshot = snapshot
         self.clip = clip
-        super.init(size: size)
-        scaleMode = .aspectFill
+        super.init(size: MoonshotTuning.sceneSize)
+        scaleMode = .aspectFit
     }
 
     @available(*, unavailable)
@@ -44,6 +53,13 @@ final class CoopReplayScene: SKScene {
         ground.zPosition = -10
         addChild(ground)
 
+        // The slingshot is scenery here — nothing is ever pulled from it — but
+        // leaving it out made the replay read as a different place from the one
+        // the shot was taken in.
+        let slingshot = SlingshotNode(showsTrajectoryHint: false, skin: nil)
+        slingshot.position = CGPoint(x: MoonshotTuning.slingshotX, y: MoonshotTuning.groundY)
+        addChild(slingshot)
+
         // Built from the **snapshot**, so identity comes from the same place
         // the clip's indices came from. Rebuilding from the level alone would
         // resurrect bodies destroyed on earlier turns.
@@ -56,6 +72,25 @@ final class CoopReplayScene: SKScene {
             node.physicsBody = nil
             addChild(node)
             bodies[body.id] = node
+        }
+
+        // The shot, which is in the clip but not on the board — it is what the
+        // turn *did*, not part of what the turn was played against. Without it
+        // you watched a fort collapse for no visible reason.
+        for (index, id) in clip.bodyIDs.enumerated()
+        where id.hasPrefix(StarSpriteNode.recordingPrefix) {
+            let raw = String(id.dropFirst(StarSpriteNode.recordingPrefix.count))
+            guard let character = CharacterID(rawValue: raw) else { continue }
+            let node = SpriteFactory.makeStar(character)
+            node.physicsBody = nil
+            // Placed on its first recorded pose, so it starts in the sling
+            // rather than flashing at the origin for a frame.
+            if let first = clip.frames.first, index < first.poses.count {
+                node.position = CGPoint(x: first.poses[index].x, y: first.poses[index].y)
+                node.zRotation = first.poses[index].angle
+            }
+            addChild(node)
+            bodies[id] = node
         }
     }
 

@@ -16,6 +16,8 @@ enum SyncApply {
         case Memory.syncTypeName: applyMemory(envelope, in: context)
         case CheckIn.syncTypeName: applyCheckIn(envelope, in: context)
         case CoopLevelResult.syncTypeName: applyCoopLevelResult(envelope, in: context)
+        case Profile.syncTypeName:
+            applyProfile(envelope, in: context, localAuthorID: localAuthorID)
         case CoopMatch.syncTypeName: applyCoopMatch(envelope, in: context)
         case CoopTurn.syncTypeName: applyCoopTurn(envelope, in: context)
         case MoonshotLevelResult.syncTypeName:
@@ -131,15 +133,86 @@ enum SyncApply {
         return true
     }
 
+    /// **Never applied to your own row.**
+    ///
+    /// A mirrored record has exactly one rightful author, so an envelope
+    /// claiming to be your profile is either your own write coming back — which
+    /// is a no-op — or something that should not be honoured. Refusing it here
+    /// means the phone you are holding is always the authority on you.
+    private static func applyProfile(_ envelope: SyncEnvelope,
+                                     in context: ModelContext,
+                                     localAuthorID: String) -> Bool {
+        // The guard is the whole category, exactly as it is for progress: this
+        // phone is the authority on you, and a remote copy of your own row is
+        // either your write coming back or something not to be honoured.
+        guard envelope.authorID != localAuthorID else { return false }
+
+        let id = envelope.id
+        let existing = try? context.fetch(
+            FetchDescriptor<Profile>(predicate: #Predicate { $0.id == id })).first
+        guard verdict(for: envelope,
+                      existingUpdatedAt: existing?.updatedAt,
+                      existingAuthorID: existing?.authorID,
+                      existingDeletedAt: existing?.deletedAt) else { return false }
+
+        let row = existing ?? {
+            let created = Profile(authorID: envelope.authorID)
+            created.id = envelope.id
+            context.insert(created)
+            return created
+        }()
+        row.authorID = envelope.authorID
+        row.name = envelope.string("name") ?? row.name
+        row.pronoun = envelope.string("pronoun") ?? row.pronoun
+        // Assigned unconditionally: clearing a photo is a thing somebody can
+        // choose to do, and a picture that could not be removed would be worse
+        // than one that arrives late.
+        row.photoID = envelope.string("photoID")
+        row.updatedAt = envelope.updatedAt
+        row.deletedAt = envelope.deletedAt
+        return true
+    }
+
     private static func applyCoopMatch(_ envelope: SyncEnvelope,
                                        in context: ModelContext) -> Bool {
         let id = envelope.id
         let existing = try? context.fetch(
             FetchDescriptor<CoopMatch>(predicate: #Predicate { $0.id == id })).first
-        guard verdict(for: envelope,
-                      existingUpdatedAt: existing?.updatedAt,
-                      existingAuthorID: existing?.turnHolder,
-                      existingDeletedAt: existing?.deletedAt) else { return false }
+
+        // **A match advances on `turnIndex`, never on the clock.**
+        //
+        // LWW is wrong for this record, and wrong in a way that stalls the game
+        // permanently. Both phones create a match for a level the moment it is
+        // opened, and a match's id *is* its level's id, so the two creations
+        // are two writes to one record. If she opens the level a minute after
+        // you took your shot, her freshly-created match — turn 0, board
+        // untouched — is the *newer* write, and LWW hands it the record. Your
+        // turn is undone on both phones, she waits for a shot that already
+        // happened, and nothing either of you does moves it: every reopen
+        // rewrites turn 0 with a newer timestamp still.
+        //
+        // Observed exactly so on level 2: turn 1 at ...549.673 lost to turn 0
+        // at ...553.426.
+        //
+        // Turn count only goes up, so taking the greater one is what the design
+        // said (§3, "strictly increasing") and is a proper max-merge —
+        // commutative, associative, idempotent, converging in any delivery
+        // order. The clock only breaks ties at an equal index, which is the one
+        // case where the two records really are the same moment in the game.
+        let incomingIndex = envelope.int("turnIndex") ?? 0
+        if let existing, envelope.deletedAt == nil {
+            if incomingIndex < existing.turnIndex { return false }
+            if incomingIndex == existing.turnIndex,
+               !verdict(for: envelope,
+                        existingUpdatedAt: existing.updatedAt,
+                        existingAuthorID: existing.turnHolder,
+                        existingDeletedAt: existing.deletedAt) { return false }
+        } else {
+            guard verdict(for: envelope,
+                          existingUpdatedAt: existing?.updatedAt,
+                          existingAuthorID: existing?.turnHolder,
+                          existingDeletedAt: existing?.deletedAt) else { return false }
+        }
 
         let row = existing ?? {
             let created = CoopMatch(levelID: UUID(), participants: [], turnHolder: "")
@@ -153,9 +226,13 @@ enum SyncApply {
         row.turnIndex = envelope.int("turnIndex") ?? row.turnIndex
         row.boardState = envelope.string("boardState")
             .flatMap { Data(base64Encoded: $0) } ?? row.boardState
-        // Assigned unconditionally: absent means *not finished*, and a match
-        // that can't be un-finished would strand a level forever.
-        row.finishedAt = envelope.date("finishedAt")
+        // **Sticky, like a tombstone.** A cleared board is derived from bodies
+        // that only ever die, so "we finished this" is monotonic and a record
+        // arriving without it is stale news, not a retraction. Assigning it
+        // unconditionally used to be defensible when the clock decided
+        // everything; alongside index-max merge it would let a turn-0 record
+        // un-win a level the two of you had already cleared.
+        row.finishedAt = envelope.date("finishedAt") ?? row.finishedAt
         row.updatedAt = envelope.updatedAt
         row.deletedAt = envelope.deletedAt
         return true

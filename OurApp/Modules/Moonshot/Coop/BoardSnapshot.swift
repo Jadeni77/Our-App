@@ -30,6 +30,42 @@ struct BoardSnapshot: Codable, Equatable {
     var bodies: [Body]
 
     var aliveBodies: [Body] { bodies.filter(\.alive) }
+
+    /// Cleared when no gloom is left standing — the same condition the solo
+    /// game wins on, read off the board rather than off the scene, so both
+    /// phones reach the same verdict from the same bytes.
+    var isCleared: Bool { !bodies.contains { $0.kind == "gloom" && $0.alive } }
+
+    /// The board as a level starts, computed **from the level definition** —
+    /// no scene, no sprites, no physics.
+    ///
+    /// Building a `GameScene` just to read starting positions froze the app on
+    /// tapping Start: `buildWorld` generates a sky texture and every sprite and
+    /// physics body, synchronously, on the main thread. The give-away was the
+    /// background animation stopping — a stalled main thread, not a slow query.
+    ///
+    /// The conversion mirrors `GameScene.levelPoint`, which is a translation by
+    /// the ground height. If that ever stops being a plain translation the two
+    /// must move together, which is why it says so here.
+    init(startOf level: MoonshotLevel) {
+        self.levelID = level.id
+        self.bodies =
+            level.pieces.enumerated().map { index, piece in
+                Body(id: "p\(index)", kind: "piece",
+                     x: piece.x, y: piece.y + Double(MoonshotTuning.groundY),
+                     angle: 0, alive: true)
+            }
+            + level.glooms.enumerated().map { index, gloom in
+                Body(id: "g\(index)", kind: "gloom",
+                     x: gloom.x, y: gloom.y + Double(MoonshotTuning.groundY),
+                     angle: 0, alive: true)
+            }
+    }
+
+    init(levelID: UUID, bodies: [Body]) {
+        self.levelID = levelID
+        self.bodies = bodies
+    }
 }
 
 /// JSON, deliberately — unlike `FlingClip`, which is per-frame and gets a hand
@@ -52,8 +88,13 @@ enum CoopBoardRules {
     /// Order matters as well as membership: the clip's frames are positional,
     /// so `["a","b"]` against `["b","a"]` would animate each body along the
     /// other's path — every piece moving smoothly and every piece wrong.
+    /// The board's roster must match position for position. Anything after it
+    /// is the shot — recorded so the replay can show the fling, and no part of
+    /// the board, so it is not the board's business what it is.
     static func clip(_ clip: FlingClip, matches snapshot: BoardSnapshot) -> Bool {
-        clip.bodyIDs == snapshot.bodies.map(\.id)
+        let roster = snapshot.bodies.map(\.id)
+        guard clip.bodyIDs.count >= roster.count else { return false }
+        return Array(clip.bodyIDs.prefix(roster.count)) == roster
     }
 
     /// The state after a turn, folded from the clip's final frame.
