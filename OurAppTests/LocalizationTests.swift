@@ -401,6 +401,21 @@ struct LocalizationTests {
         #expect(localizedValue("Caption", language: "zh-Hans") == "说明")
         #expect(localizedValue("Set date", language: "zh-Hans") == "设置日期")
         #expect(localizedValue("Set date", language: "zh-Hant") == "設定日期")
+        // The section heading's own affordance — visible text now, not just
+        // an accessibility label — and the confirmations that stand between
+        // a tap and a bulk, unconfirmed, irreversible date write.
+        #expect(localizedValue("Set date for all", language: "zh-Hans") == "统一设置日期")
+        #expect(localizedValue("Set date for all", language: "zh-Hant") == "統一設定日期")
+        #expect(localizedValue("Set date for %lld photos?", language: "zh-Hans")
+                == "要为这 %lld 张照片设置日期吗？")
+        #expect(localizedValue("Set date for %lld photos?", language: "zh-Hant")
+                == "要為這 %lld 張照片設定日期嗎？")
+        #expect(localizedValue("Clear date", language: "zh-Hans") == "清除日期")
+        #expect(localizedValue("Clear date", language: "zh-Hant") == "清除日期")
+        #expect(localizedValue("Clear date for %lld photos?", language: "zh-Hans")
+                == "要清除这 %lld 张照片的日期吗？")
+        #expect(localizedValue("Clear date for %lld photos?", language: "zh-Hant")
+                == "要清除這 %lld 張照片的日期嗎？")
     }
 
     /// **English needs a plural rule; Chinese doesn't have one.**

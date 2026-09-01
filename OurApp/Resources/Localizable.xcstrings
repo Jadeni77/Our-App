@@ -1456,6 +1456,52 @@
         }
       }
     },
+    "Clear date": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear date"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除日期"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除日期"
+          }
+        }
+      }
+    },
+    "Clear date for %lld photos?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear date for %lld photos?"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要清除这 %lld 张照片的日期吗？"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要清除這 %lld 張照片的日期嗎？"
+          }
+        }
+      }
+    },
     "Cleared": {
       "extractionState": "manual",
       "localizations": {
@@ -5269,6 +5315,52 @@
           "stringUnit": {
             "state": "translated",
             "value": "設定日期"
+          }
+        }
+      }
+    },
+    "Set date for %lld photos?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Set date for %lld photos?"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要为这 %lld 张照片设置日期吗？"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要為這 %lld 張照片設定日期嗎？"
+          }
+        }
+      }
+    },
+    "Set date for all": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Set date for all"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "统一设置日期"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "統一設定日期"
           }
         }
       }

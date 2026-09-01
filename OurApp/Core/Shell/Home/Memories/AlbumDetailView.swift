@@ -379,14 +379,25 @@ struct AlbumDetailView: View {
 
             Spacer()
 
+            // A bare SF glyph with only an accessibility label read, to
+            // anyone sighted, as decoration — nothing on screen said this
+            // button sets one date for *every* photo under this heading at
+            // once, which is exactly how one tap here could collapse a whole
+            // "Sometime" section into a single day with no warning that it
+            // was about to touch more than one photo. Visible text now says
+            // the scope out loud instead of leaving it to VoiceOver alone.
             Button {
                 Haptics.tap()
                 settingDate = DateTarget(photos: section.photos)
             } label: {
-                Image(systemName: "calendar")
-                    .foregroundStyle(.white.opacity(0.7))
+                Label {
+                    Text("Set date for all")
+                        .font(.system(.caption, design: .rounded))
+                } icon: {
+                    Image(systemName: "calendar")
+                }
+                .foregroundStyle(.white.opacity(0.7))
             }
-            .accessibilityLabel(Text("Set date"))
         }
     }
 
@@ -453,6 +464,22 @@ private struct SetDateSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
     @State private var date: Date
+    // More than one target means Save writes a date onto every one of them
+    // at once — reordering `All photos`, and, from "Sometime", collapsing a
+    // whole undated section into a single day — with nothing in the app that
+    // can put it back afterward. A single photo, from its own tile's context
+    // menu, is one tap away from being changed right back, so that path still
+    // saves immediately with no confirmation to click through.
+    @State private var confirmingSave = false
+    @State private var confirmingClear = false
+
+    /// Whether clearing would change anything. Offering "Clear date" when
+    /// every target is already undated is a button that always does
+    /// nothing — the silent no-op this codebase already refuses to ship
+    /// elsewhere (`PhotoPickerSheet`'s own toggle logic).
+    private var hasExistingDate: Bool {
+        photos.contains { $0.takenAt != nil }
+    }
 
     init(photos: [Photo]) {
         self.photos = photos
@@ -472,6 +499,23 @@ private struct SetDateSheet: View {
                     Text("Date")
                 }
                 .datePickerStyle(.graphical)
+
+                // `SyncApply.applyPhoto` already writes `takenAt`
+                // unconditionally, nil included, so clearing replicates
+                // correctly today — what was missing was anywhere in the app
+                // that could *ask* for it. Before this, a photo that had ever
+                // been dated could never be put back to undated again.
+                if hasExistingDate {
+                    Button(role: .destructive) {
+                        if photos.count > 1 {
+                            confirmingClear = true
+                        } else {
+                            clear()
+                        }
+                    } label: {
+                        Text("Clear date")
+                    }
+                }
             }
             .navigationTitle(Text("Set date"))
             .navigationBarTitleDisplayMode(.inline)
@@ -480,8 +524,22 @@ private struct SetDateSheet: View {
                     Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { save() }
+                    Button("Save") {
+                        if photos.count > 1 {
+                            confirmingSave = true
+                        } else {
+                            save()
+                        }
+                    }
                 }
+            }
+            .confirmationDialog(Text("Set date for \(photos.count) photos?"),
+                                isPresented: $confirmingSave, titleVisibility: .visible) {
+                Button("Set date") { save() }
+            }
+            .confirmationDialog(Text("Clear date for \(photos.count) photos?"),
+                                isPresented: $confirmingClear, titleVisibility: .visible) {
+                Button("Clear date", role: .destructive) { clear() }
             }
         }
     }
@@ -495,6 +553,19 @@ private struct SetDateSheet: View {
         let anchor = SpecialDateSchedule.anchor(for: date)
         for photo in photos {
             photo.takenAt = anchor
+            photo.updatedAt = .now
+        }
+        try? context.save()
+        dismiss()
+    }
+
+    /// The other half of what `applyPhoto` already supported: putting a
+    /// photo back to no date at all, the state every photo starts in before
+    /// anyone sets one by hand.
+    private func clear() {
+        Haptics.tap()
+        for photo in photos {
+            photo.takenAt = nil
             photo.updatedAt = .now
         }
         try? context.save()
