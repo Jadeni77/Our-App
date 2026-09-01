@@ -91,6 +91,13 @@ struct MemoryDetailView: View {
             memory.deletedAt = nil
             return
         }
+        // The library rows go with the files. The confirmation promises "its
+        // photos are removed from the app", and until this line that was only
+        // true of the bytes: All photos kept a tile for every one of them
+        // forever — unloadable, unremovable, and still filable into an album as
+        // a blank square. Only assets no *other* visible memory names; a
+        // picture that is in two memories still has one, and its files with it.
+        PhotoLibrary.retire(assets: memory.photoIDs, in: context)
         for id in memory.photoIDs { store.delete(id) }
         dismiss()
     }

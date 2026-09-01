@@ -137,9 +137,33 @@ enum AlbumStore {
     /// Live memberships only. A tombstoned entry stopped counting the moment
     /// it was removed, which is the whole point of deriving rather than
     /// storing (`countsAreDerivedNotStored`).
+    ///
+    /// A membership is also dropped when the **photo behind it** has been
+    /// retired — deleting a memory takes its files with it, so a row pointing
+    /// at one is a tile that can never load. This was unreachable until
+    /// `PhotoLibrary.retire` existed; now it is the difference between an album
+    /// that quietly shrinks and one that counts squares nobody can see.
+    ///
+    /// **A membership with no `Photo` row at all is kept.** That is the
+    /// legitimate "the membership arrived before the photo did" case — records
+    /// travel independently of each other and of the bytes — and treating an
+    /// absent row as a retired one would hide every photo mid-sync.
     private static func entries(of album: Album, in context: ModelContext) -> [AlbumEntry] {
         let albumID = album.id
-        return (try? context.fetch(FetchDescriptor<AlbumEntry>(
+        let members = (try? context.fetch(FetchDescriptor<AlbumEntry>(
             predicate: #Predicate { $0.albumID == albumID && $0.deletedAt == nil }))) ?? []
+        guard !members.isEmpty else { return [] }
+        let retired = retiredAssets(in: context)
+        guard !retired.isEmpty else { return members }
+        return members.filter { !retired.contains($0.assetID) }
+    }
+
+    /// Assets whose `Photo` has been tombstoned. Fetched by predicate rather
+    /// than by filtering the whole library, so on the normal path — nobody has
+    /// deleted a memory — this reads no rows at all.
+    private static func retiredAssets(in context: ModelContext) -> Set<String> {
+        let rows = (try? context.fetch(FetchDescriptor<Photo>(
+            predicate: #Predicate { $0.deletedAt != nil }))) ?? []
+        return Set(rows.map(\.assetID))
     }
 }

@@ -152,3 +152,84 @@ struct PhotoLibraryTests {
         #expect(PhotoLibrary.all(in: store).map(\.assetID) == ["new", "old"])
     }
 }
+
+/// Deleting a memory is the one delete in this app that destroys bytes, so it
+/// is the one delete that has to retire library rows as well.
+@MainActor
+struct PhotoRetirementTests {
+    private func context() throws -> ModelContext {
+        ModelContext(try Persistence.makeContainer(inMemory: true))
+    }
+
+    /// Before this, deleting a memory with six photos left six tiles in All
+    /// photos forever: placeholders that could never load, with no photo-delete
+    /// anywhere to clear them.
+    @Test func deletingAMemoryRetiresItsPhotos() throws {
+        let store = try context()
+        let memory = Memory(note: "Kyoto", day: .now, authorID: "me", photoIDs: ["a", "b"])
+        store.insert(memory)
+        try store.save()
+        PhotoLibrary.seed(in: store)
+        #expect(PhotoLibrary.all(in: store).count == 2)
+
+        // What `MemoryDetailView.delete()` does: tombstone first, then retire.
+        memory.deletedAt = .now
+        try store.save()
+        PhotoLibrary.retire(assets: memory.photoIDs, in: store)
+
+        #expect(PhotoLibrary.all(in: store).isEmpty)
+    }
+
+    /// **Only what the delete actually orphaned.** A picture in two memories
+    /// still has one of them, and its files with it.
+    @Test func aPhotoAnotherMemoryStillNamesSurvives() throws {
+        let store = try context()
+        let deleted = Memory(note: "one", day: .now, authorID: "me", photoIDs: ["shared", "solo"])
+        store.insert(deleted)
+        store.insert(Memory(note: "two", day: .now, authorID: "me", photoIDs: ["shared"]))
+        try store.save()
+        PhotoLibrary.seed(in: store)
+
+        deleted.deletedAt = .now
+        try store.save()
+        PhotoLibrary.retire(assets: deleted.photoIDs, in: store)
+
+        #expect(PhotoLibrary.all(in: store).map(\.assetID) == ["shared"])
+    }
+
+    /// The guard that keeps this from becoming reconciliation. Called while the
+    /// memory is still visible — the wrong order — it retires nothing, which is
+    /// the harmless direction.
+    @Test func retiringBeforeTheTombstoneIsDurableDoesNothing() throws {
+        let store = try context()
+        let memory = Memory(note: "Kyoto", day: .now, authorID: "me", photoIDs: ["a"])
+        store.insert(memory)
+        try store.save()
+        PhotoLibrary.seed(in: store)
+
+        PhotoLibrary.retire(assets: memory.photoIDs, in: store)
+
+        #expect(PhotoLibrary.all(in: store).count == 1)
+    }
+
+    /// **A `Photo` that arrives before its `Memory` must not be retired.**
+    ///
+    /// The two are independent records, so this window is normal rather than
+    /// exotic, and a sticky tombstone written in it deletes the picture from
+    /// both phones forever. `retire` is scoped to the assets a delete just
+    /// orphaned precisely so it can never see this row.
+    @Test func aPhotoWhoseMemoryHasNotArrivedIsLeftAlone() throws {
+        let store = try context()
+        store.insert(Photo(assetID: "early", authorID: "them"))
+        let memory = Memory(note: "mine", day: .now, authorID: "me", photoIDs: ["a"])
+        store.insert(memory)
+        try store.save()
+        PhotoLibrary.seed(in: store)
+
+        memory.deletedAt = .now
+        try store.save()
+        PhotoLibrary.retire(assets: memory.photoIDs, in: store)
+
+        #expect(PhotoLibrary.all(in: store).map(\.assetID) == ["early"])
+    }
+}

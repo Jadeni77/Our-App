@@ -79,6 +79,48 @@ enum PhotoLibrary {
         if changed { try? context.save() }
     }
 
+    /// Tombstones the library rows for assets a deleted memory took its files
+    /// with — and **only** for assets no other visible memory still names.
+    ///
+    /// Called from `MemoryDetailView.delete()`, which is the one place in the
+    /// app that destroys bytes. Without it, All photos keeps a tile per lost
+    /// asset: a placeholder that can never load, indistinguishable from "hasn't
+    /// synced yet", with no photo-delete anywhere to clear it, and still
+    /// tappable in the picker so it can be filed into an album as a permanently
+    /// blank square.
+    ///
+    /// **This is deliberately not reconciliation.** The tempting version —
+    /// "tombstone any `Photo` no visible `Memory` names" inside `seed` — is a
+    /// data-loss bug, not a tidier fix: `Photo` and `Memory` are independent
+    /// records, so a photo legitimately arrives before the memory that mentions
+    /// it, and a sticky tombstone written in that window deletes the picture
+    /// from *both* phones forever. Retiring only what a delete just orphaned
+    /// touches nothing that is merely early.
+    ///
+    /// Call it **after** the memory's own tombstone is durable: the survivor
+    /// scan reads `Memory.visible`, so a memory still visible counts itself as
+    /// a reason to keep its photos. Calling it early therefore retires nothing,
+    /// which is the harmless direction.
+    static func retire(assets: [String], in context: ModelContext) {
+        guard !assets.isEmpty else { return }
+        // A failed fetch bails rather than defaulting to "nothing survives" —
+        // an empty survivor set would retire every asset named, which is the
+        // one direction this must never guess in.
+        guard let visible = try? context.fetch(
+            FetchDescriptor<Memory>(predicate: Memory.visible)) else { return }
+        let orphaned = Set(assets).subtracting(visible.flatMap(\.photoIDs))
+        guard !orphaned.isEmpty else { return }
+
+        guard let rows = try? context.fetch(FetchDescriptor<Photo>()) else { return }
+        var retired = false
+        for row in rows where orphaned.contains(row.assetID) && row.deletedAt == nil {
+            row.deletedAt = .now
+            row.updatedAt = .now
+            retired = true
+        }
+        if retired { try? context.save() }
+    }
+
     /// Newest first. `sortDate` falls back to when a picture arrived, because
     /// nothing that predates this record has a capture date to sort by.
     static func all(in context: ModelContext) -> [Photo] {

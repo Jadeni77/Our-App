@@ -107,6 +107,47 @@ struct AlbumStoreTests {
         AlbumStore.remove(assetID: "a", from: album, in: store)
         #expect(AlbumStore.count(of: album, in: store) == 0)
     }
+
+    /// **A retired photo leaves the albums it was in.** Deleting a memory takes
+    /// its files, so a membership still pointing at one is a square that can
+    /// never load and a count nobody can reconcile with what's on screen.
+    @Test func aMembershipWhosePhotoWasRetiredStopsCounting() throws {
+        let store = try context()
+        try library(store, ["kept", "gone"])
+        let album = AlbumStore.create(name: "🎀", authorID: "me", in: store)
+        AlbumStore.add(assetID: "kept", to: album, authorID: "me", in: store)
+        AlbumStore.add(assetID: "gone", to: album, authorID: "me", in: store)
+        AlbumStore.setCover(album, to: "gone", in: store)
+        #expect(AlbumStore.count(of: album, in: store) == 2)
+
+        let retired = try #require(try store.fetch(FetchDescriptor<Photo>())
+            .first { $0.assetID == "gone" })
+        retired.deletedAt = .now
+        try store.save()
+
+        #expect(AlbumStore.count(of: album, in: store) == 1)
+        #expect(AlbumStore.assets(of: album, in: store) == ["kept"])
+        // And the cover falls back rather than staying on a picture that isn't
+        // a member any more — the rule `summary(of:)` already had, now reached
+        // through the retirement filter too.
+        #expect(AlbumStore.cover(of: album, in: store) == "kept")
+    }
+
+    /// **The other half, and the one that is easy to break while fixing the
+    /// first.** A membership with *no* `Photo` row at all is not a retired
+    /// photo — it is the normal case of the membership arriving before the
+    /// picture, since the two are independent records. Treating an absent row
+    /// like a tombstoned one would empty every album mid-sync.
+    @Test func aMembershipWhosePhotoHasNotArrivedStillCounts() throws {
+        let store = try context()
+        let album = AlbumStore.create(name: "🎀", authorID: "me", in: store)
+        // No `Photo` inserted for "early" on purpose.
+        AlbumStore.add(assetID: "early", to: album, authorID: "them", in: store)
+
+        #expect(AlbumStore.count(of: album, in: store) == 1)
+        #expect(AlbumStore.assets(of: album, in: store) == ["early"])
+        #expect(AlbumStore.cover(of: album, in: store) == "early")
+    }
 }
 
 /// Two phones, one album.
