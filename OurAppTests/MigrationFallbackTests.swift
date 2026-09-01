@@ -132,3 +132,77 @@ struct AlbumMigrationTests {
         #expect(try read.fetchCount(FetchDescriptor<Profile>()) == 1)
     }
 }
+
+/// The V6 → V7 stage, on a store that already carries an album.
+///
+/// Same shape as `AlbumMigrationTests` above, and for the same reason:
+/// `MigrationFallbackTests` only ever exercises the plan-less fallback, so a
+/// missing or broken V6 → V7 stage would still leave that test green.
+@MainActor
+struct AlbumCaptionMigrationTests {
+    /// A V6 store on disk, with an album in it — the shape a phone was
+    /// carrying the day before captions existed.
+    private func seededV6Store() throws -> URL {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("v6-\(UUID().uuidString).store")
+        let v6 = Schema(versionedSchema: SchemaV6.self)
+        let seeded = try ModelContainer(
+            for: v6,
+            configurations: [ModelConfiguration(schema: v6, url: url, cloudKitDatabase: .none)])
+        let writing = ModelContext(seeded)
+        // The pinned V6 shape, not the live `Album` — the live type already
+        // carries `caption`, and this is meant to be what a V6 store actually
+        // had on disk before that field existed.
+        writing.insert(SchemaV6.Album(name: "🎀", authorID: "me"))
+        try writing.save()
+        return url
+    }
+
+    private func remove(_ url: URL) {
+        for suffix in ["", "-wal", "-shm"] {
+            try? FileManager.default.removeItem(at: URL(fileURLWithPath: url.path + suffix))
+        }
+    }
+
+    /// The guarantee that matters here: the album survives the upgrade, and
+    /// the field V7 added is usable on the migrated store.
+    @Test func aV6StoreOpensAtV7WithItsRowsIntact() throws {
+        let url = try seededV6Store()
+        defer { remove(url) }
+
+        // The app's own container builder, so this is the path a real launch
+        // takes rather than a hand-built one.
+        let migrated = try Persistence.makeContainer(url: url)
+        let read = ModelContext(migrated)
+        #expect(try read.fetchCount(FetchDescriptor<Album>()) == 1)
+        let album = try #require(try read.fetch(FetchDescriptor<Album>()).first)
+        #expect(album.name == "🎀")
+        #expect(album.caption == "")
+
+        album.caption = "你在，我在，就是海枯石烂。"
+        try read.save()
+        #expect(try read.fetch(FetchDescriptor<Album>()).first?.caption
+                == "你在，我在，就是海枯石烂。")
+    }
+
+    /// **The stage itself, with the fallback taken away.** Same reasoning as
+    /// `theV5ToV6StageAcceptsAV5StoreWithNoFallback`: `Persistence.makeContainer`
+    /// catches a refusal from staged migration and retries without a plan, so
+    /// the test above would stay green even with `addAlbumCaption` deleted
+    /// from the plan entirely. This one builds the container the plan's own
+    /// way, where a missing or broken V6 → V7 stage is a thrown error rather
+    /// than a quieter route to the same place.
+    @Test func theV6ToV7StageAcceptsAV6StoreWithNoFallback() throws {
+        let url = try seededV6Store()
+        defer { remove(url) }
+
+        let schema = Schema(versionedSchema: CurrentSchema.self)
+        let migrated = try ModelContainer(
+            for: schema,
+            migrationPlan: AppMigrationPlan.self,
+            configurations: [ModelConfiguration(schema: schema, url: url,
+                                                cloudKitDatabase: .none)])
+        let read = ModelContext(migrated)
+        #expect(try read.fetchCount(FetchDescriptor<Album>()) == 1)
+    }
+}

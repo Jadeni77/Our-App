@@ -9,6 +9,11 @@ final class Album {
     /// Chosen deliberately. When nil the newest member stands in, so a new
     /// album is never a blank square.
     var coverAssetID: String?
+    /// The line the couple writes under the cover — not a caption on any one
+    /// photo, but what the album itself is about. Defaults empty rather than
+    /// absent, so the header always has a place to write one instead of a
+    /// hole where the sentiment goes until somebody does.
+    var caption: String = ""
     var authorID: String = ""
     var createdAt: Date = Date.now
     var updatedAt: Date = Date.now
