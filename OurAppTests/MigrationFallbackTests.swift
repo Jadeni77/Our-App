@@ -142,6 +142,18 @@ struct AlbumMigrationTests {
 struct AlbumCaptionMigrationTests {
     /// A V6 store on disk, with an album in it — the shape a phone was
     /// carrying the day before captions existed.
+    ///
+    /// **Cannot detect drift in the pinned `SchemaV6.Album`.** This writes
+    /// through `Schema(versionedSchema: SchemaV6.self)` — the very
+    /// declaration `AppMigrationPlan` migrates from — so it only proves that
+    /// *V6-as-currently-declared* reaches V7 cleanly, never that the
+    /// declaration still matches what a real phone's V6 store holds. Delete
+    /// `coverAssetID` from `SchemaV6.Album` and both tests below still pass.
+    /// Only bytes an older build actually wrote to disk could catch that,
+    /// and nothing here does. See `SchemaV6.Album`'s doc comment and P32 for
+    /// why this is tolerable today (the stage is `.lightweight`, so a wrong
+    /// pin just falls back to plan-less migration) and what it would cost
+    /// against a `.custom` stage (`willMigrate` silently skipped).
     private func seededV6Store() throws -> URL {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("v6-\(UUID().uuidString).store")

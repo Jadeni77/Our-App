@@ -100,8 +100,27 @@ enum SchemaV6: VersionedSchema {
     /// `SchemaV1.SpecialDate` is pinned above: `Album` genuinely differs
     /// between this version and the next, and a schema chain where two
     /// adjacent versions resolve to byte-identical model shapes is one
-    /// SwiftData refuses outright — "Duplicate version checksums detected" —
-    /// rather than a distinction that can be left to the live type.
+    /// SwiftData refuses outright — "Duplicate version checksums detected",
+    /// an uncaught Objective-C exception that the `do`/`catch` fallback in
+    /// `Persistence.makeContainer` (P30) cannot intercept — rather than a
+    /// distinction that can be left to the live type.
+    ///
+    /// **This pin is asserted, not verified.** Nothing in the suite checks it
+    /// against bytes an older build actually wrote — `AlbumCaptionMigrationTests`
+    /// seeds its "V6 store" through `Schema(versionedSchema: SchemaV6.self)`,
+    /// i.e. through this very declaration, so it can only prove *this shape*
+    /// migrates cleanly to V7, never that this shape matches what V6 shipped.
+    /// Delete `coverAssetID` below and the whole suite still passes. Harmless
+    /// today because `addAlbumCaption` is `.lightweight`: a wrong pin just
+    /// makes staged migration refuse the store and fall back to plan-less
+    /// lightweight migration, same as any unrecognised version, no data lost.
+    /// It stops being harmless the day a stage between two pinned versions is
+    /// `.custom` — exactly `dropRetiredEmoji`'s shape below, whose
+    /// `willMigrate` backfills `iconID` before dropping `emoji`. A mis-pinned
+    /// `fromVersion` there means staged migration is refused, the fallback
+    /// runs plan-less, and `willMigrate` is **silently skipped** — destroying
+    /// every icon anyone picked, with the suite fully green throughout. See
+    /// P32.
     @Model
     final class Album {
         var id: UUID = UUID()
