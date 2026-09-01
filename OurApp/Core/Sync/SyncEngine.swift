@@ -109,6 +109,9 @@ final class SyncEngine {
         collect(CoopMatch.self)
         collect(CoopTurn.self)
         collect(MoonshotLevelResult.self)
+        collect(Photo.self)
+        collect(Album.self)
+        collect(AlbumEntry.self)
 
         guard !outgoing.isEmpty else { return }
         try await transport.push(outgoing)

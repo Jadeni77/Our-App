@@ -14,9 +14,20 @@ struct MemoriesView: View {
                   SortDescriptor(\Memory.updatedAt, order: .reverse)])
     private var memories: [Memory]
 
+    @Environment(\.modelContext) var context
     private let thumbnails = MemoryThumbnails.shared
     @State private var composing = MemoriesView.opensComposerAtLaunch
     @State private var showing: Memory?
+
+    /// Which half of the page is showing. Moments is the existing timeline;
+    /// Albums is the grid of covers this task adds.
+    enum Tab: String, CaseIterable, Identifiable {
+        case moments, albums
+        var id: String { rawValue }
+        var label: LocalizedStringKey { self == .moments ? "Moments" : "Albums" }
+    }
+
+    @State private var tab: Tab = .moments
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 3), count: 3)
 
@@ -36,10 +47,32 @@ struct MemoriesView: View {
         ZStack {
             DreamyBackground(showsMoon: false)
 
-            if memories.isEmpty {
-                emptyState
-            } else {
-                grid
+            VStack(spacing: 0) {
+                Picker(selection: $tab) {
+                    ForEach(Tab.allCases) { Text($0.label).tag($0) }
+                } label: {
+                    Text("View")
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal, 14)
+                .padding(.top, 8)
+
+                // A plain frame, not another ZStack: `grid` and `emptyState`
+                // already know how to fill and center themselves respectively,
+                // and this is the same contract they had before the picker
+                // was added above them.
+                Group {
+                    if tab == .moments {
+                        if memories.isEmpty {
+                            emptyState
+                        } else {
+                            grid
+                        }
+                    } else {
+                        AlbumsGridView()
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .navigationTitle(Text("Memories"))
@@ -47,14 +80,20 @@ struct MemoriesView: View {
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    Haptics.tap()
-                    composing = true
-                } label: {
-                    Image(systemName: "plus").foregroundStyle(.white)
+            // Composing a memory only makes sense while looking at Moments —
+            // Albums has its own trailing action for filing a new album, and
+            // showing both at once would leave two "+" buttons pointing at
+            // two different sheets.
+            if tab == .moments {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        Haptics.tap()
+                        composing = true
+                    } label: {
+                        Image(systemName: "plus").foregroundStyle(.white)
+                    }
+                    .accessibilityLabel(Text("Add a memory"))
                 }
-                .accessibilityLabel(Text("Add a memory"))
             }
         }
         .sheet(isPresented: $composing) {
@@ -63,6 +102,14 @@ struct MemoriesView: View {
         .sheet(item: $showing) { memory in
             MemoryDetailView(memory: memory)
         }
+        // **Keyed on the count, not bare.** A plain `.task` runs once per
+        // appearance and nothing else creates `Photo` rows —
+        // `MemoryComposeSheet.save()` inserts only the `Memory` — so a memory
+        // added just now, or one arriving from her phone while this page is
+        // open, had no library rows until you left Memories and came back.
+        // Add three photos, tap Save, switch to Albums, tap Add photos, and
+        // they simply were not there.
+        .task(id: memories.count) { PhotoLibrary.seed(in: context) }
     }
 
 private var grid: some View {

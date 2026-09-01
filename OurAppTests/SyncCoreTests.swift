@@ -1121,7 +1121,10 @@ struct SyncCoverageTests {
     /// which is how a feature ships working perfectly on one phone.
     @Test func everyModelIsEitherSyncedOrDeliberatelyLocal() {
         var unclassified: [String] = []
-        for model in SchemaV5.models {
+        // `CurrentSchema`, not a literal `SchemaVn`: a hardcoded version stops
+        // covering models the moment a later schema adds them, and this guard
+        // would then certify nothing about whatever V7 brings.
+        for model in CurrentSchema.models {
             let name = String(describing: model)
             let syncs = model is any SyncableRecord.Type
             if !syncs && !Self.deliberatelyLocal.contains(name) {
@@ -1148,7 +1151,9 @@ struct SyncCoverageTests {
                                encoding: .utf8)
 
         var missing: [String] = []
-        for model in SchemaV5.models where model is any SyncableRecord.Type {
+        // Same reason as above: `CurrentSchema`, so this can't be left behind
+        // aimed at an old version the next time the schema bumps.
+        for model in CurrentSchema.models where model is any SyncableRecord.Type {
             let name = String(describing: model)
             if !engine.contains("collect(\(name).self)") { missing.append("\(name): not collected") }
             if !apply.contains("case \(name).syncTypeName") { missing.append("\(name): not applied") }

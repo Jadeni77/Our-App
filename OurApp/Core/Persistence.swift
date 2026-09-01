@@ -10,10 +10,11 @@ enum Persistence {
     /// schema — which is the only way to reproduce the failure below without a
     /// phone that has been carrying one since July.
     static func makeContainer(inMemory: Bool = false, url: URL? = nil) throws -> ModelContainer {
-        // The schema is whatever the newest version says it is, and the plan
-        // is how a store written by an older build gets there. Adding a model
-        // type means adding it to the newest `SchemaVn`, not here.
-        let schema = Schema(versionedSchema: SchemaV5.self)
+        // The schema is whatever `CurrentSchema` says it is, and the plan is
+        // how a store written by an older build gets there. Adding a model
+        // type means adding it to the newest `SchemaVn` and moving the
+        // `CurrentSchema` alias, not here.
+        let schema = Schema(versionedSchema: CurrentSchema.self)
         // **Explicit, not left to `.automatic` by omission.** The default flips
         // CloudKit mirroring on the moment the app carries an iCloud
         // entitlement — which is how adding that entitlement turned every

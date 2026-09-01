@@ -51,3 +51,84 @@ struct MigrationFallbackTests {
         #expect(try read.fetchCount(FetchDescriptor<Memory>()) == 1)
     }
 }
+
+/// The V5 → V6 stage, on a store that already carries real rows.
+///
+/// `MigrationFallbackTests` above does **not** cover this and cannot: it hands
+/// the plan a store with no version identity the plan recognises, which staged
+/// migration refuses outright, so that test only ever exercises the plan-less
+/// fallback. Every stage between V1 and V6 was therefore uncovered — including
+/// the one that ships albums onto a phone holding pictures the owner cares
+/// about, which the design named as its own risk (§7).
+@MainActor
+struct AlbumMigrationTests {
+    /// A V5 store on disk, with rows in it worth losing — the shape a phone was
+    /// carrying the day before albums existed.
+    private func seededV5Store() throws -> URL {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("v5-\(UUID().uuidString).store")
+        let v5 = Schema(versionedSchema: SchemaV5.self)
+        let seeded = try ModelContainer(
+            for: v5,
+            configurations: [ModelConfiguration(schema: v5, url: url, cloudKitDatabase: .none)])
+        let writing = ModelContext(seeded)
+        writing.insert(Memory(note: "before albums", day: .now,
+                              authorID: "me", photoIDs: ["a"]))
+        writing.insert(Profile(authorID: "me", name: "橘子"))
+        try writing.save()
+        return url
+    }
+
+    private func remove(_ url: URL) {
+        for suffix in ["", "-wal", "-shm"] {
+            try? FileManager.default.removeItem(at: URL(fileURLWithPath: url.path + suffix))
+        }
+    }
+
+    /// The guarantee the owner cares about: the pictures survive the upgrade.
+    @Test func aV5StoreOpensAtV6WithItsRowsIntact() throws {
+        let url = try seededV5Store()
+        defer { remove(url) }
+
+        // The app's own container builder, so this is the path a real launch
+        // takes rather than a hand-built one.
+        let migrated = try Persistence.makeContainer(url: url)
+        let read = ModelContext(migrated)
+        #expect(try read.fetchCount(FetchDescriptor<Memory>()) == 1)
+        #expect(try read.fetchCount(FetchDescriptor<Profile>()) == 1)
+        #expect(try read.fetch(FetchDescriptor<Memory>()).first?.note == "before albums")
+        #expect(try read.fetch(FetchDescriptor<Profile>()).first?.name == "橘子")
+
+        // And what V6 added is usable on the migrated store.
+        let album = Album(name: "🎀", authorID: "me")
+        read.insert(album)
+        read.insert(Photo(assetID: "a", authorID: "me"))
+        read.insert(AlbumEntry(albumID: album.id, assetID: "a", authorID: "me"))
+        try read.save()
+        #expect(AlbumStore.count(of: album, in: read) == 1)
+    }
+
+    /// **The stage itself, with the fallback taken away.**
+    ///
+    /// `Persistence.makeContainer` catches a refusal from staged migration and
+    /// retries without a plan, which is what stops an old store bricking the
+    /// app — and which also means the test above passes with `addAlbums`
+    /// deleted from the plan entirely. Verified by doing exactly that: it went
+    /// green down the fallback. So this one builds the container the plan's
+    /// own way, where a missing or broken V5 → V6 stage is a thrown error
+    /// rather than a quieter route to the same place.
+    @Test func theV5ToV6StageAcceptsAV5StoreWithNoFallback() throws {
+        let url = try seededV5Store()
+        defer { remove(url) }
+
+        let schema = Schema(versionedSchema: CurrentSchema.self)
+        let migrated = try ModelContainer(
+            for: schema,
+            migrationPlan: AppMigrationPlan.self,
+            configurations: [ModelConfiguration(schema: schema, url: url,
+                                                cloudKitDatabase: .none)])
+        let read = ModelContext(migrated)
+        #expect(try read.fetchCount(FetchDescriptor<Memory>()) == 1)
+        #expect(try read.fetchCount(FetchDescriptor<Profile>()) == 1)
+    }
+}
