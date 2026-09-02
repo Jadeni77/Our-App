@@ -15,6 +15,21 @@ enum PhotoLibrary {
     /// Takes no author: every row it creates is credited to the memory the
     /// asset came in on. It used to take one and never read it, which reads as
     /// "the seeder decides authorship" and is the opposite of what happens.
+    ///
+    /// **Sets `takenAt` only on rows it creates here, never on a row that
+    /// already exists.** `Photo` has no field for "never dated" versus
+    /// "deliberately cleared" — both are `nil` — so a pass that backfills a
+    /// date onto any existing row with a nil `takenAt` cannot tell those
+    /// apart, and silently puts a date back the moment a hand-set `takenAt`
+    /// is cleared, since the next appear of `MemoriesView` reruns this. This
+    /// used to backfill existing rows too, for the transitional case of a row
+    /// that predated `takenAt` existing at all; that need is gone (every row
+    /// created since gets a date here, and one that arrives by sync carries
+    /// `takenAt` in its own envelope), and what the backfill uniquely did
+    /// after that was undo a clear. The cost: a `Photo` row old enough to
+    /// predate this rule, and never dated by hand, stays under "Sometime"
+    /// until someone dates it — which is exactly where an undated photo
+    /// belongs (H23), not a guess this seed should make for them.
     static func seed(in context: ModelContext) {
         guard let memories = try? context.fetch(
             FetchDescriptor<Memory>(predicate: Memory.visible)),
@@ -62,18 +77,6 @@ enum PhotoLibrary {
                                      takenAt: takenAt[asset]))
                 changed = true
             }
-        }
-
-        // Rows that predate the seed learning to carry a date. Once each, and
-        // only ever nil → a date, so this is not a write that repeats on every
-        // launch; both phones derive the same day from the same memory, so it
-        // converges rather than ping-ponging. Tombstoned rows are left alone:
-        // nothing is going to sort them.
-        for row in existing where row.takenAt == nil && row.deletedAt == nil {
-            guard let day = takenAt[row.assetID] else { continue }
-            row.takenAt = day
-            row.updatedAt = .now
-            changed = true
         }
 
         if changed { try? context.save() }

@@ -148,6 +148,46 @@ struct AlbumStoreTests {
         #expect(AlbumStore.assets(of: album, in: store) == ["early"])
         #expect(AlbumStore.cover(of: album, in: store) == "early")
     }
+
+    /// **The rendering half of the invariant the test above already covers at
+    /// the counting layer.** `AlbumDetailView` used to derive its whole grid
+    /// straight from `Photo` rows once day-sections needed `takenAt` to know
+    /// where a tile belonged — which silently dropped exactly this membership
+    /// from the screen even though `count(of:)`, right above it, still
+    /// counted it. `orphanedAssets` is the pure half of the fix: given the
+    /// live member ids and whichever `Photo` rows are actually known, it
+    /// names the ones with nothing behind them yet, so the view has something
+    /// to render (and remove) instead of nothing at all.
+    @Test func orphanedAssetsAreTheMembersWithNoMatchingPhoto() throws {
+        let store = try context()
+        try library(store, ["here"])
+        let album = AlbumStore.create(name: "🎀", authorID: "me", in: store)
+        AlbumStore.add(assetID: "here", to: album, authorID: "me", in: store)
+        // No `Photo` row for "early" — the membership arrived, the picture
+        // hasn't, same setup as the counting test above.
+        AlbumStore.add(assetID: "early", to: album, authorID: "them", in: store)
+
+        let memberAssetIDs = AlbumStore.assets(of: album, in: store)
+        let knownPhotos = try store.fetch(FetchDescriptor<Photo>())
+
+        #expect(AlbumStore.orphanedAssets(in: memberAssetIDs, notMatching: knownPhotos) == ["early"])
+    }
+
+    /// A member whose `Photo` row **has** arrived is not an orphan — the
+    /// common case has to stay empty, or every album would grow a trailing
+    /// strip of placeholders it doesn't need.
+    @Test func noOrphansWhenEveryMemberHasAMatchingPhoto() throws {
+        let store = try context()
+        try library(store, ["a", "b"])
+        let album = AlbumStore.create(name: "🎀", authorID: "me", in: store)
+        AlbumStore.add(assetID: "a", to: album, authorID: "me", in: store)
+        AlbumStore.add(assetID: "b", to: album, authorID: "me", in: store)
+
+        let memberAssetIDs = AlbumStore.assets(of: album, in: store)
+        let knownPhotos = try store.fetch(FetchDescriptor<Photo>())
+
+        #expect(AlbumStore.orphanedAssets(in: memberAssetIDs, notMatching: knownPhotos).isEmpty)
+    }
 }
 
 /// Two phones, one album.

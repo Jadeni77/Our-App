@@ -85,11 +85,16 @@ struct AlbumsGridView: View {
                 AlbumStore.create(name: trimmedNewName, authorID: LocalAuthor.id(),
                                   in: context)
             }
-            // The house pattern (`SpecialDateEditorSheet`): a confirm button
-            // that can't do anything says so, rather than accepting the tap and
-            // dismissing as though it had worked. The guard above stays as the
-            // rule; this is how the rule becomes visible.
-            .disabled(trimmedNewName.isEmpty)
+            // No `.disabled` here on purpose, even though the house pattern
+            // elsewhere (`SpecialDateEditorSheet`) is to disable a confirm
+            // button that can't do anything yet. `newName` starts empty every
+            // time this alert opens, so a `.disabled(trimmedNewName.isEmpty)`
+            // button would start disabled on first presentation — and on
+            // iOS 17 (this project's deployment target) a `Button` inside an
+            // `.alert` that starts disabled never fires its action at all,
+            // even after the field is filled in and the button re-enables.
+            // The guard above is the only validation this needs; a button
+            // that can't do anything already says so by doing nothing.
             Button("Cancel", role: .cancel) {}
         }
     }
@@ -121,8 +126,17 @@ struct AlbumsGridView: View {
                         .foregroundStyle(.white.opacity(0.55))
                 }
             }
-            .frame(height: 150)
+            // `maxWidth` before `height`, not after: `scaledToFill` reports
+            // the scaled-up image size it needs to cover its proposal, not
+            // the proposal itself (`AlbumDetailView.tile(_:in:)`'s own fix,
+            // same trap) — a non-square cover in one tile and a square one in
+            // its neighbour used to come out different widths in the same
+            // row. `.clipped()` cuts what overflows that pinned frame, rather
+            // than leaving the corner-rounding below as the only thing
+            // standing between an oversized cover and the tile next to it.
             .frame(maxWidth: .infinity)
+            .frame(height: 150)
+            .clipped()
             .background(.white.opacity(0.10))
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             // **Keyed on the cover, not bare.** A tile's identity is its album,

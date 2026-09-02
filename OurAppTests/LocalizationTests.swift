@@ -393,6 +393,35 @@ struct LocalizationTests {
         #expect(localizedValue("All photos", language: "zh-Hans") == "全部照片")
         #expect(localizedValue("Moments", language: "zh-Hant") == "時光")
         #expect(localizedValue("Albums", language: "zh-Hans") == "相册")
+        // The album detail hero and its date sections: caption editing and
+        // hand-set dates, both reached through `Label`/`TextField`, neither
+        // of which `StringCatalogCoverageTests` can see.
+        #expect(localizedValue("Edit caption", language: "zh-Hans") == "编辑描述")
+        #expect(localizedValue("Edit caption", language: "zh-Hant") == "編輯描述")
+        // `Caption`'s Chinese is 描述, not 说明 — 说明 is the register of
+        // 使用说明 (instructions), clerical for a line the couple writes
+        // about their own album. 描述 is what Apple Photos itself uses.
+        // Both languages pinned, unlike the review round that shipped this
+        // with only zh-Hans checked and zh-Hant silently unpinned.
+        #expect(localizedValue("Caption", language: "zh-Hans") == "描述")
+        #expect(localizedValue("Caption", language: "zh-Hant") == "描述")
+        #expect(localizedValue("Set date", language: "zh-Hans") == "设置日期")
+        #expect(localizedValue("Set date", language: "zh-Hant") == "設定日期")
+        // The section heading's own affordance — visible text now, not just
+        // an accessibility label — and the confirmations that stand between
+        // a tap and a bulk, unconfirmed, irreversible date write.
+        #expect(localizedValue("Set date for all", language: "zh-Hans") == "统一设置日期")
+        #expect(localizedValue("Set date for all", language: "zh-Hant") == "統一設定日期")
+        #expect(localizedValue("Set date for %lld photos?", language: "zh-Hans")
+                == "要为这 %lld 张照片设置日期吗？")
+        #expect(localizedValue("Set date for %lld photos?", language: "zh-Hant")
+                == "要為這 %lld 張照片設定日期嗎？")
+        #expect(localizedValue("Clear date", language: "zh-Hans") == "清除日期")
+        #expect(localizedValue("Clear date", language: "zh-Hant") == "清除日期")
+        #expect(localizedValue("Clear date for %lld photos?", language: "zh-Hans")
+                == "要清除这 %lld 张照片的日期吗？")
+        #expect(localizedValue("Clear date for %lld photos?", language: "zh-Hant")
+                == "要清除這 %lld 張照片的日期嗎？")
     }
 
     /// **English needs a plural rule; Chinese doesn't have one.**

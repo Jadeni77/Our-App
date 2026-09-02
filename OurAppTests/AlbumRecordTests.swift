@@ -46,4 +46,22 @@ struct AlbumRecordTests {
         #expect(album.coverAssetID == nil)
         #expect(entry.albumID == album.id)
     }
+
+    /// The couple's line about the album travels like any other field —
+    /// through an envelope, onto the other phone.
+    @Test func aCaptionRoundTripsToTheOtherPhone() throws {
+        let mine = try context()
+        let theirs = try context()
+
+        let album = Album(name: "🎀", authorID: "me")
+        album.caption = "你在，我在，就是海枯石烂。"
+        mine.insert(album)
+        try mine.save()
+
+        SyncApply.apply(album.envelope(), in: theirs, localAuthorID: "them")
+        try theirs.save()
+
+        let arrived = try #require(try theirs.fetch(FetchDescriptor<Album>()).first)
+        #expect(arrived.caption == "你在，我在，就是海枯石烂。")
+    }
 }

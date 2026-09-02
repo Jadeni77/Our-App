@@ -237,6 +237,7 @@ extension Album: SyncableRecord {
     func syncFields() -> [String: SyncValue] {
         var fields: [String: SyncValue] = [
             "name": .string(name),
+            "caption": .string(caption),
             "createdAt": .date(createdAt),
         ]
         if let coverAssetID { fields["coverAssetID"] = .string(coverAssetID) }

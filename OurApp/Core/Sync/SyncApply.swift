@@ -458,6 +458,7 @@ enum SyncApply {
             return created
         }()
         row.name = envelope.string("name") ?? row.name
+        row.caption = envelope.string("caption") ?? row.caption
         row.authorID = envelope.authorID
         row.createdAt = envelope.date("createdAt") ?? row.createdAt
         // Unconditional: removing a chosen cover falls back to the newest

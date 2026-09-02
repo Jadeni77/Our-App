@@ -92,10 +92,15 @@ struct PhotoLibraryTests {
         #expect(photo.sortDate == photo.takenAt)
     }
 
-    /// A row seeded before the date rule existed gets one on the next pass —
-    /// otherwise the fix only helps pictures nobody had yet, and the phones
-    /// this branch has already run on keep sorting by when they seeded.
-    @Test func seedingBackfillsADateOntoAnExistingRow() throws {
+    /// **The rule that replaced backfilling.** `seed` used to write a date onto
+    /// any existing row it found with a nil `takenAt`, on the reasoning that a
+    /// row could predate `takenAt` existing at all. `Photo` has no way to tell
+    /// "never dated" apart from "deliberately cleared" — both are nil — so
+    /// that backfill could not distinguish an old, never-dated row from one
+    /// somebody had just cleared by hand, and silently re-dated both. Seeding
+    /// an existing, undated row now leaves it exactly as it was: nil in, nil
+    /// out, whatever a visible, dated memory says about that same asset.
+    @Test func seedingNeverBackfillsADateOntoAnExistingRow() throws {
         let store = try context()
         store.insert(Photo(assetID: "a", authorID: "them"))
         let day = Date(timeIntervalSinceReferenceDate: 700_000)
@@ -104,10 +109,42 @@ struct PhotoLibraryTests {
 
         PhotoLibrary.seed(in: store)
         let photo = try #require(PhotoLibrary.all(in: store).first)
-        #expect(photo.takenAt == SpecialDateSchedule.anchor(for: day))
-        // Backfill, not re-creation: the row it already had, author and all.
+        #expect(photo.takenAt == nil)
+        // Still the row it already had, author and all — untouched, not
+        // re-created.
         #expect(photo.authorID == "them")
         #expect(PhotoLibrary.all(in: store).count == 1)
+    }
+
+    /// **The bug this rule exists to close.** A photo gets a date from its
+    /// memory at creation, the user clears it by hand (`SetDateSheet`'s
+    /// "Clear date"), and `MemoriesView` reappearing — an app relaunch, at
+    /// minimum — reruns `seed`. Before this fix, `seed` saw `takenAt == nil`,
+    /// found the same visible, dated memory still naming the asset, and put
+    /// the date straight back — reverting a deliberate action with no error
+    /// and no indication anything had happened. The memory here has to be the
+    /// one already used to date it, so the backfill this guards against would
+    /// actually have fired.
+    @Test func clearingADateSurvivesTheNextSeed() throws {
+        let store = try context()
+        let day = Date(timeIntervalSinceReferenceDate: 700_000)
+        let memory = Memory(note: "Kyoto", day: day, authorID: "me", photoIDs: ["a"])
+        store.insert(memory)
+        try store.save()
+
+        PhotoLibrary.seed(in: store)
+        let photo = try #require(PhotoLibrary.all(in: store).first)
+        #expect(photo.takenAt != nil)   // Seeded with a date, as normal.
+
+        // The user clears it by hand.
+        photo.takenAt = nil
+        photo.updatedAt = .now
+        try store.save()
+
+        // The memory is still visible and still dated — exactly the state
+        // that used to make the backfill fire.
+        PhotoLibrary.seed(in: store)
+        #expect(PhotoLibrary.all(in: store).first?.takenAt == nil)
     }
 
     /// **The same answer on both phones, whatever order their fetches come

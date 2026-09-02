@@ -203,6 +203,71 @@ struct MemoryThumbnailsTests {
         #expect(cache.image(for: "not-a-photo") == nil)
     }
 
+    /// **The hero's whole bug, pinned.** Reading the grid's 400px tier for a
+    /// surface several times a grid tile's size is invisible against a flat
+    /// debug colour, which is exactly how it shipped once already — so this
+    /// proves the *size* the full tier decodes at, not merely that it returns
+    /// something. A source large enough that the two tiers must clamp to
+    /// different targets is the only way that distinction is observable at
+    /// all.
+    @MainActor
+    @Test func theFullTierDecodesAtFullSizeNotGridSize() async throws {
+        let directory = try tempDirectory()
+        let store = MemoryPhotoStore(directory: directory)
+        let id = try store.save(Self.sourceJPEG())
+        let cache = MemoryThumbnails(store: store)
+
+        await cache.loadFullIfNeeded(id)
+
+        let full = try #require(cache.fullImage(for: id))
+        #expect(max(full.size.width, full.size.height) > CGFloat(MemoryPhotoStore.thumbnailMaxPixel))
+        #expect(max(full.size.width, full.size.height) <= CGFloat(MemoryPhotoStore.fullMaxPixel))
+    }
+
+    /// **The tension `forget`'s own doc comment names, now doubled.** A cover
+    /// that was a miss when the hero was last open has to stop being a miss
+    /// in *both* tiers once sync lands the file, or the hero — unlike the
+    /// grid it shares this cache with — would still show `Color.clear` until
+    /// the app relaunched.
+    @Test func forgettingAMissClearsBothTiers() async throws {
+        let directory = try tempDirectory()
+        let cache = MemoryThumbnails(store: MemoryPhotoStore(directory: directory))
+
+        await cache.loadIfNeeded("missing")
+        await cache.loadFullIfNeeded("missing")
+        #expect(cache.image(for: "missing") == nil)
+        #expect(cache.fullImage(for: "missing") == nil)
+
+        let store = MemoryPhotoStore(directory: directory)
+        let planted = try store.save(Self.tinyJPEG())
+        try FileManager.default.moveItem(at: store.url(planted), to: store.url("missing"))
+        try FileManager.default.moveItem(at: store.thumbnailURL(planted),
+                                         to: store.thumbnailURL("missing"))
+
+        cache.forget("missing")
+        await cache.loadIfNeeded("missing")
+        await cache.loadFullIfNeeded("missing")
+
+        #expect(cache.image(for: "missing") != nil)
+        #expect(cache.fullImage(for: "missing") != nil)
+    }
+
+    /// A deliberately large source, so the full tier's clamp to
+    /// `MemoryPhotoStore.fullMaxPixel` and the grid tier's clamp to
+    /// `thumbnailMaxPixel` land on two different sizes rather than both
+    /// trivially matching the source.
+    @MainActor
+    private static func sourceJPEG(width: Int = 3000, height: Int = 2000) -> Data {
+        let size = CGSize(width: width, height: height)
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        let image = UIGraphicsImageRenderer(size: size, format: format).image { context in
+            UIColor.systemPink.setFill()
+            context.fill(CGRect(origin: .zero, size: size))
+        }
+        return image.jpegData(compressionQuality: 1.0)!
+    }
+
     private static func tinyJPEG() -> Data {
         let format = UIGraphicsImageRendererFormat.default()
         format.scale = 1

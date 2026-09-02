@@ -88,10 +88,67 @@ enum SchemaV5: VersionedSchema {
     static var models: [any PersistentModel.Type] { SchemaV4.models + [Profile.self] }
 }
 
-/// Current. Adds albums: a photo library, named collections, and the
-/// memberships that put one in the other.
+/// Adds albums: a photo library, named collections, and the memberships that
+/// put one in the other.
 enum SchemaV6: VersionedSchema {
     static var versionIdentifier: Schema.Version { Schema.Version(6, 0, 0) }
+    static var models: [any PersistentModel.Type] {
+        SchemaV5.models + [Photo.self, SchemaV6.Album.self, AlbumEntry.self]
+    }
+
+    /// The shape *before* `caption` existed. Pinned here for the same reason
+    /// `SchemaV1.SpecialDate` is pinned above: `Album` genuinely differs
+    /// between this version and the next, and a schema chain where two
+    /// adjacent versions resolve to byte-identical model shapes is one
+    /// SwiftData refuses outright — "Duplicate version checksums detected",
+    /// an uncaught Objective-C exception that the `do`/`catch` fallback in
+    /// `Persistence.makeContainer` (P30) cannot intercept — rather than a
+    /// distinction that can be left to the live type.
+    ///
+    /// **This pin is asserted, not verified.** Nothing in the suite checks it
+    /// against bytes an older build actually wrote — `AlbumCaptionMigrationTests`
+    /// seeds its "V6 store" through `Schema(versionedSchema: SchemaV6.self)`,
+    /// i.e. through this very declaration, so it can only prove *this shape*
+    /// migrates cleanly to V7, never that this shape matches what V6 shipped.
+    /// Delete `coverAssetID` below and the whole suite still passes. Harmless
+    /// today because `addAlbumCaption` is `.lightweight`: a wrong pin just
+    /// makes staged migration refuse the store and fall back to plan-less
+    /// lightweight migration, same as any unrecognised version, no data lost.
+    /// It stops being harmless the day a stage between two pinned versions is
+    /// `.custom` — exactly `dropRetiredEmoji`'s shape below, whose
+    /// `willMigrate` backfills `iconID` before dropping `emoji`. A mis-pinned
+    /// `fromVersion` there means staged migration is refused, the fallback
+    /// runs plan-less, and `willMigrate` is **silently skipped** — destroying
+    /// every icon anyone picked, with the suite fully green throughout. See
+    /// P32.
+    @Model
+    final class Album {
+        var id: UUID = UUID()
+        var name: String = ""
+        var coverAssetID: String?
+        var authorID: String = ""
+        var createdAt: Date = Date.now
+        var updatedAt: Date = Date.now
+        var deletedAt: Date?
+
+        init(name: String, authorID: String) {
+            self.id = UUID()
+            self.name = name
+            self.authorID = authorID
+            self.createdAt = .now
+            self.updatedAt = .now
+        }
+    }
+}
+
+/// Current. Adds `Album.caption`: the couple's own line about the album,
+/// alongside its cover and name.
+///
+/// No new entry in `models` beyond swapping the pinned V6 `Album` back for the
+/// live one — `Album` itself already carries the shape this version wants,
+/// which is why nothing else needed a bump.
+enum SchemaV7: VersionedSchema {
+    static var versionIdentifier: Schema.Version { Schema.Version(7, 0, 0) }
     static var models: [any PersistentModel.Type] {
         SchemaV5.models + [Photo.self, Album.self, AlbumEntry.self]
     }
@@ -111,15 +168,21 @@ enum SchemaV6: VersionedSchema {
 ///
 /// Bumping the schema now means adding `SchemaVn+1` and moving this line;
 /// there is nowhere else that needs to change.
-typealias CurrentSchema = SchemaV6
+typealias CurrentSchema = SchemaV7
 
 enum AppMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
-        [SchemaV1.self, SchemaV2.self, SchemaV3.self, SchemaV4.self, SchemaV5.self, SchemaV6.self]
+        [SchemaV1.self, SchemaV2.self, SchemaV3.self, SchemaV4.self, SchemaV5.self, SchemaV6.self,
+         SchemaV7.self]
     }
     static var stages: [MigrationStage] {
-        [dropRetiredEmoji, addCoop, addCoopLedger, addProfiles, addAlbums]
+        [dropRetiredEmoji, addCoop, addCoopLedger, addProfiles, addAlbums, addAlbumCaption]
     }
+
+    /// Lightweight: one new property, defaulted, on a model that already
+    /// exists. Nothing taken away from what is already stored.
+    static let addAlbumCaption = MigrationStage.lightweight(fromVersion: SchemaV6.self,
+                                                            toVersion: SchemaV7.self)
 
     /// Lightweight: three new models, every property defaulted, nothing taken
     /// away from what is already stored.

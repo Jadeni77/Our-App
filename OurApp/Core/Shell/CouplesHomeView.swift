@@ -8,7 +8,8 @@ import SwiftUI
 ///
 /// DEBUG launch arguments exist solely so headless screenshot verification can
 /// reach a state simctl can't tap to: `-openSettings`, `-specialDates`,
-/// `-dailyQuestion`, `-seedDailyQuestion`, `-memories`, `-seedMemories`, `-seedSpark`, `-seedSparkAtRisk`, `-sparkSheet`.
+/// `-dailyQuestion`, `-seedDailyQuestion`, `-memories`, `-seedMemories`,
+/// `-seedAlbums`, `-seedSpark`, `-seedSparkAtRisk`, `-sparkSheet`.
 struct CouplesHomeView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var identity = CoupleIdentityStore()
@@ -221,6 +222,8 @@ struct CouplesHomeView: View {
                                                   identity: identity)
             MemoryDebugSeed.runIfRequested(in: modelContext.container,
                                            identity: identity)
+            AlbumDebugSeed.runIfRequested(in: modelContext.container,
+                                          identity: identity)
             SparkDebugSeed.runIfRequested(in: modelContext.container,
                                           authorID: identity.authorID)
             #endif
