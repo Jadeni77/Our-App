@@ -126,8 +126,17 @@ struct AlbumsGridView: View {
                         .foregroundStyle(.white.opacity(0.55))
                 }
             }
-            .frame(height: 150)
+            // `maxWidth` before `height`, not after: `scaledToFill` reports
+            // the scaled-up image size it needs to cover its proposal, not
+            // the proposal itself (`AlbumDetailView.tile(_:in:)`'s own fix,
+            // same trap) — a non-square cover in one tile and a square one in
+            // its neighbour used to come out different widths in the same
+            // row. `.clipped()` cuts what overflows that pinned frame, rather
+            // than leaving the corner-rounding below as the only thing
+            // standing between an oversized cover and the tile next to it.
             .frame(maxWidth: .infinity)
+            .frame(height: 150)
+            .clipped()
             .background(.white.opacity(0.10))
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             // **Keyed on the cover, not bare.** A tile's identity is its album,

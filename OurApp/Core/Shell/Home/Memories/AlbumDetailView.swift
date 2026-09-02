@@ -333,8 +333,16 @@ struct AlbumDetailView: View {
     private func orphanGrid(_ assetIDs: [String], in album: Album) -> some View {
         LazyVGrid(columns: columns, spacing: 3) {
             ForEach(assetIDs, id: \.self) { assetID in
+                // Same two-axis frame as `tile(_:in:)` just above, kept even
+                // though the placeholder glyph itself has no scaled-up image
+                // to overflow — one grid with uniform cells reads as one
+                // grid; a strip whose tiles happened to size themselves
+                // differently only because this one skipped the frame the
+                // others got would still look like the bug, not a fix.
                 PhotoPlaceholder()
+                    .frame(maxWidth: .infinity)
                     .frame(height: 116)
+                    .clipped()
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     .contextMenu {
                         Button(role: .destructive) {
@@ -413,7 +421,18 @@ struct AlbumDetailView: View {
                 PhotoPlaceholder()
             }
         }
+        // The hero above pins itself to a `GeometryReader`'s resolved size for
+        // exactly this reason: `scaledToFill` reports the scaled-up image
+        // size, not the frame it was asked to fill. A tile only constrained
+        // on height let that scaled-up width stand as the tile's own width,
+        // so two photos of different aspect ratios in the same row came out
+        // different widths and the grid lost its rhythm. `maxWidth: .infinity`
+        // pins the tile to its `LazyVGrid` cell on the other axis too, and
+        // `.clipped()` cuts the overflow to that frame rather than trusting
+        // the rounded shape below to mask all of it.
+        .frame(maxWidth: .infinity)
         .frame(height: 116)
+        .clipped()
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         .task { await thumbnails.loadIfNeeded(photo.assetID) }
         .contextMenu {
@@ -673,6 +692,11 @@ private struct PhotoPickerSheet: View {
                         .padding(6)
                 }
             }
+            // `AlbumDetailView.tile(_:in:)`'s own fix, same reasoning: height
+            // alone lets `scaledToFill`'s scaled-up width stand in for the
+            // tile's width, so this grid needs the width pinned too, not just
+            // the `.clipped()` it already had.
+            .frame(maxWidth: .infinity)
             .frame(height: 116)
             .clipped()
             .task { await thumbnails.loadIfNeeded(photo.assetID) }
@@ -724,6 +748,12 @@ struct AllPhotosView: View {
                                     PhotoPlaceholder()
                                 }
                             }
+                            // Same fix as `PhotoPickerSheet`'s tile and
+                            // `AlbumDetailView.tile(_:in:)`: pin the width to
+                            // the grid cell too, not only the height, or a
+                            // `scaledToFill` photo's own scaled-up width
+                            // decides the tile's width instead.
+                            .frame(maxWidth: .infinity)
                             .frame(height: 116)
                             .clipped()
                             .task { await thumbnails.loadIfNeeded(photo.assetID) }

@@ -82,9 +82,19 @@ enum MemoryDebugSeed {
                     cg.drawLinearGradient(gradient, start: .zero,
                                           end: CGPoint(x: size.width, y: size.height), options: [])
                 } else {
+                    // No options paints nothing past `endRadius`, so the
+                    // context's blank white stayed in all four corners of an
+                    // otherwise circular gradient — a sample tile that reads
+                    // as "layout bug" the moment anyone notices the white
+                    // square behind the coloured circle. A real photo has no
+                    // such gap; this one shouldn't either.
+                    // `.drawsBeforeStartLocation` is skipped: every centre
+                    // here is the square's own centre, never off-canvas, so
+                    // there's nothing before the start location to fill.
                     let centre = CGPoint(x: size.width / 2, y: size.height / 2)
                     cg.drawRadialGradient(gradient, startCenter: centre, startRadius: 0,
-                                          endCenter: centre, endRadius: size.width / 2, options: [])
+                                          endCenter: centre, endRadius: size.width / 2,
+                                          options: [.drawsAfterEndLocation])
                 }
             } else {
                 base[0].setFill()
