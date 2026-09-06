@@ -50,4 +50,25 @@ struct LocomotionRulesTests {
     @Test func aCliffIsEffectivelyImpassable() {
         #expect(LocomotionRules.slopeFactor(from: 0, to: 10, over: 1) < 0.2)
     }
+
+    /// Strafing must move the player along the camera's actual screen-right,
+    /// not its opposite. `FollowCamera.follow` places the camera so its
+    /// forward direction is `(sin heading, cos heading)`; for a right-handed
+    /// world with `up = (0, 1, 0)`, screen-right is
+    /// `cross(forward, up) = (-cos heading, sin heading)`, for every heading.
+    /// A previous version of this rule had strafe pointing the exact
+    /// opposite way at every angle: pushing the stick right walked the
+    /// character left. Checked at a non-axis-aligned heading too, so a
+    /// future sign flip cannot pass by coincidence at 0 or pi/2.
+    @Test func strafeMovesAlongScreenRight() {
+        let headings: [Double] = [0, .pi / 6, .pi / 2, .pi, 5 * .pi / 4]
+        for heading in headings {
+            let move = LocomotionRules.displacement(input: SIMD2(1, 0), heading: heading, dt: 1)
+            let length = sqrt(move.x * move.x + move.y * move.y)
+            let normalized = SIMD2(move.x / length, move.y / length)
+            let screenRight = SIMD2(-cos(heading), sin(heading))
+            let dot = normalized.x * screenRight.x + normalized.y * screenRight.y
+            #expect(dot > 0.999)
+        }
+    }
 }
