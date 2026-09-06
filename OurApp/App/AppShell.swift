@@ -11,6 +11,7 @@ struct AppShell: View {
         var modules = [
             FoodDecisionModule.descriptor,
             MoonshotModule.descriptor,
+            FarshoreModule.descriptor,
         ]
         #if DEBUG
         modules += SampleModules.descriptors

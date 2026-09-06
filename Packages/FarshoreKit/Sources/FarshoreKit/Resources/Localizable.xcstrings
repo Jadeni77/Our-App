@@ -7,6 +7,20 @@
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "远岸" } },
         "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "遠岸" } }
       }
+    },
+    "farshore.loading" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Making landfall…" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "正在登岛…" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "正在登島…" } }
+      }
+    },
+    "farshore.load.failed" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "The island could not be loaded." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "无法载入这座岛。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "無法載入這座島。" } }
+      }
     }
   },
   "version" : "1.0"
