@@ -1,0 +1,13 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "farshore.title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Farshore" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "远岸" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "遠岸" } }
+      }
+    }
+  },
+  "version" : "1.0"
+}

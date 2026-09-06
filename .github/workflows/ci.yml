@@ -48,3 +48,9 @@ jobs:
             -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
             CODE_SIGNING_ALLOWED=NO \
             | tail -100
+
+      # P39: the module that may outlive this app must build without it.
+      # Post-merge only, like the rest of CI (P10's macOS-minutes trade-off) —
+      # run ./scripts/check-portability.sh locally before opening the PR.
+      - name: Portability check (FarshoreKit builds alone)
+        run: ./scripts/check-portability.sh
