@@ -142,9 +142,42 @@ public enum IslandLook {
         scene.fogDensityExponent = 2
     }
 
+    /// How far auto-exposure may drift, in stops. See `configure(camera:)`.
+    public static let exposureAdaptationLimit: CGFloat = 0.5
+
     public static func configure(camera: SCNCamera) {
         camera.wantsHDR = true
         camera.wantsExposureAdaptation = true
+        // **Clamped, and it must stay clamped.** Auto-exposure exists to cancel
+        // global luminance changes, and the day/night cycle *is* a global
+        // luminance change: `SkyController.apply` makes night by dropping
+        // `lightingEnvironment.intensity` from 1.0 to 0.12 — about three stops
+        // — which is precisely the signal an unclamped adaptation would spend
+        // the next second or two undoing, drifting night back toward mid-grey
+        // and quietly deleting the feature.
+        //
+        // The same clamp fixes the opposite failure the task 0 spike hit on
+        // device: outdoors, SceneKit meters the HDRI's *sun disk* and drives
+        // exposure down until the ground is black and the sky is blown. The
+        // spike's own conclusion was to switch adaptation off and use a fixed
+        // exposure per time of day. Bounding it is the smaller change and
+        // keeps what adaptation is actually good for here — a gentle settle
+        // when the player turns from the sun into a shadowed slope — while
+        // making both runaway directions impossible. Half a stop each way is
+        // a factor of ~1.41 in either direction; nightfall is ~8.
+        //
+        // **Deleting the line above would not have worked**, which is the
+        // reason this is a clamp rather than a switch-off:
+        // `wantsExposureAdaptation` defaults to `true` on `SCNCamera`, and
+        // `minimumExposure`/`maximumExposure` default to −15 and +15 stops,
+        // i.e. effectively unbounded. Adaptation is something you opt *out*
+        // of, and nothing here was opting out. Measured, not assumed.
+        //
+        // If night ever looks washed out again, check this before retuning
+        // `nightEnvironmentIntensity`: a wider clamp will silently eat the
+        // retune too.
+        camera.minimumExposure = -exposureAdaptationLimit
+        camera.maximumExposure = exposureAdaptationLimit
         camera.wantsDepthOfField = true
         camera.focusDistance = 12
         camera.fStop = 8

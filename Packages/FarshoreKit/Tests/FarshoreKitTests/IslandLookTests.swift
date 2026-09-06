@@ -78,4 +78,28 @@ struct IslandLookTests {
         #expect(camera.wantsDepthOfField)
         #expect(camera.bloomIntensity > 0)
     }
+
+    /// **Auto-exposure and the night cycle are in direct opposition**, so the
+    /// clamp is the only thing keeping both. Adaptation's whole job is to
+    /// cancel global luminance changes; `SkyController.apply` makes night by
+    /// dropping `lightingEnvironment.intensity` 1.0 → 0.12, about three stops,
+    /// which unclamped adaptation would spend a second or two undoing. The
+    /// spike hit the mirror-image failure on device: metering the HDRI's sun
+    /// disk drove exposure down until the ground was black.
+    ///
+    /// SceneKit's defaults are ±15 stops, i.e. effectively unbounded, and
+    /// `wantsExposureAdaptation` is `true` out of the box — both measured, not
+    /// assumed. So "somebody deleted the clamp" and "somebody never set it"
+    /// look identical from here, which is why this asserts the actual bound
+    /// rather than merely that some bound exists.
+    @Test func exposureAdaptationIsClampedSoItCannotUndoNightfall() {
+        let camera = SCNCamera()
+        IslandLook.configure(camera: camera)
+        #expect(camera.wantsExposureAdaptation)
+        #expect(camera.minimumExposure == -IslandLook.exposureAdaptationLimit)
+        #expect(camera.maximumExposure == IslandLook.exposureAdaptationLimit)
+        // Night is ~3 stops. The clamp must stay well inside that or it can
+        // still swallow the feature it was added to protect.
+        #expect(IslandLook.exposureAdaptationLimit < 1.5)
+    }
 }
