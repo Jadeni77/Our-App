@@ -25,6 +25,14 @@ public enum IslandLook {
         return UIImage(contentsOfFile: url.path)
     }
 
+    /// This material applies **no tiling of its own** — no
+    /// `contentsTransform`, no scale. The repeat rate the ground actually
+    /// shows comes entirely from `TerrainMeshBuilder.textureScale`, baked into
+    /// the mesh's UVs when each chunk is built. The two are one decision
+    /// split across two files on purpose (`TerrainMeshBuilder` is the single
+    /// declaration of the number); if you retune the tiling, that constant is
+    /// the only place to touch, and this comment is how the next reader finds
+    /// it from here.
     public static func groundMaterial(in bundle: Bundle) -> SCNMaterial {
         let material = SCNMaterial()
         material.lightingModel = .physicallyBased

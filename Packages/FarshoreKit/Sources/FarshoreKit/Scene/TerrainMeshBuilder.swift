@@ -7,8 +7,12 @@ public enum TerrainMeshBuilder {
     /// here, because the mesh's UV computation and the ground material's
     /// texture tiling have to agree exactly — two files each hardcoding their
     /// own `4.0` would drift the moment either changed without the other.
-    /// `IslandLook` (the ground material) references this constant rather
-    /// than redeclaring it.
+    /// `IslandLook.groundMaterial(in:)` names this constant explicitly in its
+    /// own doc comment rather than redeclaring the number — there is no code
+    /// reference because the material has nothing to read it *into*: the
+    /// tiling is baked entirely into these UVs, not reapplied later via
+    /// `contentsTransform`. If you change this number, that comment is the
+    /// other half of the decision.
     public static let textureScale: Double = 4.0
 
     /// Builds the chunk **inclusive of its far edge**: a 32-cell chunk is 33
