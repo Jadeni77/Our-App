@@ -10,15 +10,15 @@ public enum SkyController {
     public static func sunEuler(timeOfDay: Double) -> SCNVector3 {
         // -10° at dawn through -170° at dusk: a low raking angle at both ends,
         // which is where terrain reads best.
-        let sweep = (timeOfDay / 0.72).clamped(to: 0...1)
+        let sweep = (timeOfDay / SessionClock.duskFraction).clamped(to: 0...1)
         let pitch = -(10.0 + sweep * 160.0) * .pi / 180.0
         return SCNVector3(Float(pitch), Float(-0.6), 0)
     }
 
     public static func sunIntensity(timeOfDay: Double) -> CGFloat {
-        guard timeOfDay < 0.72 else { return 0 }
+        guard timeOfDay < SessionClock.duskFraction else { return 0 }
         // Fades in and out at the ends rather than snapping on.
-        let sweep = timeOfDay / 0.72
+        let sweep = timeOfDay / SessionClock.duskFraction
         // Peak brightness is `IslandLook.makeSun()`'s decision, not this
         // file's — referencing it here (rather than repeating `2_400`) is
         // what keeps `apply`'s per-tick overwrite of `light.intensity` from
@@ -31,7 +31,10 @@ public enum SkyController {
         sun.light?.intensity = sunIntensity(timeOfDay: timeOfDay)
         // Night is lit by the environment alone, dimmed — which is what makes
         // fire matter later (slice 2) without anything here knowing about fire.
-        let night = timeOfDay >= 0.72
+        // `duskFraction` is `SessionClock`'s call, not this file's — see the
+        // comment there on why the sky and the clock must not disagree about
+        // when dark is dark.
+        let night = timeOfDay >= SessionClock.duskFraction
         scene.lightingEnvironment.intensity = night ? 0.12 : 1.0
         scene.fogColor = night ? UIColor(white: 0.10, alpha: 1)
                                : UIColor(white: 0.72, alpha: 1)

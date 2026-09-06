@@ -38,11 +38,25 @@ struct SessionClockTests {
     /// exactly the same time of day one minute in. Wall-clock time between
     /// sessions must not leak into the world — that is what would turn a
     /// partner's busy week into damage to your island.
+    ///
+    /// The offset between the two `startedAt` values is deliberately **not**
+    /// a whole number of days: any whole number of days (86,400s) is itself
+    /// an exact multiple of `dayLength` (1,200s, since 86,400 / 1,200 = 72),
+    /// so a "days apart" offset alone cannot distinguish a correct
+    /// session-relative clock from a broken one that computes phase straight
+    /// from `now.timeIntervalSince1970 % dayLength` and ignores `startedAt`
+    /// — both would land on the same absolute phase and this test would pass
+    /// for the wrong reason. The `+ 37` breaks that coincidence: it is not a
+    /// multiple of `dayLength`, so the two absolute query instants land at
+    /// different phases under the broken implementation while a correct,
+    /// session-relative one still reports the same `timeOfDay` for both
+    /// (same 60s elapsed since each session's own start).
     @Test func timeBetweenSessionsIsInvisible() {
+        let sessionGap: TimeInterval = 4 * 86_400 + 37
         let monday = SessionClock(startedAt: Date(timeIntervalSince1970: 1_000_000))
-        let friday = SessionClock(startedAt: Date(timeIntervalSince1970: 1_000_000 + 4 * 86_400))
+        let friday = SessionClock(startedAt: Date(timeIntervalSince1970: 1_000_000 + sessionGap))
         let a = monday.timeOfDay(at: Date(timeIntervalSince1970: 1_000_060))
-        let b = friday.timeOfDay(at: Date(timeIntervalSince1970: 1_000_000 + 4 * 86_400 + 60))
+        let b = friday.timeOfDay(at: Date(timeIntervalSince1970: 1_000_000 + sessionGap + 60))
         #expect(abs(a - b) < 0.0000001)
     }
 

@@ -15,6 +15,18 @@ public struct SessionClock: Sendable, Equatable {
     /// that surviving a night is one sitting.
     public static let dayLength: TimeInterval = 20 * 60
 
+    /// The fraction of the cycle at which day ends and night begins.
+    ///
+    /// Declared once, here, because it is a rule (when night falls) rather
+    /// than a rendering detail — `SkyController` reads it rather than
+    /// carrying its own copy. The two must move together: `SkyController`
+    /// uses this same fraction to decide the sun's fade-out point, the
+    /// lighting environment's night dimming, and the fog colour switch, so a
+    /// second literal there would let the sky and the clock disagree about
+    /// when dark is dark — the sun could keep shining after `isNight`
+    /// already says it hasn't.
+    public static let duskFraction: Double = 0.72
+
     public let startedAt: Date
 
     public init(startedAt: Date = Date()) {
@@ -32,6 +44,6 @@ public struct SessionClock: Sendable, Equatable {
     }
 
     public func isNight(at now: Date) -> Bool {
-        timeOfDay(at: now) >= 0.72
+        timeOfDay(at: now) >= Self.duskFraction
     }
 }
