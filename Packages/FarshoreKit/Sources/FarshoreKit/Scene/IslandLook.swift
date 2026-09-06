@@ -97,12 +97,21 @@ public enum IslandLook {
         camera.zNear = 0.1
     }
 
+    /// The sun's brightness at high noon. Declared exactly once: `makeSun()`
+    /// uses it as the light's initial intensity, and `SkyController.apply`
+    /// (Task 5) uses it as the ceiling of the day/night curve, because that
+    /// function overwrites `light.intensity` on every tick. A second literal
+    /// here would mean retuning `makeSun()` does nothing — the next tick
+    /// silently reverts it to whatever `SkyController` still thinks noon is.
+    /// If you retune the sun's brightness, this is the only constant to touch.
+    public static let sunPeakIntensity: CGFloat = 2_400
+
     /// A low, warm key light. `castsShadow` is what makes the terrain read as
     /// having form at all — an unshadowed heightmap looks painted on.
     public static func makeSun() -> SCNNode {
         let light = SCNLight()
         light.type = .directional
-        light.intensity = 2_400
+        light.intensity = sunPeakIntensity
         light.color = UIColor(red: 1.0, green: 0.94, blue: 0.86, alpha: 1)
         light.castsShadow = true
         light.shadowMode = .deferred
