@@ -52,6 +52,66 @@ public enum IslandLook {
         return material
     }
 
+    /// The sky the player *sees* by day: the raw Radiance `.hdr`, as a URL.
+    ///
+    /// Declared as a function rather than inlined into `configure` because
+    /// `SkyController.apply` has to put it *back* after night, and the day sky
+    /// is exactly the class of decision this file exists to hold. Resolving
+    /// the URL is the caller's job to do once and hold: `apply` runs every
+    /// frame and re-decoding a 4.6 MB Radiance image at 30 Hz would cost more
+    /// than the rest of the render loop combined.
+    ///
+    /// Returns `Any?` rather than `URL?` because that is what
+    /// `SCNMaterialProperty.contents` takes, and the night sky it alternates
+    /// with is a `UIColor` — keeping one type across both ends of the swap
+    /// avoids an optional-into-`Any` conversion at the assignment, where a
+    /// double-wrapped optional would show up as a sky that silently fails to
+    /// load rather than as a compile error.
+    public static func daySkyBackground(in bundle: Bundle) -> Any? {
+        bundle.url(forResource: "sky", withExtension: "hdr")
+    }
+
+    /// The sky at night. **A flat colour on purpose.** Slice 1's job is a
+    /// walkable island, not a shipping sky; a second HDRI would be a second
+    /// 4.6 MB asset and a second thing to keep provenance-consistent (spec §4)
+    /// for a state the player sees for 5.6 minutes of a 20-minute cycle. A
+    /// near-black blue reads as night the moment the fog and the environment
+    /// dim to match, and swapping it for a real night HDRI later is a one-line
+    /// change to this constant.
+    public static let nightSkyColor = UIColor(red: 0.02, green: 0.03, blue: 0.06, alpha: 1)
+
+    /// Daylight fog. Haze at distance is most of what makes a 512 m island
+    /// read as *large* rather than as a small model close up.
+    ///
+    /// Declared here and referenced by `SkyController.apply`, which overwrites
+    /// `scene.fogColor` on every tick: a second literal there would mean
+    /// retuning the fog in this file — the file whose stated job is holding
+    /// these decisions — silently reverting on the very next frame. This is
+    /// the same defect that `textureScale`, `sunPeakIntensity` and
+    /// `duskFraction` were each fixed for on this branch.
+    ///
+    /// **Trap for a future tidy-up: the `0.72` here is not the other `0.72`.**
+    /// `SessionClock.duskFraction` is also 0.72, `SkyController.apply` reads it
+    /// two lines above where it used to write this grey, and the two numbers
+    /// are unrelated — one is a fraction of a day, the other is a grey level.
+    /// They agree by coincidence. Do not single-source them together.
+    public static let dayFogColor = UIColor(white: 0.72, alpha: 1)
+
+    /// Night fog: dark enough to close the world in, light enough that the
+    /// silhouette of the terrain still separates from the sky.
+    public static let nightFogColor = UIColor(white: 0.10, alpha: 1)
+
+    /// Full strength for the image-based lighting — the single biggest realism
+    /// lever in the spec's §4 table, so daylight runs it at 1:1. Same
+    /// single-sourcing reason as `dayFogColor`: `SkyController.apply`
+    /// overwrites `lightingEnvironment.intensity` every tick.
+    public static let dayEnvironmentIntensity: CGFloat = 1.0
+
+    /// Night is lit by the environment alone, dimmed to roughly three stops
+    /// below noon — which is what makes fire matter in slice 2 without
+    /// anything in slice 1 knowing that fire is coming.
+    public static let nightEnvironmentIntensity: CGFloat = 0.12
+
     public static func configure(scene: SCNScene, bundle: Bundle) {
         // Two *different* images, not one shared between both properties —
         // this split is load-bearing, not a stylistic choice, so read this
@@ -71,14 +131,12 @@ public enum IslandLook {
         // and the sky that *lights the island* is the tone-mapped copy —
         // same picture, two files, because only one of them works as IBL
         // input under `wantsHDR`. See task-0-report.md, "The .hdr answer".
-        if let skyURL = bundle.url(forResource: "sky", withExtension: "hdr") {
-            scene.background.contents = skyURL
-        }
+        scene.background.contents = daySkyBackground(in: bundle)
         if let environment = image(named: "sky_env", extension: "png", in: bundle) {
             scene.lightingEnvironment.contents = environment
-            scene.lightingEnvironment.intensity = 1.0
+            scene.lightingEnvironment.intensity = dayEnvironmentIntensity
         }
-        scene.fogColor = UIColor(white: 0.72, alpha: 1)
+        scene.fogColor = dayFogColor
         scene.fogStartDistance = 60
         scene.fogEndDistance = 420
         scene.fogDensityExponent = 2

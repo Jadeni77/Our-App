@@ -44,6 +44,12 @@ struct IslandSceneView: UIViewRepresentable {
         private let terrain: Terrain
         private var lastFrame: TimeInterval = 0
 
+        /// Resolved once and held for the session. `SkyController.apply` needs
+        /// the daylight sky to put back at dawn, and it runs every frame — a
+        /// bundle lookup per frame for a value that cannot change is the kind
+        /// of cost that never shows up as a bug, only as a worse frame time.
+        private let daySky = IslandLook.daySkyBackground(in: .module)
+
         var input: SIMD2<Double> = .zero
         var heading: Double = 0
 
@@ -71,7 +77,7 @@ struct IslandSceneView: UIViewRepresentable {
             player.step(input: input, heading: heading, dt: dt, terrain: terrain)
             camera.follow(player, heading: heading)
             SkyController.apply(timeOfDay: clock.timeOfDay(at: Date()),
-                                sun: sun, scene: scene)
+                                sun: sun, scene: scene, daySky: daySky)
         }
     }
 }
