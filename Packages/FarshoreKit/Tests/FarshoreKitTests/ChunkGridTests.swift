@@ -50,9 +50,30 @@ struct ChunkGridTests {
         }
     }
 
+    /// **The guard this pins is invisible unless the edit is on a seam.**
+    ///
+    /// The upper-bound half is easy to test wrong: cell (95, 95) is not on a
+    /// chunk boundary (95 % 32 = 31), so `chunksTouched` never enters the
+    /// neighbour loop for it and the bounds guard never executes. Asserted
+    /// alone, it passes with the whole guard deleted — verified by deleting
+    /// it. Cell (0, 0) *is* on both seams, so the neighbour loop proposes
+    /// chunks (−1, −1), (−1, 0) and (0, −1), and only the guard rejects them.
+    ///
+    /// It has to be an equality, not `allSatisfy`: the point is that the three
+    /// negative candidates are *absent*, and a predicate over the surviving
+    /// set cannot see something that is missing.
+    ///
+    /// This matters for slice 3, not slice 1. A leaked `ChunkIndex(x: -1, …)`
+    /// reaching `TerrainNode.rebuild` hits a `guard let node = chunkNodes[index]
+    /// else { return }` and is dropped in silence — so the visible symptom
+    /// would be a torn seam along x = 0 after an edit, with no crash, no log
+    /// and nothing anywhere that noticed.
     @Test func edgeChunksDoNotClaimNeighboursThatDoNotExist() {
         let world = terrain()
-        let touched = ChunkGrid.chunksTouched(byEditing: CellIndex(x: 95, z: 95), in: world)
-        #expect(touched.allSatisfy { $0.x < world.chunkCountX && $0.z < world.chunkCountZ })
+        let farCorner = ChunkGrid.chunksTouched(byEditing: CellIndex(x: 95, z: 95), in: world)
+        #expect(farCorner.allSatisfy { $0.x < world.chunkCountX && $0.z < world.chunkCountZ })
+
+        let origin = ChunkGrid.chunksTouched(byEditing: CellIndex(x: 0, z: 0), in: world)
+        #expect(origin == [ChunkIndex(x: 0, z: 0)])
     }
 }
