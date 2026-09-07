@@ -47,10 +47,29 @@ public final class MannequinCharacter: Character {
     /// stride at `LocomotionRules.walkSpeed`, not measured from anything.
     private static let strideLength: Double = 1.6
 
+    /// How long the limbs take to fold back to a standing pose when the
+    /// player stops. Long enough to read as settling rather than snapping,
+    /// short enough that it is over before the eye asks why the character is
+    /// still moving after the thumb came off the stick.
+    private static let settleDuration: TimeInterval = 0.25
+    /// Keyed so `setMoving(true)` can cancel a settle still in flight and
+    /// hand the pivots straight back to `update(distanceWalked:)`, rather
+    /// than leaving an action and a per-frame write fighting over the same
+    /// `eulerAngles.x`.
+    private static let settleActionKey = "settle-to-neutral"
+
     private let leftHipPivot = SCNNode()
     private let rightHipPivot = SCNNode()
     private let leftShoulderPivot = SCNNode()
     private let rightShoulderPivot = SCNNode()
+
+    /// The four swinging joints. Internal rather than private so the tests
+    /// can read the pose directly instead of guessing at it by walking the
+    /// node tree by child index — which is what the probe that measured the
+    /// mid-stride freeze had to do, and it is unreadable.
+    var limbPivots: [SCNNode] {
+        [leftHipPivot, rightHipPivot, leftShoulderPivot, rightShoulderPivot]
+    }
 
     /// Cumulative, session-scoped, never persisted — same as everything else
     /// in slice 2 (P-whatever forbids accumulation across sessions; this
@@ -62,14 +81,40 @@ public final class MannequinCharacter: Character {
         buildBody()
     }
 
+    /// **The gait stopping is not the same thing as the pose being right.**
+    /// This used to be an empty body, on the reasoning that `PlayerNode.step`
+    /// stops calling `update(distanceWalked:)` the instant the player stops,
+    /// so the gait freezes by itself and there was nothing to do. The gait
+    /// does freeze — but it freezes *wherever the last frame left it*, which
+    /// is a character standing perfectly still with its legs and arms
+    /// splayed mid-stride (measured: ±31.5° on all four pivots after a stop).
+    /// The brief's "stops dead when the player does" was about the gait not
+    /// free-running on wall-clock time. It was never about holding a walk
+    /// pose forever.
     public func setMoving(_ moving: Bool) {
-        // No-op for the mannequin: its gait is driven entirely by
-        // `update(distanceWalked:)`, and `PlayerNode.step` simply stops
-        // calling that the instant the player stops (see its guard on
-        // `travelled > 0`) — the pose freezes mid-stride on its own, with
-        // nothing here needing to react to the transition. `RiggedCharacter`
-        // is the implementation that actually needs this call, to start or
-        // stop an `SCNAnimationPlayer` once rather than every frame.
+        if moving {
+            // Cancel any settle still running so `update(distanceWalked:)`
+            // gets sole ownership of `eulerAngles.x` back.
+            for pivot in limbPivots { pivot.removeAction(forKey: Self.settleActionKey) }
+            return
+        }
+
+        // Rewind the gait phase as well as the pose. `sin(0)` is 0, which is
+        // exactly the neutral stance being eased to — so when walking
+        // resumes, the first frame's pose already agrees with where the
+        // limbs actually are, and the stride starts from standing instead of
+        // snapping back to whatever phase the last stride was interrupted at.
+        totalDistanceWalked = 0
+
+        for pivot in limbPivots {
+            pivot.removeAction(forKey: Self.settleActionKey)
+            pivot.runAction(
+                SCNAction.rotateTo(x: 0, y: 0, z: 0,
+                                   duration: Self.settleDuration,
+                                   usesShortestUnitArc: true),
+                forKey: Self.settleActionKey
+            )
+        }
     }
 
     public func update(distanceWalked: Double) {
