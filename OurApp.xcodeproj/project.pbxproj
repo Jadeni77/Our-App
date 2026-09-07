@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		0A0000000000000000000032 /* FarshoreKit in Frameworks */ = {isa = PBXBuildFile; productRef = 0A0000000000000000000031 /* FarshoreKit */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		0A0000000000000000000018 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -39,6 +43,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0A0000000000000000000032 /* FarshoreKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -90,6 +95,7 @@
 			);
 			name = OurApp;
 			packageProductDependencies = (
+				0A0000000000000000000031 /* FarshoreKit */,
 			);
 			productName = OurApp;
 			productReference = 0A0000000000000000000008 /* OurApp.app */;
@@ -143,6 +149,9 @@
 			);
 			mainGroup = 0A0000000000000000000002;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				0A0000000000000000000030 /* XCLocalSwiftPackageReference "Packages/FarshoreKit" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 0A0000000000000000000003 /* Products */;
 			projectDirPath = "";
@@ -188,6 +197,20 @@
 			targetProxy = 0A0000000000000000000018 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		0A0000000000000000000030 /* XCLocalSwiftPackageReference "Packages/FarshoreKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/FarshoreKit;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		0A0000000000000000000031 /* FarshoreKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = FarshoreKit;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin XCBuildConfiguration section */
 		0A0000000000000000000012 /* Debug */ = {
