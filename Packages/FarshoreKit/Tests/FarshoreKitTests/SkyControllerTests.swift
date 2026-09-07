@@ -178,11 +178,19 @@ struct SkyControllerTests {
         }
     }
 
-    /// `apply` runs on every frame, so it has to be safe to run on every
-    /// frame: repeating it must not accumulate anything or re-assign the
-    /// background, which would ask SceneKit to re-decode a 4.6 MB Radiance
-    /// image 30 times a second. Object identity of the background is the
-    /// observable proxy for "was not re-assigned".
+    /// `apply` runs on every frame, so it has to be *idempotent*: 30 calls at
+    /// the same `timeOfDay` must leave the scene where one call left it. The
+    /// failure this guards is a `+=` where a `=` belongs — sun angle or
+    /// intensity accumulating per tick, which on a 30 fps render loop is a sun
+    /// that spins.
+    ///
+    /// **It does not prove the background avoided re-assignment**, and the
+    /// comment in `apply` should not be read as if it did. Re-assigning the
+    /// same URL leaves an equal value behind, so nothing observable from here
+    /// distinguishes "assigned once" from "assigned 30 times"; catching that
+    /// would need to observe the setter itself. The transition guard in
+    /// `apply` is justified by reasoning about `contents` being a texture
+    /// slot, not by this test.
     @Test func repeatedTicksAtTheSameTimeChangeNothing() {
         let (scene, sun) = makeScene()
         let noon = SessionClock.duskFraction / 2

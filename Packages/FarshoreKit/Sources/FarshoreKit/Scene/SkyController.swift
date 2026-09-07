@@ -68,7 +68,7 @@ public enum SkyController {
         // night is a `UIColor` — so there is no extra stored state, and
         // therefore no stored state that can fall out of sync with the scene
         // it claims to describe. If the day sky ever becomes a `UIColor` too,
-        // this test stops working and needs replacing with an explicit flag.
+        // this check stops discriminating and needs replacing with a flag.
         let nightSkyIsUp = scene.background.contents is UIColor
         if nightSkyIsUp != night {
             scene.background.contents = night ? IslandLook.nightSkyColor : daySky
