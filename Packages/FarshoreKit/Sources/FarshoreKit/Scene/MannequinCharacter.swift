@@ -17,19 +17,12 @@ import UIKit
 public final class MannequinCharacter: Character {
     public let node = SCNNode()
 
-    // Height budget: legLength + torsoLength + headRadius*2 == totalHeight,
-    // by construction (`torsoLength` is computed FROM the other three, not
-    // stated as its own literal) — one decision, one place, per the
-    // standing lesson about a number restated in two files quietly falling
-    // out of sync.
-    private static let totalHeight: Double = 1.75
-    private static let headRadius: Double = 0.15
-    /// Hip to ground. Also the leg capsule's own height and the height at
-    /// which the hip pivots sit, so a leg hangs from its pivot exactly to
-    /// the floor with no gap and no overlap.
-    private static let legLength: Double = 0.90
-    private static var torsoLength: Double { totalHeight - legLength - headRadius * 2 }
-
+    // The vertical skeleton lives in `CharacterProportions`, not here — the
+    // follow camera has to aim at this body, and a camera aiming by one set
+    // of numbers at a body built from another is how the aim point ended up
+    // on the character's forehead with a comment claiming it was the chest.
+    // Only the widths and limb lengths, which nothing outside this file has
+    // any reason to know, are local.
     private static let hipOffsetX: Double = 0.14
     private static let shoulderOffsetX: Double = 0.19
     private static let armLength: Double = 0.62
@@ -146,19 +139,19 @@ public final class MannequinCharacter: Character {
         let skin = Self.material(color: UIColor(red: 0.80, green: 0.63, blue: 0.52, alpha: 1))
         let clothes = Self.material(color: UIColor(red: 0.25, green: 0.32, blue: 0.42, alpha: 1))
 
-        let hipHeight = Self.legLength
-        let shoulderHeight = hipHeight + Self.torsoLength
+        let hipHeight = CharacterProportions.legLength
+        let shoulderHeight = hipHeight + CharacterProportions.torsoLength
 
-        let torso = SCNCapsule(capRadius: Self.torsoRadius, height: Self.torsoLength)
+        let torso = SCNCapsule(capRadius: Self.torsoRadius, height: CharacterProportions.torsoLength)
         torso.firstMaterial = clothes
         let torsoNode = SCNNode(geometry: torso)
-        torsoNode.position = SCNVector3(0, Float(hipHeight + Self.torsoLength / 2), 0)
+        torsoNode.position = SCNVector3(0, Float(hipHeight + CharacterProportions.torsoLength / 2), 0)
         node.addChildNode(torsoNode)
 
-        let head = SCNSphere(radius: Self.headRadius)
+        let head = SCNSphere(radius: CharacterProportions.headRadius)
         head.firstMaterial = skin
         let headNode = SCNNode(geometry: head)
-        headNode.position = SCNVector3(0, Float(shoulderHeight + Self.headRadius), 0)
+        headNode.position = SCNVector3(0, Float(shoulderHeight + CharacterProportions.headRadius), 0)
         node.addChildNode(headNode)
 
         // Legs and arms pivot at the JOINT (hip / shoulder), not at the
@@ -172,10 +165,10 @@ public final class MannequinCharacter: Character {
         node.addChildNode(leftHipPivot)
         node.addChildNode(rightHipPivot)
         for pivot in [leftHipPivot, rightHipPivot] {
-            let leg = SCNCapsule(capRadius: Self.limbRadius, height: Self.legLength)
+            let leg = SCNCapsule(capRadius: Self.limbRadius, height: CharacterProportions.legLength)
             leg.firstMaterial = clothes
             let legNode = SCNNode(geometry: leg)
-            legNode.position = SCNVector3(0, Float(-Self.legLength / 2), 0)
+            legNode.position = SCNVector3(0, Float(-CharacterProportions.legLength / 2), 0)
             pivot.addChildNode(legNode)
         }
 

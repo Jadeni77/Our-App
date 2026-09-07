@@ -6,19 +6,22 @@ public final class FollowCamera: SCNNode {
     public static let distance: Double = 5.0
     public static let height: Double = 2.4
 
-    /// Where the camera aims vertically, relative to the character's feet —
-    /// chest height, not the feet themselves. **Declared as a reference to
-    /// `PlayerNode.eyeHeight`, not a second literal**: this is the same
+    /// Where the camera aims vertically, relative to the character's feet:
+    /// **the middle of the chest**, at roughly 1.20 m on a 1.75 m body.
+    ///
+    /// This comment used to say "chest height" while the value was
+    /// `PlayerNode.eyeHeight` — 1.60 m, the centre of the head. The camera
+    /// stared at the character's forehead, which left the body occupying
+    /// about 30% of frame height with the top half of the shot almost
+    /// entirely empty sky. The comment described the framing that was wanted;
+    /// the number delivered a different one, and nobody re-derived it.
+    ///
+    /// Derived from `CharacterProportions` rather than restated here, so
+    /// retuning the body's height moves the aim point with it instead of
+    /// leaving this pointing at where the chest used to be. That is the same
     /// "one decision, one place" lesson slice 1 paid for four times
-    /// (textureScale, sunPeakIntensity, duskFraction, dayFogColor) — if this
-    /// file restated `1.6` independently, retuning `PlayerNode.eyeHeight`
-    /// alone would leave the camera aimed at the OLD height while the
-    /// character's own notion of "eye level" moved, and the two would
-    /// silently disagree the next time either was touched. A camera aimed
-    /// at the ground puts the character at the top of the frame and the
-    /// horizon out of shot — this is the constant that keeps that from
-    /// happening now or after a later retune.
-    public static let lookAtHeight: Double = PlayerNode.eyeHeight
+    /// (textureScale, sunPeakIntensity, duskFraction, dayFogColor).
+    public static let lookAtHeight: Double = CharacterProportions.chestHeight
 
     public override init() {
         super.init()

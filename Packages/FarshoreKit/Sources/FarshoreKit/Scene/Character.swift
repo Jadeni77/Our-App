@@ -28,6 +28,53 @@ public protocol Character: AnyObject {
     func update(distanceWalked: Double)
 }
 
+/// **The one place the character's vertical proportions are decided.**
+///
+/// These were previously spread across two files as unrelated literals, and
+/// agreed only by coincidence: `MannequinCharacter` put the centre of the head
+/// at `legLength + torsoLength + headRadius`, which happens to come to 1.60,
+/// while `PlayerNode.eyeHeight` separately stated `1.6`. Nothing connected
+/// them. Retuning `legLength` would have moved the head and left the camera
+/// aiming at the height the old head used to be, with a comment still
+/// confidently describing the old geometry — the fourth instance in this
+/// project of one decision written down as two literals.
+///
+/// Everything below is derived, so there is exactly one number to change
+/// (`totalHeight`) and one skeleton to change it against.
+///
+/// For a rigged export these are **nominal**: they describe the body the
+/// camera is framed for, not a measurement of whatever the owner supplies. A
+/// Mixamo character of very different proportions is a reason to revisit
+/// `RiggedCharacter.riggedScale`, not to restate a number here.
+public enum CharacterProportions {
+    /// Heel to crown, metres. The one free parameter.
+    public static let totalHeight: Double = 1.75
+
+    public static let headRadius: Double = 0.15
+    /// Hip to ground. Also the leg capsule's own length, so a leg hangs from
+    /// its pivot exactly to the floor with no gap and no overlap.
+    public static let legLength: Double = 0.90
+    /// Computed from the other three so the budget always closes:
+    /// `legLength + torsoLength + headRadius * 2 == totalHeight`.
+    public static var torsoLength: Double { totalHeight - legLength - headRadius * 2 }
+
+    public static var shoulderHeight: Double { legLength + torsoLength }
+
+    /// Centre of the head — where the eyes are on a body whose head is a
+    /// sphere. Works out to 1.60 m at the current `totalHeight`, which is the
+    /// number `PlayerNode.eyeHeight` used to state independently.
+    public static var eyeHeight: Double { shoulderHeight + headRadius }
+
+    /// **Where the follow camera aims.** Mid-torso, not the head.
+    ///
+    /// Aiming at `eyeHeight` put the camera's target on the centre of the
+    /// head, which left the character filling about 30% of frame height with
+    /// the top half of the shot almost entirely empty sky. Dropping the aim
+    /// point to the middle of the chest centres the body in frame instead of
+    /// hanging it off the bottom edge. Works out to ~1.20 m.
+    public static var chestHeight: Double { legLength + torsoLength * 0.55 }
+}
+
 /// Prefers a rigged export over the built-in placeholder, so dropping in the
 /// owner's Mixamo character is a **file copy plus one conversion command**,
 /// with no code change — that is the entire point of Task 3A (see the task

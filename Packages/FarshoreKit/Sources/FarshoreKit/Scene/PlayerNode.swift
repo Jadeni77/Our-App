@@ -5,8 +5,18 @@ import SceneKit
 /// so standing on it is one sample rather than a simulation. That is far
 /// cheaper, exactly reproducible, and it cannot fall through the world.
 public final class PlayerNode: SCNNode {
-    /// Metres from the feet to the camera target.
-    public static let eyeHeight: Double = 1.6
+    /// Metres from the feet to the character's eyes.
+    ///
+    /// **Derived, not restated.** This was `1.6`, an independent literal that
+    /// agreed with the mannequin's actual head position only by coincidence —
+    /// the head centre falls at `legLength + torsoLength + headRadius`, which
+    /// happens to come to 1.60. Retuning any of those three would have moved
+    /// the head and left this number behind. It now comes from the same
+    /// skeleton the body is built from.
+    ///
+    /// Note this is **not** where the follow camera aims — see
+    /// `FollowCamera.lookAtHeight`, which deliberately aims lower.
+    public static let eyeHeight: Double = CharacterProportions.eyeHeight
 
     public private(set) var worldX: Double = 0
     public private(set) var worldZ: Double = 0
