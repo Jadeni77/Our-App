@@ -23,6 +23,78 @@ public final class RiggedCharacter: Character {
     private let walkPlayer: SCNAnimationPlayer?
     private var isMoving = false
 
+    // MARK: - Assumptions about the export, made explicit
+    //
+    // Everything below was previously assumed silently: the loaded tree was
+    // re-parented with no rotation and no scale correction, which quietly
+    // asserts that the export faces local +Z and is authored in metres.
+    // Neither is reliably true of a Mixamo download, and both fail in ways
+    // that are easy to misread as something else.
+
+    /// Radians about Y applied to the loaded tree *before* the per-frame
+    /// facing rotation, to bring the export's own forward axis into line with
+    /// this project's, which is **local +Z** (the direction the mannequin's
+    /// nose points and its limbs swing along).
+    ///
+    /// **How to tell you need to change this**, from the owner's chair:
+    ///
+    ///   - The character moonwalks — glides in the direction it is walking,
+    ///     but facing the opposite way: the rig faces local −Z. Set `.pi`.
+    ///   - The character crab-walks — travels sideways relative to the way it
+    ///     is pointing: the rig faces local ±X. Set `.pi / 2` or `-.pi / 2`;
+    ///     try one, and if it is now 180° out, use the other.
+    ///   - It looks right: leave it at 0.
+    ///
+    /// A 180° error is the dangerous one, because on a front/back symmetric
+    /// body it looks identical to correct — which is why the mannequin now
+    /// has a nose. Check the character's face, not its silhouette.
+    public static let riggedForwardOffset: Double = 0
+
+    /// Uniform scale applied to the loaded tree. The rest of this package
+    /// works in metres: the ground is metres, `LocomotionRules.walkSpeed` is
+    /// 2.8 m/s, and `CharacterProportions.totalHeight` is 1.75 m.
+    ///
+    /// **Mixamo exports frequently land at 100×**, because the source rig is
+    /// authored in centimetres. The symptom is unmistakable once you know it:
+    /// the camera sits inside a wall of texture, or the character fills the
+    /// entire screen and never appears to move, because a 175 m person takes
+    /// a very long time to walk anywhere at 2.8 m/s. Set `0.01`.
+    ///
+    /// The opposite (an ant-sized character on a correct-looking island)
+    /// means the export is in metres but something upstream divided; set
+    /// `100`. If in doubt, the loaded tree's bounding box height should come
+    /// out near `CharacterProportions.totalHeight`.
+    public static let riggedScale: Double = 1
+
+    /// Builds the two-node container the loaded tree hangs from.
+    ///
+    /// **Two nodes, not one, and that is load-bearing.** `PlayerNode.step`
+    /// writes `character.node.eulerAngles.y` every frame to apply facing. If
+    /// `riggedForwardOffset` were applied to that same node it would be
+    /// overwritten on the very first frame and the correction would silently
+    /// do nothing. The outer node is the one the caller rotates; the inner
+    /// node carries the export's own correction, underneath, where the
+    /// per-frame write cannot reach it.
+    ///
+    /// The offset and scale are parameters, defaulting to the constants
+    /// above, so a test can exercise a non-zero correction. With both at
+    /// their current neutral defaults a one-node and a two-node container
+    /// behave identically, and the bug this shape exists to prevent would be
+    /// untestable.
+    static func makeContainer(wrapping children: [SCNNode],
+                              forwardOffset: Double = riggedForwardOffset,
+                              scale: Double = riggedScale) -> SCNNode {
+        let outer = SCNNode()
+        let inner = SCNNode()
+        inner.eulerAngles.y = Float(forwardOffset)
+        inner.scale = SCNVector3(Float(scale), Float(scale), Float(scale))
+        for child in children {
+            inner.addChildNode(child)
+        }
+        outer.addChildNode(inner)
+        return outer
+    }
+
     /// Where `sceneNamed:in:` would look. Split out so `CharacterLoader` can
     /// tell "no export supplied yet" (silence is correct) from "an export is
     /// sitting right there and did not load" (must be logged) — `init?`
@@ -64,11 +136,9 @@ public final class RiggedCharacter: Character {
         // `PlayerNode` and rotate for facing (`eulerAngles.y`); handing back
         // a scene's actual root risks a caller finding scene-level state
         // (e.g. a loaded root's own transform, if the export has one) rather
-        // than a clean container.
-        let root = SCNNode()
-        for child in scene.rootNode.childNodes {
-            root.addChildNode(child)
-        }
+        // than a clean container. The container also carries the export's
+        // forward-axis and scale corrections — see `makeContainer`.
+        let root = Self.makeContainer(wrapping: scene.rootNode.childNodes)
         self.node = root
 
         var byKey: [String: SCNAnimationPlayer] = [:]
