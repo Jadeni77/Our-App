@@ -154,6 +154,45 @@ public final class MannequinCharacter: Character {
         headNode.position = SCNVector3(0, Float(shoulderHeight + CharacterProportions.headRadius), 0)
         node.addChildNode(headNode)
 
+        // **A face, so that facing is visible at all.**
+        //
+        // A capsule torso and a featureless sphere head are front/back
+        // symmetric, which means a 180° facing error renders *pixel for pixel
+        // identically* to correct. A 90° error shows up as crab-walking and
+        // gets caught; a 180° error does not, and this project has already
+        // shipped three sign bugs of exactly this family. The owner is the
+        // only pair of eyes on this work, so the placeholder has to be
+        // checkable by those eyes rather than only by a test.
+        //
+        // Two markers, both on +Z — which is forward, the axis the limbs
+        // swing along and the one `PlayerNode.step` points at the direction
+        // of travel.
+        //
+        // Both are a contrasting colour on purpose. At the follow camera's
+        // distance a skin-toned bump on a skin-toned sphere would not read,
+        // and a marker you cannot see is the same as no marker. The chest
+        // patch is the one that carries at distance, because the torso is the
+        // largest surface facing the camera; the nose is what makes the head
+        // read as a head rather than a ball.
+        let marker = Self.material(color: UIColor(red: 0.62, green: 0.29, blue: 0.24, alpha: 1))
+
+        let nose = SCNSphere(radius: CharacterProportions.headRadius * 0.34)
+        nose.firstMaterial = marker
+        let noseNode = SCNNode(geometry: nose)
+        noseNode.position = SCNVector3(0, 0, Float(CharacterProportions.headRadius * 0.9))
+        headNode.addChildNode(noseNode)
+
+        // Sits proud of the torso so the *silhouette* differs front to back
+        // too, not only the colour — a facing check that survives being
+        // looked at against a bright sky, or by someone colour-blind.
+        let chestPatch = SCNSphere(radius: Self.torsoRadius * 0.42)
+        chestPatch.firstMaterial = marker
+        let chestNode = SCNNode(geometry: chestPatch)
+        chestNode.position = SCNVector3(0,
+                                        Float(hipHeight + CharacterProportions.torsoLength * 0.72),
+                                        Float(Self.torsoRadius * 0.85))
+        node.addChildNode(chestNode)
+
         // Legs and arms pivot at the JOINT (hip / shoulder), not at the
         // limb's own centre — `SCNCapsule`'s local origin is its centre, so
         // the capsule node is offset by half its own length inside a pivot

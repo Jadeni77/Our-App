@@ -68,6 +68,40 @@ struct MannequinCharacterTests {
         }
     }
 
+    /// **A 180° facing error must be visible.** On a front/back symmetric
+    /// body it is not: a capsule torso and a featureless sphere head render
+    /// identically whichever way round they are, so the character can be
+    /// walking backwards and look perfectly correct. Since the owner is the
+    /// only pair of eyes on this work, the placeholder has to carry something
+    /// that tells front from back — hence the nose.
+    ///
+    /// Pinned as an asymmetry of the actual assembled geometry, not as "a
+    /// node called nose exists", so it stays true however the face is built.
+    @Test func theBodyIsVisiblyAsymmetricFrontToBack() {
+        let box = MannequinCharacter().node.boundingBox
+        #expect(Double(box.max.z) > Double(-box.min.z) + 0.02)
+    }
+
+    /// And the asymmetry has to point the way the character walks. A marker
+    /// on the *back* would be worse than none: it would make a correct facing
+    /// look like a bug and send someone off to "fix" it.
+    ///
+    /// `+Z` is forward — the axis the limbs swing along and the one
+    /// `PlayerNode.step` aims at the direction of travel.
+    @Test func everyDistinguishingMarkIsOnTheForwardSide() {
+        var offsets: [Float] = []
+        func collect(_ node: SCNNode, depth: Int) {
+            if node.geometry != nil, depth > 0 { offsets.append(node.position.z) }
+            for child in node.childNodes { collect(child, depth: depth + 1) }
+        }
+        collect(MannequinCharacter().node, depth: 0)
+
+        // Premise: something is off-centre at all.
+        #expect(offsets.contains { $0 > 0.001 })
+        // And nothing is behind the body's midline.
+        #expect(!offsets.contains { $0 < -0.001 })
+    }
+
     /// Contralateral gait: the arm swings opposite the leg on its own side.
     /// Pinned because it is the one property of the swing that reads as
     /// *wrong* rather than merely stylised if it inverts — same-side limbs

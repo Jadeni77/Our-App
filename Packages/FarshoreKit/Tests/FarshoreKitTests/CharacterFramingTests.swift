@@ -44,8 +44,13 @@ struct CharacterFramingTests {
         #expect(abs(Double(box.min.y) - 0) < 0.001)
         #expect(abs(Double(box.max.y) - CharacterProportions.totalHeight) < 0.001)
 
-        // The head is the only sphere in the body.
-        let head = try #require(mannequin.node.childNodes.first { $0.geometry is SCNSphere })
+        // The head is the topmost sphere — the chest patch is a sphere too,
+        // so "the first one" would be a coincidence of construction order.
+        let head = try #require(
+            mannequin.node.childNodes
+                .filter { $0.geometry is SCNSphere }
+                .max { $0.position.y < $1.position.y }
+        )
         #expect(abs(Double(head.position.y) - PlayerNode.eyeHeight) < 0.001)
 
         // And the camera is aiming below it, into the torso the body has.
