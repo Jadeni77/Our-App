@@ -23,6 +23,17 @@ public final class RiggedCharacter: Character {
     private let walkPlayer: SCNAnimationPlayer?
     private var isMoving = false
 
+    /// Where `sceneNamed:in:` would look. Split out so `CharacterLoader` can
+    /// tell "no export supplied yet" (silence is correct) from "an export is
+    /// sitting right there and did not load" (must be logged) — `init?`
+    /// returns `nil` for both and cannot distinguish them from outside, which
+    /// is exactly how a `.dae` that iOS cannot parse stayed invisible.
+    static func resourceURL(for name: String, in bundle: Bundle) -> URL? {
+        let filename = name as NSString
+        return bundle.url(forResource: filename.deletingPathExtension,
+                          withExtension: filename.pathExtension)
+    }
+
     /// `name` is a full filename (e.g. `"character.scn"`), not a bare
     /// resource name — `CharacterLoader` tries `.scn` then `.dae` and needs
     /// to say which extension it means for each attempt.
@@ -31,15 +42,11 @@ public final class RiggedCharacter: Character {
     /// SceneKit cannot parse what's there. Either way, `CharacterLoader`
     /// falls back to `MannequinCharacter` — **fail soft** (principle 7): a
     /// bad or missing export must degrade to the placeholder, never crash
-    /// the app, and this initializer is the only place that can tell the
-    /// difference between "not supplied yet" and "supplied but broken" —
-    /// both look the same from here, which is correct, because both have
-    /// the same right answer.
+    /// the app. `CharacterLoader` is responsible for *logging* the
+    /// supplied-but-broken case, using `resourceURL(for:in:)` above to tell
+    /// the two apart.
     public init?(sceneNamed name: String, in bundle: Bundle) {
-        let filename = name as NSString
-        let base = filename.deletingPathExtension
-        let ext = filename.pathExtension
-        guard let url = bundle.url(forResource: base, withExtension: ext) else { return nil }
+        guard let url = Self.resourceURL(for: name, in: bundle) else { return nil }
 
         // `.doNotPlay`: SceneKit's default animation import policy starts
         // every animation it finds playing immediately on load. A rig
