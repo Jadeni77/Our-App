@@ -15,11 +15,18 @@ struct ProximityRulesTests {
 
     /// The boundary itself, because "near the fire" is the difference between
     /// surviving a night and not, and an off-by-one here is a death the player
-    /// cannot account for.
-    @Test func theWarmthRadiusIsAnInclusiveCircle() {
+    /// cannot account for. The circle is **exclusive**: at exactly
+    /// `distance == fireWarmthRadius` you are not near the fire (`isNearFire`
+    /// uses a strict `<`). The `r - 0.01` / `r + 0.01` probes only bracket
+    /// the boundary — they pass identically whether the implementation uses
+    /// `<` or `<=`, so on their own they are blind to the one distinction
+    /// this test exists to pin. The `r` probe below is the one that actually
+    /// distinguishes the two.
+    @Test func theWarmthRadiusIsAnExclusiveCircle() {
         let r = ProximityRules.fireWarmthRadius
         #expect(ProximityRules.isNearFire(playerX: r - 0.01, playerZ: 0, fireX: 0, fireZ: 0))
         #expect(ProximityRules.isNearFire(playerX: r + 0.01, playerZ: 0, fireX: 0, fireZ: 0) == false)
+        #expect(ProximityRules.isNearFire(playerX: r, playerZ: 0, fireX: 0, fireZ: 0) == false)
     }
 
     @Test func belowSeaLevelIsInTheSea() {

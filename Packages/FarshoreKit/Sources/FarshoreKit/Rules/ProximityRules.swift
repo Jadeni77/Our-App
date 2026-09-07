@@ -15,6 +15,12 @@ public enum ProximityRules {
     /// restate it — a decision written as two literals in two files is how
     /// slice 1 spent real time chasing disagreements that were never supposed
     /// to exist.
+    ///
+    /// **The boundary is exclusive**: at exactly `distance == fireWarmthRadius`
+    /// you are not near the fire (`isNearFire` compares with a strict `<`).
+    /// Physically the boundary is measure-zero and either choice is
+    /// defensible, but the light-falloff task inherits this same edge, so
+    /// whoever wires that up needs to know which side of the line is warm.
     public static let fireWarmthRadius: Double = 6.0
     /// Arm's length plus a step — close enough that the offer feels like it
     /// belongs to the thing in front of you.
