@@ -60,6 +60,7 @@ struct IslandSceneView: UIViewRepresentable {
             scene.rootNode.addChildNode(TerrainNode(terrain: terrain,
                                                     material: IslandLook.groundMaterial(in: .module)))
             scene.rootNode.addChildNode(sun)
+            player.attach(CharacterLoader.make(in: .module))
             scene.rootNode.addChildNode(player)
             scene.rootNode.addChildNode(camera)
 
