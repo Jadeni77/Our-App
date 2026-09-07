@@ -47,7 +47,13 @@ public final class PlayerNode: SCNNode {
     /// gait and idle/moving transitions. Kept separate from `init` because
     /// `IslandSceneView.Coordinator` builds the player before it knows which
     /// `Character` `CharacterLoader.make(in:)` resolved to.
+    /// Replacing an already-attached character removes the old one from the
+    /// scene graph first. Dropping the reference is not enough: the node is
+    /// retained by its parent, so the previous body would keep rendering,
+    /// standing at the player's feet, frozen — and it would still be there
+    /// after a second swap, and a third.
     public func attach(_ character: Character) {
+        self.character?.node.removeFromParentNode()
         self.character = character
         addChildNode(character.node)
     }

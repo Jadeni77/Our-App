@@ -5,6 +5,12 @@ import os
 /// A third-person body `PlayerNode` can wear. Two implementations share this
 /// protocol so `PlayerNode` and `IslandSceneView` never have to know which one
 /// is in play — that is the whole point of `CharacterLoader` below.
+///
+/// **Name note:** this shadows `Swift.Character` (the grapheme cluster) inside
+/// this module, so any file here that genuinely means a text character must
+/// spell it `Swift.Character`. The name was specified by the task brief and is
+/// kept for that reason; nothing in FarshoreKit currently does string work at
+/// the character level, so the collision costs nothing today.
 public protocol Character: AnyObject {
     /// The node `PlayerNode.attach(_:)` adds as a child. Position and facing
     /// are the parent's job (`PlayerNode` owns world position;

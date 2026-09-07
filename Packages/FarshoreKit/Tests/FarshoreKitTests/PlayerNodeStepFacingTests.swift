@@ -140,6 +140,23 @@ struct PlayerNodeStepFacingTests {
         #expect(abs(player.facing) > 0)
     }
 
+    /// Attaching a second character must remove the first from the scene
+    /// graph. Dropping the reference is not enough — the node is retained by
+    /// its parent, so the old body would keep rendering at the player's feet,
+    /// frozen, and would still be there after the next swap too.
+    @Test func attachingASecondCharacterRemovesTheFirst() {
+        let player = PlayerNode()
+        let first = MannequinCharacter()
+        let second = MannequinCharacter()
+
+        player.attach(first)
+        player.attach(second)
+
+        #expect(first.node.parent == nil)
+        #expect(second.node.parent === player)
+        #expect(player.childNodes.count == 1)
+    }
+
     /// The gait is fed the distance actually covered, so it stays in step with
     /// the feet. Zero distance must leave the pose alone rather than advancing
     /// the walk cycle on a character that has not moved.

@@ -141,62 +141,85 @@ public final class RiggedCharacter: Character {
         let root = Self.makeContainer(wrapping: scene.rootNode.childNodes)
         self.node = root
 
-        var byKey: [String: SCNAnimationPlayer] = [:]
-        var byIndex: [SCNAnimationPlayer] = []
-        Self.collectAnimationPlayers(under: root, into: &byKey, ordered: &byIndex)
-        self.animationsByKey = byKey
-        self.animationsByIndex = byIndex
+        let found = Self.collectAnimationPlayers(under: root)
+        self.animationsByKey = Dictionary(found.map { ($0.key, $0.player) },
+                                          uniquingKeysWith: { first, _ in first })
+        self.animationsByIndex = found.map(\.player)
 
-        // Match case-insensitively against "idle"/"walk" first; fall back
-        // to first/second-found by index when nothing matches (task brief).
-        // This is deliberately *not* a hard-coded Mixamo key — that guess
-        // cannot be tested, because the files it would guess about do not
-        // exist yet.
-        let idleKey = byKey.keys.first { $0.localizedCaseInsensitiveContains("idle") }
-        let walkKey = byKey.keys.first { $0.localizedCaseInsensitiveContains("walk") }
+        let picked = Self.selectClips(keys: found.map(\.key))
+        idlePlayer = picked.idle.map { found[$0].player }
+        walkPlayer = picked.walk.map { found[$0].player }
 
-        idlePlayer = idleKey.flatMap { byKey[$0] } ?? byIndex.first
-        if let walkKey {
-            walkPlayer = byKey[walkKey]
-        } else if byIndex.count > 1 {
-            walkPlayer = byIndex[1]
-        } else {
-            walkPlayer = byIndex.first
-        }
+        // Start in the idle pose — or whatever single clip exists, since
+        // playing nothing would leave the model in its bind pose. If there
+        // are no animation players at all (a rig with no clips, or one
+        // SceneKit couldn't parse the animations of), both are `nil` and this
+        // is a no-op: the model still renders, just standing still, which is
+        // the fail-soft outcome the brief asks for explicitly — "a static
+        // character is a bad character, a crash is a bad app."
+        (idlePlayer ?? walkPlayer)?.play()
+    }
 
-        // Start in the idle pose. If there are no animation players at all
-        // (a rig with no clips, or one SceneKit couldn't parse the
-        // animations of), both are `nil` and both calls are no-ops — the
-        // model still renders, just standing still, which is the fail-soft
-        // outcome the brief asks for explicitly: "a static character is a
-        // bad character, a crash is a bad app."
-        idlePlayer?.play()
+    /// **Which clip is idle and which is walk, decided in discovery order.**
+    ///
+    /// Pure, and separated from the loading so it can be tested without a
+    /// rig — the animation matching was previously untestable by
+    /// construction, because there is no export to load yet.
+    ///
+    /// The previous version asked a `Dictionary` for `keys.first { … }`.
+    /// `Dictionary.keys` has **no specified order**, so a rig with two keys
+    /// both containing "walk" (say `walk_forward` and `walk_back`, which is
+    /// an ordinary way to name clips) picked an arbitrary one, and could pick
+    /// a different one on the next launch. Matching over the array in the
+    /// order the tree was walked is deterministic.
+    ///
+    /// Deliberately *not* a hard-coded Mixamo key: that guess cannot be
+    /// tested, because the file it would guess about does not exist yet.
+    static func selectClips(keys: [String]) -> (idle: Int?, walk: Int?) {
+        let namedIdle = keys.firstIndex { $0.localizedCaseInsensitiveContains("idle") }
+        let namedWalk = keys.firstIndex { $0.localizedCaseInsensitiveContains("walk") }
+
+        // Fall back to first-found and second-found when the names say
+        // nothing — Mixamo exports commonly come back as opaque identifiers
+        // like "mixamo.com" rather than anything legible.
+        let idle = namedIdle ?? keys.indices.first { $0 != namedWalk }
+        let walk = namedWalk ?? keys.indices.first { $0 != idle }
+        return (idle, walk)
     }
 
     private static func collectAnimationPlayers(
-        under node: SCNNode,
-        into byKey: inout [String: SCNAnimationPlayer],
-        ordered byIndex: inout [SCNAnimationPlayer]
-    ) {
-        for key in node.animationKeys {
-            guard let player = node.animationPlayer(forKey: key) else { continue }
-            byKey[key] = player
-            byIndex.append(player)
+        under node: SCNNode
+    ) -> [(key: String, player: SCNAnimationPlayer)] {
+        var found: [(key: String, player: SCNAnimationPlayer)] = []
+        func walk(_ node: SCNNode) {
+            for key in node.animationKeys {
+                guard let player = node.animationPlayer(forKey: key) else { continue }
+                found.append((key, player))
+            }
+            for child in node.childNodes { walk(child) }
         }
-        for child in node.childNodes {
-            collectAnimationPlayers(under: child, into: &byKey, ordered: &byIndex)
-        }
+        walk(node)
+        return found
     }
 
     public func setMoving(_ moving: Bool) {
         guard moving != isMoving else { return }
         isMoving = moving
+
+        // **Fewer than two distinct clips: leave whatever is playing alone.**
+        // A rig carrying a single animation used to resolve idle and walk to
+        // the same `SCNAnimationPlayer`, so every start and stop stopped that
+        // clip and restarted it — visibly snapping the character back to
+        // frame one each time the player touched or released the stick.
+        // There is no second clip to cross to, so the right move is nothing.
+        guard let idlePlayer, let walkPlayer, idlePlayer !== walkPlayer else { return }
+
         if moving {
-            idlePlayer?.stop()
-            walkPlayer?.play()
+            idlePlayer.stop()
+            walkPlayer.play()
         } else {
-            walkPlayer?.stop()
-            idlePlayer?.play()
+            walkPlayer.stop()
+            idlePlayer.play()
         }
     }
 

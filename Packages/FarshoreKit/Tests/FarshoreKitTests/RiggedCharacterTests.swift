@@ -61,6 +61,68 @@ struct RiggedCharacterTests {
         #expect(abs(height - CharacterProportions.totalHeight) < 0.01)
     }
 
+    // MARK: - Which clip is idle and which is walk
+
+    /// Named clips are matched case-insensitively, whichever order the tree
+    /// happens to be walked in.
+    @Test func namedClipsAreMatchedByName() {
+        #expect(RiggedCharacter.selectClips(keys: ["Idle", "Walking"]) == (0, 1))
+        #expect(RiggedCharacter.selectClips(keys: ["Walking", "Idle"]) == (1, 0))
+        #expect(RiggedCharacter.selectClips(keys: ["armature|IDLE", "armature|WALK"]) == (0, 1))
+
+        // **Three clips, so both names have to do real work.** With only two,
+        // matching "walk" and taking "the other one" as idle gives the right
+        // answer whether or not "idle" is matched at all — which a mutation
+        // proved, by deleting the idle match and failing nothing. A rig with
+        // a third clip is ordinary, and here the fallback would wrongly pick
+        // Run as idle.
+        #expect(RiggedCharacter.selectClips(keys: ["Run", "Idle", "Walking"]) == (1, 2))
+        #expect(RiggedCharacter.selectClips(keys: ["Jump", "Walking", "Idle"]) == (2, 1))
+    }
+
+    /// **The unstable pick.** This used to ask a `Dictionary` for
+    /// `keys.first { … }`, and `Dictionary.keys` has no specified order — so
+    /// a rig with two keys both containing "walk", which is an ordinary way
+    /// to name clips, picked an arbitrary one and could pick a different one
+    /// on the next launch. Discovery order is deterministic.
+    ///
+    /// Run repeatedly because an ordering bug that reproduces one time in
+    /// four is exactly the kind that gets dismissed as a fluke.
+    @Test func theClipPickIsStableWhenSeveralKeysMatch() {
+        let keys = ["walk_forward", "walk_back", "walk_slow"]
+        for _ in 0..<200 {
+            #expect(RiggedCharacter.selectClips(keys: keys).walk == 0)
+        }
+    }
+
+    /// No legible names — the common Mixamo case, where clips come back as
+    /// opaque identifiers like "mixamo.com". Fall back to first and second
+    /// found, in discovery order.
+    @Test func unnamedClipsFallBackToFirstAndSecondFound() {
+        #expect(RiggedCharacter.selectClips(keys: ["mixamo.com", "mixamo.com"]) == (0, 1))
+        #expect(RiggedCharacter.selectClips(keys: ["a", "b", "c"]) == (0, 1))
+    }
+
+    /// **A single clip must not resolve to both roles.** When it did,
+    /// `setMoving` stopped and replayed the same player on every transition,
+    /// snapping the character back to frame one each time the stick was
+    /// touched or released.
+    @Test func aSingleClipDoesNotBecomeBothIdleAndWalk() {
+        let one = RiggedCharacter.selectClips(keys: ["mixamo.com"])
+        #expect(one.idle == 0)
+        #expect(one.walk == nil)
+
+        let named = RiggedCharacter.selectClips(keys: ["Walking"])
+        #expect(named.walk == 0)
+        #expect(named.idle == nil)
+    }
+
+    /// A rig with no clips at all still has to load — a static character is a
+    /// bad character, a crash is a bad app.
+    @Test func noClipsIsNotAnError() {
+        #expect(RiggedCharacter.selectClips(keys: []) == (nil, nil))
+    }
+
     /// The shipped defaults are neutral, which is the right starting point
     /// for an export nobody has seen yet — but it is a decision, so it is
     /// written down rather than left implied by the absence of a test.
