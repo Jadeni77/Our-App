@@ -123,6 +123,60 @@ struct RiggedCharacterTests {
         #expect(RiggedCharacter.selectClips(keys: []) == (nil, nil))
     }
 
+    // MARK: - Precedence between a dedicated clip file and the rig's own clips
+
+    /// With no clip files, every role comes from the rig. Three clips, so
+    /// "match one and take the other" cannot pass for the wrong reason.
+    @Test func withNoClipFilesEveryRoleComesFromTheRig() {
+        let r = RiggedCharacter.resolveClips(embeddedKeys: ["Run", "Idle", "Walking"],
+                                             hasIdleFile: false, hasWalkFile: false)
+        #expect(r.idle == .embedded(1))
+        #expect(r.walk == .embedded(2))
+    }
+
+    /// **The rule.** A dedicated file wins even when the rig has a perfectly
+    /// good clip of that name — the file beating a *named* match, not merely
+    /// filling a gap, is the whole point. Supplying the file is a deliberate
+    /// act and the only reason to do it is to override the rig.
+    @Test func aDedicatedFileBeatsEvenANamedMatchInTheRig() {
+        let r = RiggedCharacter.resolveClips(embeddedKeys: ["Run", "Idle", "Walking"],
+                                             hasIdleFile: false, hasWalkFile: true)
+        #expect(r.walk == .dedicatedFile)
+        #expect(r.idle == .embedded(1))
+    }
+
+    /// The two roles resolve independently — a rig with a usable idle plus a
+    /// separate walk file is an ordinary way for a hand-over to arrive, and so
+    /// is the mirror image.
+    @Test func theTwoRolesResolveIndependently() {
+        let idleOnly = RiggedCharacter.resolveClips(embeddedKeys: ["Run", "Idle", "Walking"],
+                                                    hasIdleFile: true, hasWalkFile: false)
+        #expect(idleOnly.idle == .dedicatedFile)
+        #expect(idleOnly.walk == .embedded(2))
+
+        let both = RiggedCharacter.resolveClips(embeddedKeys: ["Run", "Idle", "Walking"],
+                                                hasIdleFile: true, hasWalkFile: true)
+        #expect(both.idle == .dedicatedFile)
+        #expect(both.walk == .dedicatedFile)
+    }
+
+    /// The shape this change exists for: a bare rig with no clips of its own,
+    /// plus one file per animation.
+    @Test func aBareRigPlusTwoClipFilesResolvesEntirelyFromTheFiles() {
+        let r = RiggedCharacter.resolveClips(embeddedKeys: [],
+                                             hasIdleFile: true, hasWalkFile: true)
+        #expect(r.idle == .dedicatedFile)
+        #expect(r.walk == .dedicatedFile)
+    }
+
+    /// Nothing anywhere is still not an error.
+    @Test func aBareRigWithNoClipFilesResolvesToNothing() {
+        let r = RiggedCharacter.resolveClips(embeddedKeys: [],
+                                             hasIdleFile: false, hasWalkFile: false)
+        #expect(r.idle == nil)
+        #expect(r.walk == nil)
+    }
+
     /// The shipped defaults are neutral, which is the right starting point
     /// for an export nobody has seen yet — but it is a decision, so it is
     /// written down rather than left implied by the absence of a test.

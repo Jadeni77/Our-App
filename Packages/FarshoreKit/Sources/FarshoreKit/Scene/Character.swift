@@ -120,10 +120,34 @@ public enum CharacterLoader {
     ///      the `.dae` into Xcode and use **Editor ▸ Convert to SceneKit scene
     ///      file format (.scn)**.
     ///   2. **Name it `character.scn`** and leave it in
-    ///      `Sources/FarshoreKit/Resources/`. That is the only filename this
-    ///      loader looks for.
+    ///      `Sources/FarshoreKit/Resources/`. That is the rig, and it is the
+    ///      only file that is required.
     ///   3. Add the file's row to `Resources/ASSETS.md` (F9 — every
     ///      third-party asset needs source and licence).
+    ///
+    /// **Two shapes are supported, because Mixamo hands out one animation per
+    /// download.** A single file carrying the rig and its clips works, but it
+    /// is not what a real Mixamo hand-over usually looks like. So the clips
+    /// may also live in their own files, which is the ordinary SceneKit
+    /// pattern for this (Apple's own Fox sample loads a rig and its
+    /// animations separately):
+    ///
+    ///   - `character.scn` — the rig. **Download with skin.** Required.
+    ///   - `character-idle.scn` — optional, the idle clip.
+    ///   - `character-walk.scn` — optional, the walk clip.
+    ///
+    /// Each of the two clip files is converted with the same command, just a
+    /// different output name. An animation-only export **does not need skin**
+    /// — it only has to carry the clip.
+    ///
+    /// **Precedence: a dedicated clip file beats a same-role clip embedded in
+    /// the rig.** Supplying `character-walk.scn` is a deliberate act and the
+    /// only reason to do it is to override whatever the rig came with. The
+    /// two roles resolve independently, so a rig with a usable idle plus a
+    /// separate walk file is fine.
+    ///
+    /// All four shapes work: rig-with-clips, rig-plus-separate-clips,
+    /// rig-alone (renders standing still), and nothing at all (the mannequin).
     ///
     /// That's it. No line in this file, `RiggedCharacter`, or anywhere else
     /// needs to change; the mannequin placeholder disappears on its own the
@@ -136,6 +160,9 @@ public enum CharacterLoader {
     /// not a supported input.
     static let riggedSceneFilename = "character.scn"
     static let riggedDaeFilename = "character.dae"
+    /// Optional dedicated clip files. See the precedence note above.
+    static let idleClipFilename = "character-idle.scn"
+    static let walkClipFilename = "character-walk.scn"
 
     private static let log = Logger(subsystem: "FarshoreKit", category: "CharacterLoader")
 

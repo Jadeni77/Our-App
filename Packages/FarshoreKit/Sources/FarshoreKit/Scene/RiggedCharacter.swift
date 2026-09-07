@@ -1,5 +1,6 @@
 import Foundation
 import SceneKit
+import os
 
 /// Wraps a rigged export loaded from the app bundle — the owner's Mixamo
 /// character plus Idle and Walking animations, or a `.scn` recompiled from
@@ -22,6 +23,20 @@ public final class RiggedCharacter: Character {
     private let idlePlayer: SCNAnimationPlayer?
     private let walkPlayer: SCNAnimationPlayer?
     private var isMoving = false
+
+    /// Where each role's clip actually came from. Internal so tests can pin
+    /// the precedence rule against real loaded files rather than only against
+    /// the pure function — and useful on its own when someone is staring at a
+    /// character wondering which of their three files is being used.
+    let clipSources: (idle: ClipSource?, walk: ClipSource?)
+
+    private static let log = Logger(subsystem: "FarshoreKit", category: "RiggedCharacter")
+
+    /// Keys this type assigns to clips loaded from dedicated files, so
+    /// nothing downstream has to match on names Mixamo chose. Namespaced to
+    /// avoid colliding with a key the rig already uses.
+    static let idleClipKey = "farshore.idle"
+    static let walkClipKey = "farshore.walk"
 
     // MARK: - Assumptions about the export, made explicit
     //
@@ -146,9 +161,27 @@ public final class RiggedCharacter: Character {
                                           uniquingKeysWith: { first, _ in first })
         self.animationsByIndex = found.map(\.player)
 
-        let picked = Self.selectClips(keys: found.map(\.key))
-        idlePlayer = picked.idle.map { found[$0].player }
-        walkPlayer = picked.walk.map { found[$0].player }
+        // Optional sibling clip files. Mixamo hands out **one animation per
+        // download**, so the ordinary shape of a real hand-over is a rig plus
+        // a file per clip, not one file carrying everything. Absent is the
+        // normal case and stays silent.
+        let idleFromFile = Self.loadClip(named: CharacterLoader.idleClipFilename, in: bundle)
+        let walkFromFile = Self.loadClip(named: CharacterLoader.walkClipFilename, in: bundle)
+
+        // Attach under keys *we* choose, on the character's own root, so
+        // selection stops depending on whatever Mixamo happened to name the
+        // clip inside the file — and so the rest of this type can find them
+        // without another name-matching guess. Attaching at the root lets
+        // SceneKit resolve the clip's bone targets across the whole rig.
+        if let idleFromFile { root.addAnimationPlayer(idleFromFile, forKey: Self.idleClipKey) }
+        if let walkFromFile { root.addAnimationPlayer(walkFromFile, forKey: Self.walkClipKey) }
+
+        let resolved = Self.resolveClips(embeddedKeys: found.map(\.key),
+                                         hasIdleFile: idleFromFile != nil,
+                                         hasWalkFile: walkFromFile != nil)
+        self.clipSources = resolved
+        idlePlayer = resolved.idle.flatMap { $0.player(fromFile: idleFromFile, embedded: found) }
+        walkPlayer = resolved.walk.flatMap { $0.player(fromFile: walkFromFile, embedded: found) }
 
         // Start in the idle pose — or whatever single clip exists, since
         // playing nothing would leave the model in its bind pose. If there
@@ -158,6 +191,91 @@ public final class RiggedCharacter: Character {
         // the fail-soft outcome the brief asks for explicitly — "a static
         // character is a bad character, a crash is a bad app."
         (idlePlayer ?? walkPlayer)?.play()
+    }
+
+    /// Where a resolved clip came from. Exists so the precedence rule can be
+    /// tested as a value rather than inferred from which object identity came
+    /// back — "which file won" is the thing that needs pinning.
+    enum ClipSource: Equatable {
+        /// From `character-idle.scn` / `character-walk.scn`.
+        case dedicatedFile
+        /// From the rig itself, at this index in tree-walk order.
+        case embedded(Int)
+
+        func player(fromFile file: SCNAnimationPlayer?,
+                    embedded found: [(key: String, player: SCNAnimationPlayer)]) -> SCNAnimationPlayer? {
+            switch self {
+            case .dedicatedFile: return file
+            case .embedded(let i): return found.indices.contains(i) ? found[i].player : nil
+            }
+        }
+    }
+
+    /// **The precedence rule, stated once.**
+    ///
+    /// A clip from a dedicated file **wins** over a same-role clip embedded in
+    /// the rig. The reasoning: supplying `character-walk.scn` is a deliberate
+    /// act, and the only reason to do it is to override whatever the rig came
+    /// with. Leaving resolution order implicit would make it a coin-toss the
+    /// owner cannot reason about — they would have no way to tell whether
+    /// their new walk cycle was being used without watching the character.
+    ///
+    /// Each role resolves independently, so a rig carrying a usable Idle plus
+    /// a separate `character-walk.scn` works — which is a perfectly ordinary
+    /// way for a hand-over to arrive.
+    ///
+    /// Pure, so the rule is tested rather than inferred from a loaded file.
+    static func resolveClips(embeddedKeys: [String],
+                             hasIdleFile: Bool,
+                             hasWalkFile: Bool) -> (idle: ClipSource?, walk: ClipSource?) {
+        let picked = selectClips(keys: embeddedKeys)
+        return (idle: hasIdleFile ? .dedicatedFile : picked.idle.map(ClipSource.embedded),
+                walk: hasWalkFile ? .dedicatedFile : picked.walk.map(ClipSource.embedded))
+    }
+
+    /// Loads one animation out of an optional sibling clip file.
+    ///
+    /// Takes the **first** player in tree-walk order: a dedicated
+    /// animation-only export carries exactly one clip, and first-found is
+    /// deterministic if it somehow carries more. Absent is silent — that is
+    /// the normal case. Present-and-unusable is logged, for the same reason
+    /// the rig is: a silent fallback is indistinguishable from a drop-in
+    /// nobody performed.
+    private static func loadClip(named name: String, in bundle: Bundle) -> SCNAnimationPlayer? {
+        guard let url = resourceURL(for: name, in: bundle) else {
+            // Not there. Check whether a raw Collada clip was dropped in
+            // instead, because that is a silent no-op otherwise — the same
+            // trap the rig file had.
+            let dae = (name as NSString).deletingPathExtension + ".dae"
+            if resourceURL(for: dae, in: bundle) != nil {
+                log.error("""
+                    \(dae, privacy: .public) is present but iOS cannot load Collada. \
+                    Convert it: xcrun scntool --convert \(dae, privacy: .public) \
+                    --format scn -o \(name, privacy: .public)
+                    """)
+            }
+            return nil
+        }
+
+        guard let scene = try? SCNScene(url: url, options: [
+            .animationImportPolicy: SCNSceneSource.AnimationImportPolicy.doNotPlay
+        ]) else {
+            log.error("""
+                \(name, privacy: .public) is present but SceneKit could not parse it; \
+                ignoring it and using whatever the rig provides.
+                """)
+            return nil
+        }
+
+        guard let first = collectAnimationPlayers(under: scene.rootNode).first else {
+            log.error("""
+                \(name, privacy: .public) loaded but contains no animation. If this came \
+                from Mixamo, re-download it as an animation (it does not need skin) and \
+                convert it again.
+                """)
+            return nil
+        }
+        return first.player
     }
 
     /// **Which clip is idle and which is walk, decided in discovery order.**

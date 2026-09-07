@@ -20,6 +20,12 @@ import Testing
 /// real export loads is a property of a file that does not exist yet, and no
 /// test in this package can know it in advance — `CharacterLoader`'s log line
 /// is that signal, not this file.
+///
+/// **The multi-file shape lives in `CharacterClipFileTests`.** Mixamo hands out
+/// one animation per download, so the rig may be accompanied by optional
+/// `character-idle.scn` and `character-walk.scn`. Those tests build real `.scn`
+/// files at run time and drive the loader over them, which is as close to the
+/// owner's actual hand-over as this package can get before it happens.
 struct CharacterLoaderTests {
     @Test func fallsBackToTheMannequinWhenNoRiggedExportIsPresent() {
         // Guard the premise. Without this, the day someone adds a real export
