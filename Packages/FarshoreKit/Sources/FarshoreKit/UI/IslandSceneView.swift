@@ -44,6 +44,9 @@ struct IslandSceneView: UIViewRepresentable {
         private let terrain: Terrain
         private var lastFrame: TimeInterval = 0
 
+        private let campfire: CampfireNode
+        private let forageNodes: ForageNodes
+
         /// Resolved once and held for the session. `SkyController.apply` needs
         /// the daylight sky to put back at dawn, and it runs every frame — a
         /// bundle lookup per frame for a value that cannot change is the kind
@@ -55,16 +58,28 @@ struct IslandSceneView: UIViewRepresentable {
 
         init(terrain: Terrain) {
             self.terrain = terrain
+
+            // Built once, here, and held for the session — same reasoning as
+            // `player`/`camera` below: a scene is state, not something
+            // derived from a view's body (task brief).
+            let middle = Double(terrain.field.width) * terrain.definition.cellSize / 2
+            let forage = ForageField.points(in: terrain, berries: 40, springs: 6)
+            campfire = CampfireNode(x: middle, z: middle, on: terrain)
+            forageNodes = ForageNodes(points: forage, on: terrain)
+
             super.init()
             IslandLook.configure(scene: scene, bundle: .module)
             scene.rootNode.addChildNode(TerrainNode(terrain: terrain,
                                                     material: IslandLook.groundMaterial(in: .module)))
             scene.rootNode.addChildNode(sun)
+            scene.rootNode.addChildNode(campfire)
+            scene.rootNode.addChildNode(forageNodes)
             player.attach(CharacterLoader.make(in: .module))
             scene.rootNode.addChildNode(player)
             scene.rootNode.addChildNode(camera)
 
-            let middle = Double(terrain.field.width) * terrain.definition.cellSize / 2
+            // The campfire sits at the island centre and so does the player
+            // (task brief) — you start the session at your own camp.
             player.place(x: middle, z: middle, on: terrain)
             camera.follow(player, heading: 0)
         }
@@ -77,7 +92,13 @@ struct IslandSceneView: UIViewRepresentable {
 
             player.step(input: input, heading: heading, dt: dt, terrain: terrain)
             camera.follow(player, heading: heading)
-            SkyController.apply(timeOfDay: clock.timeOfDay(at: Date()),
+
+            let now = Date()
+            // A fire that looked identical at noon and midnight would tell
+            // the player nothing had changed about standing near it — see
+            // `CampfireNode.setNight`.
+            campfire.setNight(clock.isNight(at: now))
+            SkyController.apply(timeOfDay: clock.timeOfDay(at: now),
                                 sun: sun, scene: scene, daySky: daySky)
         }
     }
