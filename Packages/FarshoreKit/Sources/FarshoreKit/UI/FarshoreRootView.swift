@@ -8,6 +8,12 @@ public struct FarshoreRootView: View {
     @State private var failed = false
     @State private var input: SIMD2<Double> = .zero
     @State private var heading: Double = 0
+    /// Read by nobody yet — Task 5 only wires the driver output out of
+    /// `IslandSceneView`. Task 6's `NeedsFeedback`/`ActionButton` are the
+    /// consumers; until then these exist purely so the coordinator has
+    /// somewhere real to push `SurvivalDriver.state`/`.offer` every frame.
+    @State private var survivalState: SurvivalState = .rested
+    @State private var offer: ForagePoint?
 
     /// Holds the drag arithmetic. Lives in `TurnTracker` rather than inline in
     /// `turnGesture` so it can be tested — see the note there.
@@ -18,7 +24,8 @@ public struct FarshoreRootView: View {
     public var body: some View {
         ZStack {
             if let terrain {
-                IslandSceneView(terrain: terrain, input: $input, heading: $heading)
+                IslandSceneView(terrain: terrain, input: $input, heading: $heading,
+                                survivalState: $survivalState, offer: $offer)
                     .ignoresSafeArea()
                     .gesture(turnGesture)
                 VStack {
