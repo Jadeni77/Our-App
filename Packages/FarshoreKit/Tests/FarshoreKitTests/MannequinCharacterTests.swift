@@ -99,7 +99,7 @@ struct MannequinCharacterTests {
         // Premise: something is off-centre at all.
         #expect(offsets.contains { $0 > 0.001 })
         // And nothing is behind the body's midline.
-        #expect(!offsets.contains { $0 < -0.001 })
+        #expect(offsets.contains { $0 < -0.001 } == false)
     }
 
     /// Contralateral gait: the arm swings opposite the leg on its own side.

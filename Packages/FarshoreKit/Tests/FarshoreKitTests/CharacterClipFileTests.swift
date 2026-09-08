@@ -1,4 +1,5 @@
 import Foundation
+import Metal
 import SceneKit
 import Testing
 @testable import FarshoreKit
@@ -16,6 +17,11 @@ import Testing
 /// path rather than a stand-in. Nothing is shipped in the repo to support
 /// them: iOS can write `.scn` carrying animations and read them back, which
 /// is what makes run-time fixtures possible.
+/// `@MainActor` for the same reason `PlayerNodeStepFacingTests` is: these hand
+/// a `Character` to `PlayerNode.attach`, and the test target builds in Swift 6
+/// language mode, where passing a non-`Sendable` class across isolation is an
+/// error. Scene graph work belongs on the main actor anyway.
+@MainActor
 struct CharacterClipFileTests {
 
     // MARK: - Fixtures
@@ -153,8 +159,8 @@ struct CharacterClipFileTests {
         // Attached under keys we control, so nothing downstream depends on
         // Mixamo having named the clip anything in particular — note the clip
         // above is called "mixamo.com", which says nothing at all.
-        #expect(character.node.animationKeys.contains(RiggedCharacter.idleClipKey))
-        #expect(character.node.animationKeys.contains(RiggedCharacter.walkClipKey))
+        #expect(character.rigNode.animationKeys.contains(RiggedCharacter.idleClipKey))
+        #expect(character.rigNode.animationKeys.contains(RiggedCharacter.walkClipKey))
     }
 
     // MARK: - Precedence
@@ -225,9 +231,131 @@ struct CharacterClipFileTests {
         let bundle = try #require(Bundle(url: dir))
 
         let character = try #require(CharacterLoader.make(in: bundle) as? RiggedCharacter)
-        let player = try #require(character.node.animationPlayer(forKey: RiggedCharacter.walkClipKey))
+        let player = try #require(character.rigNode.animationPlayer(forKey: RiggedCharacter.walkClipKey))
 
         #expect(abs(player.animation.duration - 1.0) < 0.001)
+    }
+
+    // MARK: - A clip must not fight the facing
+
+    /// Advances the scene clock and populates `presentation`, so an animation's
+    /// *rendered* effect can be measured headlessly. No window, no simulator
+    /// UI — `SCNRenderer` draws into an offscreen buffer.
+    private func render(_ scene: SCNScene, at time: TimeInterval) throws {
+        let device = try #require(MTLCreateSystemDefaultDevice())
+        let renderer = SCNRenderer(device: device, options: nil)
+        renderer.scene = scene
+        renderer.isPlaying = true
+        _ = renderer.snapshot(atTime: time,
+                              with: CGSize(width: 32, height: 32),
+                              antialiasingMode: .none)
+    }
+
+    /// A rig and a clip file that agree on nothing: the clip's animation sits
+    /// on a node the rig does not have.
+    private func writeMismatchedPair(to dir: URL) -> Bool {
+        let rig = SCNScene()
+        let hips = SCNNode(geometry: SCNBox(width: 0.4, height: 1, length: 0.2, chamferRadius: 0))
+        hips.name = "Hips"
+        rig.rootNode.addChildNode(hips)
+        let wroteRig = rig.write(to: dir.appendingPathComponent(CharacterLoader.riggedSceneFilename),
+                                 options: nil, delegate: nil, progressHandler: nil)
+
+        let clip = SCNScene()
+        let other = SCNNode()
+        other.name = "mixamorig:Hips"
+        clip.rootNode.addChildNode(other)
+        let a = CABasicAnimation(keyPath: "eulerAngles.y")
+        a.fromValue = 0.0
+        a.toValue = Double.pi / 2       // 0 -> 1.5708 over 4s: t=2 is ~0.785
+        a.duration = 4
+        a.repeatCount = .infinity
+        a.isRemovedOnCompletion = false
+        other.addAnimation(a, forKey: "mixamo.com")
+        let wroteClip = clip.write(to: dir.appendingPathComponent(CharacterLoader.walkClipFilename),
+                                   options: nil, delegate: nil, progressHandler: nil)
+        return wroteRig && wroteClip
+    }
+
+    /// **The bug this test exists for.** SceneKit retargets an attached
+    /// animation by the bone name it carries, and when that name does not
+    /// resolve it animates *the node the player is attached to* instead. The
+    /// clips were being attached to `character.node` — the very node
+    /// `PlayerNode.step` writes `eulerAngles.y` to every frame — so a clip
+    /// whose bone names did not match silently overwrote the character's
+    /// facing. Measured before the fix: model facing 1.0, **rendered** root
+    /// 0.393. The character ignored which way it was walking and span with
+    /// the clip instead.
+    ///
+    /// This is the same hazard `makeContainer` was split in two to prevent for
+    /// `riggedForwardOffset`; the fix is to attach below that split.
+    @Test func aClipWhoseBonesDoNotResolveCannotOverwriteTheFacing() throws {
+        let dir = try makeBundleDirectory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        #expect(writeMismatchedPair(to: dir))
+        let bundle = try #require(Bundle(url: dir))
+
+        let character = try #require(CharacterLoader.make(in: bundle) as? RiggedCharacter)
+        character.setMoving(true)
+
+        let scene = SCNScene()
+        let player = PlayerNode()
+        player.attach(character)
+        scene.rootNode.addChildNode(player)
+
+        // Exactly what PlayerNode.step does once facing has converged.
+        let facing: Float = 1.0
+        character.node.eulerAngles.y = facing
+
+        for time in [0.0, 1.0, 2.0] {
+            try render(scene, at: time)
+            #expect(abs(character.node.presentation.eulerAngles.y - facing) < 0.001,
+                    "rendered facing drifted at t=\(time)")
+        }
+    }
+
+    /// The guard for the test above: it must fail because the facing is
+    /// *protected*, not because the clip is dead. If the clip were never
+    /// playing, the facing would trivially survive and the test would pass for
+    /// the wrong reason — the mutation-20 lesson, applied to a rendering test.
+    @Test func theClipIsGenuinelyRunningBeneathTheFacingNode() throws {
+        let dir = try makeBundleDirectory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        #expect(writeMismatchedPair(to: dir))
+        let bundle = try #require(Bundle(url: dir))
+
+        let character = try #require(CharacterLoader.make(in: bundle) as? RiggedCharacter)
+        character.setMoving(true)
+
+        let scene = SCNScene()
+        let player = PlayerNode()
+        player.attach(character)
+        scene.rootNode.addChildNode(player)
+        character.node.eulerAngles.y = 1.0
+
+        try render(scene, at: 0.0)
+        let atZero = character.rigNode.presentation.eulerAngles.y
+        try render(scene, at: 2.0)
+        let atTwo = character.rigNode.presentation.eulerAngles.y
+
+        #expect(abs(atZero) < 0.001)
+        #expect(atTwo > 0.5, "the clip is not advancing, so the test above proves nothing")
+    }
+
+    /// The clip files land on the rig node, underneath the facing write —
+    /// stated directly, since that placement is the whole fix.
+    @Test func clipsAreAttachedBelowTheNodeThatCarriesFacing() throws {
+        let dir = try makeBundleDirectory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        #expect(writeRig(clips: [], to: dir, named: CharacterLoader.riggedSceneFilename))
+        #expect(writeClipFile(clip: "mixamo.com", to: dir, named: CharacterLoader.walkClipFilename))
+        let bundle = try #require(Bundle(url: dir))
+
+        let character = try #require(CharacterLoader.make(in: bundle) as? RiggedCharacter)
+
+        #expect(character.rigNode.animationKeys.contains(RiggedCharacter.walkClipKey))
+        #expect(character.node.animationKeys.isEmpty)
+        #expect(character.rigNode !== character.node)
     }
 
     /// The clip filenames are part of the drop-in instructions, in the same

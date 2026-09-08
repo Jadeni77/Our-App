@@ -19,7 +19,7 @@ struct RiggedCharacterTests {
         let rig = SCNNode()
         let container = RiggedCharacter.makeContainer(wrapping: [rig],
                                                       forwardOffset: .pi,
-                                                      scale: 1)
+                                                      scale: 1).container
         let facing = 0.7
 
         // Exactly what PlayerNode.step does to the character's node.
@@ -38,7 +38,7 @@ struct RiggedCharacterTests {
         let rig = SCNNode()
         let container = RiggedCharacter.makeContainer(wrapping: [rig],
                                                       forwardOffset: 0,
-                                                      scale: 1)
+                                                      scale: 1).container
         let facing = -1.2
         container.eulerAngles.y = Float(facing)
 
@@ -54,7 +54,7 @@ struct RiggedCharacterTests {
                                            chamferRadius: 0))
         let container = RiggedCharacter.makeContainer(wrapping: [rig],
                                                       forwardOffset: 0,
-                                                      scale: 0.01)
+                                                      scale: 0.01).container
 
         let box = container.boundingBox
         let height = Double(box.max.y - box.min.y)
@@ -158,6 +158,48 @@ struct RiggedCharacterTests {
                                                 hasIdleFile: true, hasWalkFile: true)
         #expect(both.idle == .dedicatedFile)
         #expect(both.walk == .dedicatedFile)
+    }
+
+    /// **A role filled by a file must not reserve an embedded clip.** The
+    /// first version ran the first-found/second-found fallback over the whole
+    /// key list before precedence was applied, so idle claimed index 0 and
+    /// then excluded it from walk — even though idle was already coming from a
+    /// file. A rig carrying one opaquely-named clip (the `"mixamo.com"` case
+    /// this code elsewhere calls common) plus an idle file stranded that clip
+    /// entirely, leaving the character with no walk animation at all.
+    @Test func anIdleFileDoesNotStrandTheRigsOnlyClip() {
+        let r = RiggedCharacter.resolveClips(embeddedKeys: ["mixamo.com"],
+                                             hasIdleFile: true, hasWalkFile: false)
+        #expect(r.idle == .dedicatedFile)
+        #expect(r.walk == .embedded(0))
+    }
+
+    /// The mirror case was already correct, which is exactly what made the bug
+    /// above an asymmetry rather than a uniform rule, and easy to miss. Pin
+    /// both directions so it stays symmetric.
+    @Test func aWalkFileDoesNotStrandTheRigsOnlyClipEither() {
+        let r = RiggedCharacter.resolveClips(embeddedKeys: ["mixamo.com"],
+                                             hasIdleFile: false, hasWalkFile: true)
+        #expect(r.idle == .embedded(0))
+        #expect(r.walk == .dedicatedFile)
+    }
+
+    /// The open role still prefers a clip actually named for it, rather than
+    /// grabbing index 0 because it is first.
+    @Test func theOpenRoleStillPrefersAClipNamedForIt() {
+        let r = RiggedCharacter.resolveClips(embeddedKeys: ["Run", "Idle", "Walking"],
+                                             hasIdleFile: true, hasWalkFile: false)
+        #expect(r.walk == .embedded(2))
+    }
+
+    /// But it must not press an explicitly *idle* clip into service as a walk
+    /// cycle. An opaque name is fair game because it claims nothing; a clip
+    /// that says "Idle" is claiming something, and there is already an idle.
+    @Test func theOpenRoleWillNotBorrowAClipNamedForTheOtherRole() {
+        let r = RiggedCharacter.resolveClips(embeddedKeys: ["Idle"],
+                                             hasIdleFile: true, hasWalkFile: false)
+        #expect(r.idle == .dedicatedFile)
+        #expect(r.walk == nil)
     }
 
     /// The shape this change exists for: a bare rig with no clips of its own,

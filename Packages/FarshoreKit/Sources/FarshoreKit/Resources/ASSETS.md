@@ -110,6 +110,30 @@ it, and a bad rig falls back to the mannequin. It does **not** fail silently; a
 silent fallback is what let a non-working `.dae` instruction survive in four
 places at once.
 
+### If the character loads but moves wrongly
+
+Everything below is a property of *your* two downloads, so no test in this
+package can anticipate it. Work down the list.
+
+| What you see | Likely cause | Fix |
+|---|---|---|
+| The whole body rotates or slides **as one rigid piece**, limbs not articulating, while it still faces the way it walks | The clip's bone names do not match the rig's, so SceneKit cannot retarget it and animates the rig container instead | Re-download the rig and the clips from the **same Mixamo character**, so the skeletons match |
+| It stands in its bind pose, no movement at all | No clip was found | Check the filenames, and the log — the loader names any file it could not use |
+| It walks backwards, facing away from travel | Rig faces local −Z | `RiggedCharacter.riggedForwardOffset = .pi` |
+| It travels sideways relative to where it points | Rig faces local ±X | `riggedForwardOffset = ±.pi / 2` |
+| Enormous, or the camera is inside it | Export authored in centimetres | `RiggedCharacter.riggedScale = 0.01` |
+
+The first row is worth reading twice, because it is the one that looks like an
+animation problem and is actually a *pairing* problem. It is also the one whose
+symptom was described wrongly in an earlier draft of this document: a clip whose
+bones do not resolve does **not** leave the character standing still, it moves
+the whole body rigidly. That was measured, not assumed.
+
+Note that the character's facing is protected either way — a clip can no longer
+overwrite it, because clips are attached below the node that carries facing. So
+"it faces the right way but moves like a statue on a turntable" is a coherent
+and expected combination, not two separate bugs.
+
 ### Textures
 
 SwiftPM's `.process("Resources")` **flattens the directory tree** — every file

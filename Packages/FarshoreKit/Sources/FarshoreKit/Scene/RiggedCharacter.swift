@@ -10,6 +10,13 @@ import os
 public final class RiggedCharacter: Character {
     public let node: SCNNode
 
+    /// The inner container holding the loaded tree — everything below the
+    /// node `PlayerNode` rotates for facing. Clips loaded from dedicated
+    /// files are attached **here**, so a clip whose bone names do not resolve
+    /// cannot overwrite the character's facing. See the note at the
+    /// attachment site.
+    let rigNode: SCNNode
+
     /// Every `SCNAnimationPlayer` found anywhere in the loaded node tree,
     /// keyed by whatever identifier SceneKit assigned on load. **Mixamo
     /// names these unhelpfully** (task brief) — exports commonly come back
@@ -96,9 +103,14 @@ public final class RiggedCharacter: Character {
     /// their current neutral defaults a one-node and a two-node container
     /// behave identically, and the bug this shape exists to prevent would be
     /// untestable.
+    ///
+    /// Returns both nodes, because callers need to be able to tell them
+    /// apart. Anything that must survive the per-frame facing write — the
+    /// forward offset, the scale, **and any animation player attached to the
+    /// character** — belongs on `rig`, never on `container`.
     static func makeContainer(wrapping children: [SCNNode],
                               forwardOffset: Double = riggedForwardOffset,
-                              scale: Double = riggedScale) -> SCNNode {
+                              scale: Double = riggedScale) -> (container: SCNNode, rig: SCNNode) {
         let outer = SCNNode()
         let inner = SCNNode()
         inner.eulerAngles.y = Float(forwardOffset)
@@ -107,7 +119,7 @@ public final class RiggedCharacter: Character {
             inner.addChildNode(child)
         }
         outer.addChildNode(inner)
-        return outer
+        return (outer, inner)
     }
 
     /// Where `sceneNamed:in:` would look. Split out so `CharacterLoader` can
@@ -153,10 +165,11 @@ public final class RiggedCharacter: Character {
         // (e.g. a loaded root's own transform, if the export has one) rather
         // than a clean container. The container also carries the export's
         // forward-axis and scale corrections — see `makeContainer`.
-        let root = Self.makeContainer(wrapping: scene.rootNode.childNodes)
-        self.node = root
+        let built = Self.makeContainer(wrapping: scene.rootNode.childNodes)
+        self.node = built.container
+        self.rigNode = built.rig
 
-        let found = Self.collectAnimationPlayers(under: root)
+        let found = Self.collectAnimationPlayers(under: built.container)
         self.animationsByKey = Dictionary(found.map { ($0.key, $0.player) },
                                           uniquingKeysWith: { first, _ in first })
         self.animationsByIndex = found.map(\.player)
@@ -168,13 +181,29 @@ public final class RiggedCharacter: Character {
         let idleFromFile = Self.loadClip(named: CharacterLoader.idleClipFilename, in: bundle)
         let walkFromFile = Self.loadClip(named: CharacterLoader.walkClipFilename, in: bundle)
 
-        // Attach under keys *we* choose, on the character's own root, so
-        // selection stops depending on whatever Mixamo happened to name the
-        // clip inside the file — and so the rest of this type can find them
-        // without another name-matching guess. Attaching at the root lets
-        // SceneKit resolve the clip's bone targets across the whole rig.
-        if let idleFromFile { root.addAnimationPlayer(idleFromFile, forKey: Self.idleClipKey) }
-        if let walkFromFile { root.addAnimationPlayer(walkFromFile, forKey: Self.walkClipKey) }
+        // Attach under keys *we* choose, so selection stops depending on
+        // whatever Mixamo happened to name the clip inside the file, and so
+        // the rest of this type can find them without another name-matching
+        // guess.
+        //
+        // **On `rigNode`, never on `node`.** SceneKit retargets an attached
+        // animation by the bone name it carries; when that name does not
+        // resolve, it animates *the node the player is attached to* instead.
+        // `node` is the outer container, which `PlayerNode.step` writes
+        // `eulerAngles.y` to every frame — so attaching here meant a clip
+        // whose bone names did not match could silently overwrite the
+        // character's facing. Measured, with the model facing set to 1.0:
+        //
+        //     attached to `node`:    RENDERED root y = 0.393 — facing lost,
+        //                            the body spins with the clip instead of
+        //                            turning the way it walks.
+        //     attached to `rigNode`: RENDERED root y = 1.0   — facing intact.
+        //
+        // This is the same hazard `makeContainer` exists to prevent for
+        // `riggedForwardOffset`. Anything that must survive the per-frame
+        // write goes underneath it.
+        if let idleFromFile { built.rig.addAnimationPlayer(idleFromFile, forKey: Self.idleClipKey) }
+        if let walkFromFile { built.rig.addAnimationPlayer(walkFromFile, forKey: Self.walkClipKey) }
 
         let resolved = Self.resolveClips(embeddedKeys: found.map(\.key),
                                          hasIdleFile: idleFromFile != nil,
@@ -224,13 +253,47 @@ public final class RiggedCharacter: Character {
     /// a separate `character-walk.scn` works — which is a perfectly ordinary
     /// way for a hand-over to arrive.
     ///
+    /// **A role filled by a file must not also reserve an embedded clip.**
+    /// The first version ran `selectClips` over the whole key list and applied
+    /// precedence afterwards, so the first-found/second-found fallback handed
+    /// index 0 to idle and then excluded it from walk — even when idle was
+    /// already coming from a dedicated file. A rig carrying one opaquely-named
+    /// clip (`"mixamo.com"`, the case this code elsewhere calls common) plus
+    /// an idle file stranded that clip entirely:
+    ///
+    ///     resolveClips(embeddedKeys: ["mixamo.com"], hasIdleFile: true, hasWalkFile: false)
+    ///       -> (idle: .dedicatedFile, walk: nil)      // the rig's only clip, unused
+    ///
+    /// Only roles the files have *not* filled get to claim an embedded clip,
+    /// so the fallback allocates over what is actually still open. The mirror
+    /// case was already correct, which is what made this an asymmetry rather
+    /// than a uniform rule and easy to miss.
+    ///
     /// Pure, so the rule is tested rather than inferred from a loaded file.
     static func resolveClips(embeddedKeys: [String],
                              hasIdleFile: Bool,
                              hasWalkFile: Bool) -> (idle: ClipSource?, walk: ClipSource?) {
-        let picked = selectClips(keys: embeddedKeys)
-        return (idle: hasIdleFile ? .dedicatedFile : picked.idle.map(ClipSource.embedded),
-                walk: hasWalkFile ? .dedicatedFile : picked.walk.map(ClipSource.embedded))
+        switch (hasIdleFile, hasWalkFile) {
+        case (true, true):
+            // Nothing left for the rig's clips to fill.
+            return (.dedicatedFile, .dedicatedFile)
+
+        case (true, false):
+            // Only walk is open: it takes the best walk candidate from the rig
+            // without idle having reserved anything first.
+            return (.dedicatedFile,
+                    selectSingleClip(keys: embeddedKeys, preferring: "walk", avoiding: "idle")
+                        .map(ClipSource.embedded))
+
+        case (false, true):
+            return (selectSingleClip(keys: embeddedKeys, preferring: "idle", avoiding: "walk")
+                        .map(ClipSource.embedded),
+                    .dedicatedFile)
+
+        case (false, false):
+            let picked = selectClips(keys: embeddedKeys)
+            return (picked.idle.map(ClipSource.embedded), picked.walk.map(ClipSource.embedded))
+        }
     }
 
     /// Loads one animation out of an optional sibling clip file.
@@ -276,6 +339,23 @@ public final class RiggedCharacter: Character {
             return nil
         }
         return first.player
+    }
+
+    /// The best embedded candidate for **one** role, used when the other role
+    /// is already filled from a dedicated file and therefore reserves nothing.
+    ///
+    /// Falls back to the first clip that is not explicitly named for the other
+    /// role. That last clause matters: a rig whose only clip is called "Idle",
+    /// alongside a dedicated idle file, should leave walk empty rather than
+    /// press an idle animation into service as a walk cycle. An opaque name
+    /// like `"mixamo.com"` is fair game, because it claims nothing.
+    static func selectSingleClip(keys: [String],
+                                 preferring word: String,
+                                 avoiding other: String) -> Int? {
+        if let named = keys.firstIndex(where: { $0.localizedCaseInsensitiveContains(word) }) {
+            return named
+        }
+        return keys.indices.first { !keys[$0].localizedCaseInsensitiveContains(other) }
     }
 
     /// **Which clip is idle and which is walk, decided in discovery order.**
