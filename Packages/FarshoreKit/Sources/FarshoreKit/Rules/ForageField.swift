@@ -34,6 +34,26 @@ public struct ForagePoint: Hashable, Sendable {
         case .spring: return 0.6
         }
     }
+
+    /// The verb `ActionButton` (Task 6) labels itself with. Switched on
+    /// `kind` rather than on `need`: `Kind` has exactly two cases and this
+    /// switch is exhaustive over them, so a third forage kind added later is
+    /// a compiler error here until it is given a verb, rather than silently
+    /// falling through to whichever `Need` case it happens to map to.
+    public var action: ForageAction {
+        switch kind {
+        case .berries: return .eat
+        case .spring: return .drink
+        }
+    }
+}
+
+/// What tapping `ActionButton` does, in words a player reads rather than a
+/// need they'd have to translate. Its own type, not a raw string, so the
+/// mapping from `ForagePoint.kind` to a verb is one switch statement a test
+/// can pin, instead of a string literal copied wherever a label is drawn.
+public enum ForageAction: Sendable, Equatable {
+    case drink, eat
 }
 
 /// Where the food and water are.

@@ -56,6 +56,15 @@ struct ForageFieldTests {
         #expect(ForagePoint(id: 1, x: 0, z: 0, kind: .spring).need == .water)
     }
 
+    /// `ActionButton` (Task 6) labels itself from this. Pinned as its own
+    /// test rather than folded into `berriesFeedYouAndSpringsWaterYou`
+    /// above: `need` and `action` are two separate switches over `kind`,
+    /// and a future edit could get one right and the other wrong.
+    @Test func berriesAreEatenAndSpringsAreDrunk() {
+        #expect(ForagePoint(id: 0, x: 0, z: 0, kind: .berries).action == .eat)
+        #expect(ForagePoint(id: 1, x: 0, z: 0, kind: .spring).action == .drink)
+    }
+
     @Test func somethingNeverPickedIsAvailable() {
         #expect(ForageField.isAvailable(.berries, pickedAt: nil, now: Date()))
     }
