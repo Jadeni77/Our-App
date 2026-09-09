@@ -18,6 +18,14 @@ struct IslandSceneView: UIViewRepresentable {
     /// frame, and neither lives inside this view's own hierarchy.
     @Binding var survivalState: SurvivalState
     @Binding var offer: ForagePoint?
+    /// Ticks up once per tap of `ActionButton`, flowing IN like
+    /// `input`/`heading` rather than as a `Binding` — nothing outside this
+    /// view ever needs to observe it change, only to cause a change. A
+    /// counter rather than a `Bool` so two taps landing before the next
+    /// frame is drawn stay two distinct requests instead of collapsing into
+    /// one, the same reasoning `TurnTracker` documents for why a raw drag
+    /// delta cannot be read as a plain "did something change" flag.
+    var takeRequest: Int = 0
 
     func makeCoordinator() -> Coordinator {
         Coordinator(terrain: terrain, survivalState: $survivalState, offer: $offer)
@@ -36,10 +44,11 @@ struct IslandSceneView: UIViewRepresentable {
     }
 
     func updateUIView(_ view: SCNView, context: Context) {
-        // Only the two values that change per frame cross here. The scene
+        // Only the values that change per frame cross here. The scene
         // itself is never rebuilt.
         context.coordinator.input = input
         context.coordinator.heading = heading
+        context.coordinator.takeRequest = takeRequest
     }
 
     final class Coordinator: NSObject, SCNSceneRendererDelegate {
@@ -72,6 +81,17 @@ struct IslandSceneView: UIViewRepresentable {
 
         var input: SIMD2<Double> = .zero
         var heading: Double = 0
+        /// Copied in from `updateUIView` on the main thread, same as
+        /// `input`/`heading`; read and consumed on the renderer thread in
+        /// `renderer(_:updateAtTime:)`. Handling it there — not the moment
+        /// SwiftUI notices the tap — keeps every mutation of `driver` on
+        /// the one thread that already owns it: `driver.step` runs in this
+        /// same callback, and `SCNSceneRendererDelegate` methods are
+        /// documented not to necessarily run on the main thread, so calling
+        /// `driver.take` from `updateUIView` instead would race the very
+        /// `step` call two lines above it in this file.
+        var takeRequest: Int = 0
+        private var lastHandledTakeRequest: Int = 0
 
         init(terrain: Terrain, survivalState: Binding<SurvivalState>, offer: Binding<ForagePoint?>) {
             self.terrain = terrain
@@ -119,6 +139,17 @@ struct IslandSceneView: UIViewRepresentable {
             driver.step(playerX: player.worldX, playerZ: player.worldZ,
                        playerHeight: terrain.height(atX: player.worldX, z: player.worldZ),
                        dt: dt, isNight: isNight, now: now)
+
+            // `!=`, not "became true": a counter that ticked twice between
+            // two frames must still only be handled once here, and `take`
+            // itself is what decides whether it succeeds — this only asks.
+            if takeRequest != lastHandledTakeRequest {
+                lastHandledTakeRequest = takeRequest
+                if let offer = driver.offer {
+                    driver.take(offer, now: now)
+                }
+            }
+
             campfire.setNight(isNight)
             SkyController.apply(timeOfDay: clock.timeOfDay(at: now),
                                 sun: sun, scene: scene, daySky: daySky)
