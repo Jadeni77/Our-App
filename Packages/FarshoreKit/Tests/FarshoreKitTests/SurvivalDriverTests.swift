@@ -176,6 +176,12 @@ struct SurvivalDriverTests {
 
         driver.revive()
         #expect(driver.state == .rested)
+        // Stated separately from `== .rested` rather than left to follow
+        // from it: `isDead` is what the blackout is driven by, and a
+        // revive that restored the values without clearing death would
+        // leave the player looking at a black screen they can never tap
+        // their way out of.
+        #expect(driver.state.isDead == false)
         #expect(driver.pickedAt[berries.id] != nil)
     }
 }

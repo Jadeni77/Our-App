@@ -136,6 +136,78 @@ struct IslandSceneCoordinatorTests {
         #expect(coordinator.driver.pickedAt[bush.id] != nil)
     }
 
+    /// **"You woke at the fire, at dawn" is a promise the copy makes, so
+    /// it is pinned exactly rather than approximately.**
+    ///
+    /// `wake` takes the moment rather than reading a clock, which is what
+    /// lets this assert `startedAt == woke` instead of "some time near
+    /// now". That matters: a coordinator's clock starts at construction, so
+    /// a test that only checked "the clock reads dawn" milliseconds later
+    /// would pass just as happily against a `wake` that never touched the
+    /// clock at all — the exact shape of the three tests slice 1 shipped
+    /// that could not fail.
+    @Test func wakingPutsYouAtTheFireAtDawn() throws {
+        let terrain = try island()
+        let coordinator = makeCoordinator(terrain)
+
+        let bush = try #require(forage(on: terrain).first { $0.kind == .berries })
+        let startedWith = coordinator.clock.startedAt
+
+        // Walk off, strip a bush, and die of it.
+        coordinator.player.place(x: bush.x, z: bush.z, on: terrain)
+        coordinator.driver.step(playerX: bush.x, playerZ: bush.z, playerHeight: 100,
+                                dt: 1, isNight: false, now: Date())
+        #expect(coordinator.driver.take(bush, now: Date()))
+        coordinator.driver.step(playerX: bush.x, playerZ: bush.z, playerHeight: -100,
+                                dt: 1_000_000, isNight: true, now: Date())
+        #expect(coordinator.driver.state.isDead)
+
+        let woke = Date()
+        coordinator.wake(now: woke)
+
+        // Dawn, to the instant.
+        #expect(coordinator.clock.startedAt == woke)
+        #expect(coordinator.clock.timeOfDay(at: woke) == 0)
+        #expect(coordinator.clock.isNight(at: woke) == false)
+        #expect(coordinator.clock.startedAt > startedWith)
+
+        // At the fire, rested.
+        #expect(coordinator.player.worldX == coordinator.campfire.worldX)
+        #expect(coordinator.player.worldZ == coordinator.campfire.worldZ)
+        #expect(coordinator.driver.state == .rested)
+        #expect(coordinator.driver.state.isDead == false)
+
+        // **And the island is untouched.** The bush stays picked: dying is
+        // not a way to farm a stripped patch back to full, and nothing the
+        // player built or spent is refunded by it. Death costs the session
+        // — the clock above — and nothing else (F3).
+        #expect(coordinator.driver.pickedAt[bush.id] != nil)
+    }
+
+    /// The tap has to reach the coordinator, not just the method. A wake
+    /// wired to nothing would leave every assertion above passing.
+    @Test func tappingThroughTheBlackoutWakesYou() throws {
+        let terrain = try island()
+        let coordinator = makeCoordinator(terrain)
+        let renderer = frames()
+
+        let startedWith = coordinator.clock.startedAt
+        coordinator.driver.step(playerX: 0, playerZ: 0, playerHeight: -100,
+                                dt: 1_000_000, isNight: true, now: Date())
+        #expect(coordinator.driver.state.isDead)
+
+        coordinator.renderer(renderer, updateAtTime: 1)
+        #expect(coordinator.driver.state.isDead)
+        #expect(coordinator.clock.startedAt == startedWith)
+
+        coordinator.write { $0.wake = 1 }
+        coordinator.renderer(renderer, updateAtTime: 2)
+
+        #expect(coordinator.driver.state.isDead == false)
+        #expect(coordinator.clock.startedAt > startedWith)
+        #expect(coordinator.player.worldX == coordinator.campfire.worldX)
+    }
+
     /// One tap is one take, however many frames pass afterwards. The
     /// counter is compared rather than watched for a rising edge, and a
     /// request left sitting in the inbox must not be re-handled every

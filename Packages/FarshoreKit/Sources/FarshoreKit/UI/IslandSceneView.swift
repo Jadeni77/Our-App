@@ -59,10 +59,14 @@ struct IslandSceneView: UIViewRepresentable {
     /// exists to make "asked again" distinguishable from "never asked",
     /// not to queue.
     var takeRequest = TakeRequest()
+    /// Ticks up when the player taps through `BlackoutView`. Flows in the
+    /// same way and for the same reason as `takeRequest`, and carries no
+    /// payload because there is only one thing waking can mean.
+    var wakeRequest = 0
 
     func makeCoordinator() -> Coordinator {
         Coordinator(terrain: terrain, survivalState: $survivalState, offer: $offer,
-                    takeRequest: takeRequest)
+                    takeRequest: takeRequest, wakeRequest: wakeRequest)
     }
 
     func makeUIView(context: Context) -> SCNView {
@@ -87,10 +91,12 @@ struct IslandSceneView: UIViewRepresentable {
         let input = self.input
         let heading = self.heading
         let takeRequest = self.takeRequest
+        let wakeRequest = self.wakeRequest
         context.coordinator.write {
             $0.input = input
             $0.heading = heading
             $0.take = takeRequest
+            $0.wake = wakeRequest
         }
     }
 
@@ -99,7 +105,9 @@ struct IslandSceneView: UIViewRepresentable {
         let camera = FollowCamera()
         let player = PlayerNode()
         private let sun = IslandLook.makeSun()
-        private let clock = SessionClock()
+        /// A `var`, and the only mutable piece of the world here, because
+        /// **replacing it is what dying costs you** — see `wake(now:)`.
+        private(set) var clock = SessionClock()
         private let terrain: Terrain
         private var lastFrame: TimeInterval = 0
 
@@ -148,6 +156,11 @@ struct IslandSceneView: UIViewRepresentable {
             /// `updateUIView` would race the `step` call a few lines above
             /// it in this file.
             var take = TakeRequest()
+            /// Bumped when the player taps through the blackout. A count
+            /// rather than a flag for the same reason `TakeRequest` carries
+            /// one: compared against what was last handled, so it can never
+            /// be acted on twice or missed once.
+            var wake = 0
         }
 
         private let inbox: OSAllocatedUnfairLock<Inbox>
@@ -156,18 +169,24 @@ struct IslandSceneView: UIViewRepresentable {
         /// tapped would otherwise read a nonzero count as a fresh request
         /// and take something on its very first frame.
         private var lastHandledTakeRequest: Int
+        /// Seeded for the same reason, and the stakes are higher: an
+        /// unseeded counter would wake a player who is not dead, which on
+        /// the very first frame means resetting the clock of a session
+        /// nobody has died in yet.
+        private var lastHandledWake: Int
 
         func write(_ mutate: @Sendable (inout Inbox) -> Void) {
             inbox.withLock(mutate)
         }
 
         init(terrain: Terrain, survivalState: Binding<SurvivalState>, offer: Binding<ForagePoint?>,
-             takeRequest: TakeRequest = TakeRequest()) {
+             takeRequest: TakeRequest = TakeRequest(), wakeRequest: Int = 0) {
             self.terrain = terrain
             self.survivalState = survivalState
             self.offer = offer
-            inbox = OSAllocatedUnfairLock(initialState: Inbox(take: takeRequest))
+            inbox = OSAllocatedUnfairLock(initialState: Inbox(take: takeRequest, wake: wakeRequest))
             lastHandledTakeRequest = takeRequest.count
+            lastHandledWake = wakeRequest
 
             // Built once, here, and held for the session — same reasoning as
             // `player`/`camera` above: a scene is state, not something
@@ -198,12 +217,46 @@ struct IslandSceneView: UIViewRepresentable {
             camera.follow(player, heading: 0)
         }
 
+        /// You went out. You woke at the fire, at dawn.
+        ///
+        /// **Death costs the session, not the island (F3), and the clock is
+        /// where that cost is actually charged.** The other two lines here
+        /// give something back — `revive` fills the needs, and the player
+        /// is put somewhere safe — so without the third, dying would be
+        /// free, or better than free at the end of a bad night. Replacing
+        /// the clock is what takes something: the island is exactly as you
+        /// left it, every bush you picked is still picked, nothing built is
+        /// lost, and the day you were most of the way through is gone.
+        ///
+        /// It is also the reason the clock could stay session-scoped in the
+        /// first place. Persistent decay was rejected because a partner's
+        /// busy week must not be damage to your island; the flip side is
+        /// that a survival loop needs *something* real to lose, and a
+        /// session is the only thing here that is yours alone to lose.
+        ///
+        /// Takes `now` rather than reading the clock itself so the promise
+        /// — that the moment you wake reads as dawn — is exactly, not
+        /// approximately, testable.
+        func wake(now: Date) {
+            driver.revive()
+            player.place(x: campfire.worldX, z: campfire.worldZ, on: terrain)
+            clock = SessionClock(startedAt: now)
+        }
+
         func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
             // One read, one lock acquisition, one snapshot for the whole
             // frame. Reading the properties one at a time would let the
             // main thread land a tap between two of them, so the player
             // could walk on this frame's input toward last frame's offer.
             let inbox = self.inbox.withLock { $0 }
+
+            // Before anything else this frame. Waking moves the player and
+            // replaces the clock, and every line below wants to run against
+            // where they actually are and what time it actually is.
+            if inbox.wake != lastHandledWake {
+                lastHandledWake = inbox.wake
+                wake(now: Date())
+            }
 
             // First frame has no previous timestamp; a dt of `time` itself
             // would teleport the player across the island on frame one.

@@ -40,6 +40,11 @@ public struct FarshoreRootView: View {
     /// need is still critical afterwards and gets its own card next.
     @State private var cardNeed: Need?
 
+    /// Ticks up when the player taps through the blackout. Handled by the
+    /// coordinator, which owns the driver and the clock — see
+    /// `IslandSceneView.Coordinator.wake(now:)`.
+    @State private var wakeRequest = 0
+
     /// Holds the drag arithmetic. Lives in `TurnTracker` rather than inline in
     /// `turnGesture` so it can be tested — see the note there.
     @State private var turn = TurnTracker()
@@ -51,7 +56,7 @@ public struct FarshoreRootView: View {
             if let terrain {
                 IslandSceneView(terrain: terrain, input: $input, heading: $heading,
                                 survivalState: $survivalState, offer: $offer,
-                                takeRequest: takeRequest)
+                                takeRequest: takeRequest, wakeRequest: wakeRequest)
                     .ignoresSafeArea()
                     .gesture(turnGesture)
 
@@ -89,6 +94,15 @@ public struct FarshoreRootView: View {
                         self.cardNeed = nil
                     }
                 }
+
+                // Above everything, including the card: while you are out,
+                // nothing else on this screen is true or usable. The state
+                // it reads is pushed from the render loop, so the blackout
+                // clears one frame after `wake` revives the driver rather
+                // than the instant the tap lands.
+                if survivalState.isDead {
+                    BlackoutView { wakeRequest += 1 }
+                }
             } else if failed {
                 // Fail soft, never a dead end (principle 7).
                 Text("farshore.load.failed", bundle: .module)
@@ -102,8 +116,15 @@ public struct FarshoreRootView: View {
         // Arms the latch, and only ever when nothing is already latched —
         // `cardNeed == nil` is what makes it a latch rather than a rename
         // of the per-frame derivation it replaced.
+        // Never while dead: every need is at or near zero when you go out,
+        // so a card armed here would be waiting behind the blackout and
+        // would surface after waking, telling a player who is `.rested`
+        // that their mouth is dry. A lesson nobody can see is not taught
+        // (M38), and one that arrives after it stopped being true is worse
+        // than none. A card already on screen when you die is left alone —
+        // that one is about the thing that just killed you.
         .onChange(of: survivalState) { _, state in
-            guard cardNeed == nil else { return }
+            guard cardNeed == nil, !state.isDead else { return }
             cardNeed = NeedSignalRules.needForFirstTimeCard(state: state, taught: taughtNeeds)
         }
         .task {

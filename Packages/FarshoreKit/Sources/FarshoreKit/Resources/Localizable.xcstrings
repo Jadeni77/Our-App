@@ -71,6 +71,13 @@
         "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "你昏了過去。醒來時天已破曉,你就在篝火旁。" } }
       }
     },
+    "farshore.death.continue" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Tap to wake" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "轻触醒来" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "輕觸醒來" } }
+      }
+    },
     "farshore.card.dismiss" : {
       "localizations" : {
         "en" : { "stringUnit" : { "state" : "translated", "value" : "Got it" } },
