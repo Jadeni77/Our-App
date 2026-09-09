@@ -42,18 +42,31 @@ struct NeedsFeedback: View {
     private var cold: Double { NeedSignalRules.intensity(state.warmth) }
     private var hunger: Double { NeedSignalRules.intensity(state.food) }
 
+    /// Cold sits at the BOTTOM of the stack, under the two vignettes.
+    ///
+    /// A blend mode reads what is already composited beneath it, so the
+    /// order is not cosmetic: with the desaturation on top it drained the
+    /// colour out of thirst's warm brown vignette, which is the one thing
+    /// that vignette exists to be. Cold is a wash over the world; thirst
+    /// and hunger are signals drawn on top of it, and a cold, thirsty
+    /// player has to be able to read both at once.
     var body: some View {
         ZStack {
+            coldDesaturation
             hungerVignette
             thirstVignette
-            coldDesaturation
             coldBreath
         }
         .ignoresSafeArea()
         .allowsHitTesting(false)
-        // A long ease so nothing on screen snaps — the owner's own words for
-        // why bars and rings were rejected apply just as much to a jump cut.
-        .animation(.easeInOut(duration: 2.5), value: state)
+        // NO `.animation(_:value:)` here, deliberately. `state` is pushed
+        // out of the render loop ~30 times a second, so every change would
+        // start a fresh ease and be superseded ~33 ms later — the value
+        // never escaping the slow-in end of its own ramp, which reads as a
+        // lag rather than as the smoothness it was reaching for. It is not
+        // needed either: needs drain over minutes and arrive as a
+        // continuous 30 Hz signal, so the source values ARE the animation.
+        // Nothing here snaps.
         .onAppear {
             withAnimation(.easeInOut(duration: 4.5).repeatForever(autoreverses: true)) {
                 breathe = true
@@ -74,10 +87,22 @@ struct NeedsFeedback: View {
     }
 
     /// A flat gray wash blended by saturation rather than drawn as its own
-    /// visible layer — `.saturation` reads the composited result *beneath*
-    /// it in this same `ZStack`, which is what lets an overlay desaturate
-    /// the 3D scene under it without `NeedsFeedback` ever touching
-    /// `IslandSceneView`.
+    /// visible layer, so cold reads as the colour leaving the world rather
+    /// than as a grey sheet over it.
+    ///
+    /// **How far down it reaches is unverified.** `.blendMode` composites
+    /// against the backdrop up to the nearest compositing group, and the
+    /// thing this most wants to desaturate — the island — is an `SCNView`
+    /// behind a `UIViewRepresentable`, a UIKit layer rather than something
+    /// SwiftUI drew. Whether a SwiftUI blend mode reaches across that
+    /// boundary is a question about two frameworks' compositing, and this
+    /// project's own rule is that such things are settled from a real
+    /// frame on a real device, never from a description (F8, four failed
+    /// mockup rounds). An earlier version of this comment asserted it
+    /// worked; nobody had looked. If it turns out not to reach, the
+    /// fallback is `SCNCamera`'s own `saturation` driven from the same
+    /// `NeedSignalRules.intensity(state.warmth)` — the rule stays put and
+    /// only the layer that consumes it moves.
     private var coldDesaturation: some View {
         Color(white: 0.5)
             .blendMode(.saturation)

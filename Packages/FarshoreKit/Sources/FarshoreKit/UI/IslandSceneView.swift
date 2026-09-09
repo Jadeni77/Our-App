@@ -1,5 +1,6 @@
 import SwiftUI
 import SceneKit
+import os
 
 /// Owns the `SCNView` and the render loop.
 ///
@@ -8,6 +9,35 @@ import SceneKit
 /// change (M51) and, in a worse form, froze the app outright (M42). A 3D scene
 /// is state, not something derived from a view's body.
 struct IslandSceneView: UIViewRepresentable {
+    /// What the player asked to pick up, and **which thing they were
+    /// looking at when they asked**.
+    ///
+    /// The point travels with the request rather than being looked up when
+    /// the request is handled, and that is the whole reason this is a
+    /// struct instead of the bare counter it started as. `ActionButton` is
+    /// labelled from the offer of the frame the player *saw*; up to ~33 ms
+    /// pass before the renderer acts on the tap, and `driver.step` has
+    /// already recomputed `offer` from a fresher position by then. Handing
+    /// the driver whatever is in reach *now* would mean a player who tapped
+    /// "Eat" at a bush and drifted a step could find themselves drinking
+    /// instead — an action they never chose, reported back as success. It
+    /// also made `SurvivalDriver.take`'s own `offer?.id == point.id` guard
+    /// (Moonshot M45: the caller is never the authority) a tautology that
+    /// could not fire, which is how the bug stayed invisible.
+    struct TakeRequest: Equatable, Sendable {
+        /// Bumped per tap, and compared rather than watched for a rising
+        /// edge, so a request is never handled twice.
+        var count = 0
+        /// What was in reach when the player tapped. `nil` only before the
+        /// first tap of the session.
+        var point: ForagePoint?
+
+        mutating func tap(_ point: ForagePoint) {
+            count += 1
+            self.point = point
+        }
+    }
+
     let terrain: Terrain
     @Binding var input: SIMD2<Double>
     @Binding var heading: Double
@@ -18,17 +48,21 @@ struct IslandSceneView: UIViewRepresentable {
     /// frame, and neither lives inside this view's own hierarchy.
     @Binding var survivalState: SurvivalState
     @Binding var offer: ForagePoint?
-    /// Ticks up once per tap of `ActionButton`, flowing IN like
-    /// `input`/`heading` rather than as a `Binding` — nothing outside this
-    /// view ever needs to observe it change, only to cause a change. A
-    /// counter rather than a `Bool` so two taps landing before the next
-    /// frame is drawn stay two distinct requests instead of collapsing into
-    /// one, the same reasoning `TurnTracker` documents for why a raw drag
-    /// delta cannot be read as a plain "did something change" flag.
-    var takeRequest: Int = 0
+    /// Flows IN like `input`/`heading` rather than as a `Binding` — nothing
+    /// outside this view needs to observe it change, only to cause a change.
+    ///
+    /// **Taps landing inside one frame deliberately coalesce into a single
+    /// take.** Only the newest request is on the value the renderer reads,
+    /// and it is handled once. That is the behaviour worth having: a spring
+    /// is never exhausted, so letting two taps through in one frame would
+    /// grant two drinks for what the player saw as one press. The counter
+    /// exists to make "asked again" distinguishable from "never asked",
+    /// not to queue.
+    var takeRequest = TakeRequest()
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(terrain: terrain, survivalState: $survivalState, offer: $offer)
+        Coordinator(terrain: terrain, survivalState: $survivalState, offer: $offer,
+                    takeRequest: takeRequest)
     }
 
     func makeUIView(context: Context) -> SCNView {
@@ -44,11 +78,20 @@ struct IslandSceneView: UIViewRepresentable {
     }
 
     func updateUIView(_ view: SCNView, context: Context) {
-        // Only the values that change per frame cross here. The scene
+        // Only the values that change per frame cross here, and they cross
+        // together under one lock — see `Coordinator.Inbox`. The scene
         // itself is never rebuilt.
-        context.coordinator.input = input
-        context.coordinator.heading = heading
-        context.coordinator.takeRequest = takeRequest
+        //
+        // Copied to locals first because the closure below is `@Sendable`
+        // and `self` is a view value holding `Binding`s.
+        let input = self.input
+        let heading = self.heading
+        let takeRequest = self.takeRequest
+        context.coordinator.write {
+            $0.input = input
+            $0.heading = heading
+            $0.take = takeRequest
+        }
     }
 
     final class Coordinator: NSObject, SCNSceneRendererDelegate {
@@ -60,9 +103,13 @@ struct IslandSceneView: UIViewRepresentable {
         private let terrain: Terrain
         private var lastFrame: TimeInterval = 0
 
-        private let campfire: CampfireNode
+        let campfire: CampfireNode
         private let forageNodes: ForageNodes
-        private let driver: SurvivalDriver
+        /// Not `private`: the render loop's own wiring is the one thing in
+        /// this file that no pure-rule test can reach, and it is where
+        /// this task's real bug lived. `IslandSceneCoordinatorTests` drives
+        /// frames through this coordinator and reads the driver's answers.
+        let driver: SurvivalDriver
 
         /// The bindings `state`/`offer` are pushed into. Stored as
         /// `Binding`, not as a reference back to the `IslandSceneView`
@@ -79,30 +126,56 @@ struct IslandSceneView: UIViewRepresentable {
         /// of cost that never shows up as a bug, only as a worse frame time.
         private let daySky = IslandLook.daySkyBackground(in: .module)
 
-        var input: SIMD2<Double> = .zero
-        var heading: Double = 0
-        /// Copied in from `updateUIView` on the main thread, same as
-        /// `input`/`heading`; read and consumed on the renderer thread in
-        /// `renderer(_:updateAtTime:)`. Handling it there — not the moment
-        /// SwiftUI notices the tap — keeps every mutation of `driver` on
-        /// the one thread that already owns it: `driver.step` runs in this
-        /// same callback, and `SCNSceneRendererDelegate` methods are
-        /// documented not to necessarily run on the main thread, so calling
-        /// `driver.take` from `updateUIView` instead would race the very
-        /// `step` call two lines above it in this file.
-        var takeRequest: Int = 0
-        private var lastHandledTakeRequest: Int = 0
+        /// Everything SwiftUI writes and the render loop reads.
+        ///
+        /// One struct behind one lock rather than three bare properties.
+        /// `updateUIView` runs on the main thread; `SCNSceneRendererDelegate`
+        /// callbacks are documented **not** to necessarily run on it — so
+        /// every one of these crossed threads unsynchronised. `input` is
+        /// the one that can genuinely tear rather than merely arrive late:
+        /// a `SIMD2<Double>` is 16 bytes and two stores, and half of an old
+        /// vector beside half of a new one is a step in a direction the
+        /// player never pushed. Swift 6's concurrency checking rejects all
+        /// three outright, and a standalone extraction (P39) is the most
+        /// likely thing to want that mode.
+        struct Inbox: Sendable {
+            var input: SIMD2<Double> = .zero
+            var heading: Double = 0
+            /// Consumed on the renderer thread rather than acted on the
+            /// moment SwiftUI notices the tap, which keeps every mutation
+            /// of `driver` on the one thread that already owns it —
+            /// `driver.step` runs in that same callback, so taking from
+            /// `updateUIView` would race the `step` call a few lines above
+            /// it in this file.
+            var take = TakeRequest()
+        }
 
-        init(terrain: Terrain, survivalState: Binding<SurvivalState>, offer: Binding<ForagePoint?>) {
+        private let inbox: OSAllocatedUnfairLock<Inbox>
+        /// Seeded from the request the view already held at construction,
+        /// not from zero: a coordinator built after the player had already
+        /// tapped would otherwise read a nonzero count as a fresh request
+        /// and take something on its very first frame.
+        private var lastHandledTakeRequest: Int
+
+        func write(_ mutate: @Sendable (inout Inbox) -> Void) {
+            inbox.withLock(mutate)
+        }
+
+        init(terrain: Terrain, survivalState: Binding<SurvivalState>, offer: Binding<ForagePoint?>,
+             takeRequest: TakeRequest = TakeRequest()) {
             self.terrain = terrain
             self.survivalState = survivalState
             self.offer = offer
+            inbox = OSAllocatedUnfairLock(initialState: Inbox(take: takeRequest))
+            lastHandledTakeRequest = takeRequest.count
 
             // Built once, here, and held for the session — same reasoning as
             // `player`/`camera` above: a scene is state, not something
             // derived from a view's body (task brief).
             let middle = Double(terrain.field.width) * terrain.definition.cellSize / 2
-            let forage = ForageField.points(in: terrain, berries: 40, springs: 6)
+            let forage = ForageField.points(in: terrain,
+                                            berries: ForageField.berriesPerIsland,
+                                            springs: ForageField.springsPerIsland)
             campfire = CampfireNode(x: middle, z: middle, on: terrain)
             forageNodes = ForageNodes(points: forage, on: terrain)
             driver = SurvivalDriver(fire: (x: middle, z: middle), points: forage,
@@ -126,13 +199,19 @@ struct IslandSceneView: UIViewRepresentable {
         }
 
         func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
+            // One read, one lock acquisition, one snapshot for the whole
+            // frame. Reading the properties one at a time would let the
+            // main thread land a tap between two of them, so the player
+            // could walk on this frame's input toward last frame's offer.
+            let inbox = self.inbox.withLock { $0 }
+
             // First frame has no previous timestamp; a dt of `time` itself
             // would teleport the player across the island on frame one.
             let dt = lastFrame == 0 ? 0 : min(time - lastFrame, 0.1)
             lastFrame = time
 
-            player.step(input: input, heading: heading, dt: dt, terrain: terrain)
-            camera.follow(player, heading: heading)
+            player.step(input: inbox.input, heading: inbox.heading, dt: dt, terrain: terrain)
+            camera.follow(player, heading: inbox.heading)
 
             let now = Date()
             let isNight = clock.isNight(at: now)
@@ -143,10 +222,16 @@ struct IslandSceneView: UIViewRepresentable {
             // `!=`, not "became true": a counter that ticked twice between
             // two frames must still only be handled once here, and `take`
             // itself is what decides whether it succeeds — this only asks.
-            if takeRequest != lastHandledTakeRequest {
-                lastHandledTakeRequest = takeRequest
-                if let offer = driver.offer {
-                    driver.take(offer, now: now)
+            //
+            // The point comes from the REQUEST, never from `driver.offer`,
+            // which `step` above has already recomputed from this frame's
+            // position. Asking for what the player tapped is what lets
+            // `take` refuse when they have since walked off it, instead of
+            // silently substituting whatever is in reach now.
+            if inbox.take.count != lastHandledTakeRequest {
+                lastHandledTakeRequest = inbox.take.count
+                if let tapped = inbox.take.point {
+                    driver.take(tapped, now: now)
                 }
             }
 

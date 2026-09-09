@@ -75,6 +75,20 @@ public enum ForageField {
     /// faces where the player can see them and never reach them.
     private static let maxSlope = 0.55
 
+    /// How much of each the island carries. Named here rather than passed
+    /// as literals at the one call site, because **anything that derives
+    /// the island's forage has to derive the same forage** — a test, a
+    /// future minimap, slice 6's shared world — and each of those asking
+    /// for its own count would produce its own island. That is the "one
+    /// decision, two literals" defect this branch has already hit five
+    /// times, and it is cheaper to prevent here than to find later.
+    ///
+    /// Berries greatly outnumber springs on purpose: water is easy once
+    /// you have found it, food is a running errand until farming makes it
+    /// stop being one (see `ForagePoint.nourishment`).
+    public static let berriesPerIsland = 40
+    public static let springsPerIsland = 6
+
     /// Fixed forever, by construction rather than by discipline. This value
     /// has no meaning of its own — any 64-bit constant would do exactly as
     /// well — but changing it, for any reason, moves every bush and spring on

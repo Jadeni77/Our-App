@@ -14,11 +14,12 @@ public struct FarshoreRootView: View {
     /// content sits behind it.
     @State private var survivalState: SurvivalState = .rested
     @State private var offer: ForagePoint?
-    /// Ticks up once per `ActionButton` tap; read by `IslandSceneView`,
-    /// which forwards it into the coordinator that actually owns
-    /// `SurvivalDriver`. See `IslandSceneView.takeRequest`'s doc comment for
-    /// why this flows in as a plain counter rather than a `Binding<Bool>`.
-    @State private var takeRequest = 0
+    /// Records each `ActionButton` tap **together with what was in reach
+    /// when it happened**; read by `IslandSceneView`, which forwards it
+    /// into the coordinator that actually owns `SurvivalDriver`. See
+    /// `IslandSceneView.TakeRequest` for why the point travels with the
+    /// tap rather than being looked up when the tap is handled.
+    @State private var takeRequest = IslandSceneView.TakeRequest()
 
     /// Which needs have already had their first-time card dismissed.
     /// **In-memory for this slice, deliberately** — see `FirstTimeCard`'s
@@ -26,6 +27,18 @@ public struct FarshoreRootView: View {
     /// rest of slice 2's session-scoped state would be a special case with
     /// no use before slice 3 adds persistence for everything at once.
     @State private var taughtNeeds: Set<Need> = []
+
+    /// The need whose card is on screen right now, **latched**.
+    ///
+    /// `survivalState` arrives ~30 times a second, so deriving this inside
+    /// `body` meant re-answering "which need is due" on every frame the
+    /// card was up. A second need crossing critical to a lower value while
+    /// the player was reading would swap the text under them mid-sentence
+    /// and then credit their dismissal to the need they never read about —
+    /// M38 technically satisfied, the player still misled. Latching means
+    /// the card that appears is the card that gets dismissed; the other
+    /// need is still critical afterwards and gets its own card next.
+    @State private var cardNeed: Need?
 
     /// Holds the drag arithmetic. Lives in `TurnTracker` rather than inline in
     /// `turnGesture` so it can be tested — see the note there.
@@ -54,7 +67,11 @@ public struct FarshoreRootView: View {
                             .padding(.leading, 34)
                         Spacer()
                         if let offer {
-                            ActionButton(offer: offer) { takeRequest += 1 }
+                            // The offer the player is LOOKING at goes with
+                            // the tap. Anything else and the button's label
+                            // and its effect can disagree — see
+                            // `IslandSceneView.TakeRequest`.
+                            ActionButton(offer: offer) { takeRequest.tap(offer) }
                                 .padding(.trailing, 34)
                         }
                     }
@@ -62,15 +79,14 @@ public struct FarshoreRootView: View {
                 .padding(.bottom, 26)
 
                 // Blocking, so it belongs on top of the controls above, not
-                // below them. `needForFirstTimeCard` re-derives from
-                // `taughtNeeds` every body evaluation rather than caching
-                // "is a card showing" separately — one source of truth for
-                // whether a card is due, not two that could disagree.
-                if let dueNeed = NeedSignalRules.needForFirstTimeCard(state: survivalState, taught: taughtNeeds) {
-                    FirstTimeCard(need: dueNeed) {
+                // below them. Reads the latch rather than re-deriving —
+                // see `cardNeed`.
+                if let cardNeed {
+                    FirstTimeCard(need: cardNeed) {
                         // Marked seen HERE, on dismissal, never on appear —
                         // see FirstTimeCard's doc comment (Moonshot M38).
-                        taughtNeeds.insert(dueNeed)
+                        taughtNeeds.insert(cardNeed)
+                        self.cardNeed = nil
                     }
                 }
             } else if failed {
@@ -83,6 +99,13 @@ public struct FarshoreRootView: View {
             }
         }
         .background(.black)
+        // Arms the latch, and only ever when nothing is already latched —
+        // `cardNeed == nil` is what makes it a latch rather than a rename
+        // of the per-frame derivation it replaced.
+        .onChange(of: survivalState) { _, state in
+            guard cardNeed == nil else { return }
+            cardNeed = NeedSignalRules.needForFirstTimeCard(state: state, taught: taughtNeeds)
+        }
         .task {
             guard terrain == nil else { return }
             do {
