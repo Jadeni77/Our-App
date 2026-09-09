@@ -21,6 +21,69 @@
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "无法载入这座岛。" } },
         "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "無法載入這座島。" } }
       }
+    },
+    "farshore.action.drink" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Drink" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "喝" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "喝" } }
+      }
+    },
+    "farshore.action.eat" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Eat" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "吃" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "吃" } }
+      }
+    },
+    "farshore.need.water.first" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Your mouth is dry. Find fresh water — the sea will not do." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "你的嘴巴很干。去找些淡水——海水不行。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "你的嘴巴很乾。去找些淡水——海水不行。" } }
+      }
+    },
+    "farshore.need.food.first" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Your stomach is empty. Something to eat would help." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "你的肚子空了。该找点吃的了。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "你的肚子空了。該找點吃的了。" } }
+      }
+    },
+    "farshore.need.warmth.first" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "You're freezing. Get back to the fire." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "你冷得发抖。回到篝火旁去。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "你冷得發抖。回到篝火旁去。" } }
+      }
+    },
+    "farshore.death.title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Lights out." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "眼前一黑。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "眼前一黑。" } }
+      }
+    },
+    "farshore.death.body" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "You went out. You woke at the fire, at dawn." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "你昏了过去。醒来时天已破晓,你就在篝火旁。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "你昏了過去。醒來時天已破曉,你就在篝火旁。" } }
+      }
+    },
+    "farshore.death.continue" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Tap to wake" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "轻触醒来" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "輕觸醒來" } }
+      }
+    },
+    "farshore.card.dismiss" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Got it" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "知道了" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "知道了" } }
+      }
     }
   },
   "version" : "1.0"
