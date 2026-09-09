@@ -46,4 +46,21 @@ public struct SessionClock: Sendable, Equatable {
     public func isNight(at now: Date) -> Bool {
         timeOfDay(at: now) >= Self.duskFraction
     }
+
+    /// Skips the day past time nobody was playing.
+    ///
+    /// **This is what makes F3 true rather than merely intended.** The
+    /// clock is anchored to a real instant, so left alone it keeps running
+    /// through a backgrounded app: play five minutes of a twenty-minute
+    /// day, take a twelve-minute phone call, come back past dusk, and
+    /// warmth is now draining at 2.5× because of time you spent away. The
+    /// render loop already refuses to charge a need for that gap — it caps
+    /// `dt` — and this is the same refusal applied to the day itself.
+    ///
+    /// Returns a new clock rather than mutating, because a `SessionClock`
+    /// is a value and the only two things allowed to replace one are this
+    /// and waking up dead.
+    public func advancingStart(by seconds: TimeInterval) -> SessionClock {
+        SessionClock(startedAt: startedAt.addingTimeInterval(seconds))
+    }
 }

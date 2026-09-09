@@ -31,6 +31,21 @@ struct SurvivalRulesTests {
         #expect(SurvivalRules.step(.rested, dt: 0, isNight: false, nearFire: false, inSea: false) == .rested)
     }
 
+    /// What the `dt > 0` guard actually protects, which is not the zero
+    /// case: every drain term is multiplied by `dt`, so a `dt` of 0 changes
+    /// nothing whether the guard is there or not. A NEGATIVE `dt` is the
+    /// one that needs it — it would run the maths backwards and *refill*
+    /// every need, turning a clock that stuttered into a free meal. The
+    /// render loop derives `dt` monotonically so it cannot happen from
+    /// there today, but `step` is public and the guard is load-bearing for
+    /// whoever calls it next.
+    @Test func timeRunningBackwardsRefillsNothing() {
+        #expect(SurvivalRules.step(.rested, dt: -60, isNight: false, nearFire: false, inSea: false) == .rested)
+
+        let hurt = SurvivalState(warmth: 0.4, water: 0.3, food: 0.2)
+        #expect(SurvivalRules.step(hurt, dt: -600, isNight: true, nearFire: true, inSea: false) == hurt)
+    }
+
     /// The tuning anchor the whole balance hangs off: thirst is the first
     /// thing that kills you, and it kills you inside two days. If this ever
     /// stops being true the island stops being tense.
@@ -68,9 +83,17 @@ struct SurvivalRulesTests {
         #expect(byNight.food == byDay.food)
     }
 
+    /// The sea is the fastest way to die here, deliberately: it is the one
+    /// hazard reachable in the first minute, and it teaches that the island
+    /// has edges without a wall or a warning. That claim is an *ordering*
+    /// between two multipliers, so it has to be tested against the night
+    /// rather than against fair daylight — the version of this test that
+    /// passed `isNight: false` on both sides compared the sea to a mild
+    /// afternoon, left `seaWarmthMultiplier` entirely unguarded, and stayed
+    /// green when the sea was made warmer than a dry night.
     @Test func theSeaIsColderThanTheNight() {
         let inSea = SurvivalRules.step(.rested, dt: 60, isNight: false, nearFire: false, inSea: true)
-        let atNight = SurvivalRules.step(.rested, dt: 60, isNight: false, nearFire: false, inSea: false)
+        let atNight = SurvivalRules.step(.rested, dt: 60, isNight: true, nearFire: false, inSea: false)
         #expect(inSea.warmth < atNight.warmth)
     }
 

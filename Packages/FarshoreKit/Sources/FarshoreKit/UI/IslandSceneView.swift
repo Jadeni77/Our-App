@@ -112,7 +112,10 @@ struct IslandSceneView: UIViewRepresentable {
         private var lastFrame: TimeInterval = 0
 
         let campfire: CampfireNode
-        private let forageNodes: ForageNodes
+        /// Not `private`, for the same reason `driver` is not: the frame
+        /// that reconciles what the player can see with what the rules say
+        /// is there had no test until one could reach this.
+        let forageNodes: ForageNodes
         /// Not `private`: the render loop's own wiring is the one thing in
         /// this file that no pure-rule test can reach, and it is where
         /// this task's real bug lived. `IslandSceneCoordinatorTests` drives
@@ -163,6 +166,13 @@ struct IslandSceneView: UIViewRepresentable {
             var wake = 0
         }
 
+        /// The longest a single frame is allowed to charge for. Named
+        /// because two separate decisions now read it — how far the player
+        /// moves and how much of a need drains, and how far the day
+        /// advances — and they have to be the same number or the island
+        /// would charge for time it refused to simulate.
+        static let maxFrameSeconds: TimeInterval = 0.1
+
         private let inbox: OSAllocatedUnfairLock<Inbox>
         /// Seeded from the request the view already held at construction,
         /// not from zero: a coordinator built after the player had already
@@ -191,13 +201,13 @@ struct IslandSceneView: UIViewRepresentable {
             // Built once, here, and held for the session — same reasoning as
             // `player`/`camera` above: a scene is state, not something
             // derived from a view's body (task brief).
-            let middle = Double(terrain.field.width) * terrain.definition.cellSize / 2
+            let middle = terrain.centre
             let forage = ForageField.points(in: terrain,
                                             berries: ForageField.berriesPerIsland,
                                             springs: ForageField.springsPerIsland)
-            campfire = CampfireNode(x: middle, z: middle, on: terrain)
+            campfire = CampfireNode(x: middle.x, z: middle.z, on: terrain)
             forageNodes = ForageNodes(points: forage, on: terrain)
-            driver = SurvivalDriver(fire: (x: middle, z: middle), points: forage,
+            driver = SurvivalDriver(fire: middle, points: forage,
                                     seaLevel: terrain.definition.seaLevel)
 
             super.init()
@@ -213,7 +223,7 @@ struct IslandSceneView: UIViewRepresentable {
 
             // The campfire sits at the island centre and so does the player
             // (task brief) — you start the session at your own camp.
-            player.place(x: middle, z: middle, on: terrain)
+            player.place(x: middle.x, z: middle.z, on: terrain)
             camera.follow(player, heading: 0)
         }
 
@@ -260,7 +270,18 @@ struct IslandSceneView: UIViewRepresentable {
 
             // First frame has no previous timestamp; a dt of `time` itself
             // would teleport the player across the island on frame one.
-            let dt = lastFrame == 0 ? 0 : min(time - lastFrame, 0.1)
+            let elapsed = lastFrame == 0 ? 0 : time - lastFrame
+            let dt = min(elapsed, Self.maxFrameSeconds)
+            // Whatever the cap threw away was time nobody was playing —
+            // the app was backgrounded, or the phone was busy. The needs
+            // already refuse to charge for it, because they are stepped by
+            // `dt`; the DAY has to refuse too, or F3's promise holds for
+            // hunger and thirst and quietly fails for nightfall. Without
+            // this, a twelve-minute phone call in the middle of a
+            // twenty-minute day is a night you did not live through.
+            if elapsed > dt {
+                clock = clock.advancingStart(by: elapsed - dt)
+            }
             lastFrame = time
 
             player.step(input: inbox.input, heading: inbox.heading, dt: dt, terrain: terrain)
@@ -287,6 +308,10 @@ struct IslandSceneView: UIViewRepresentable {
                     driver.take(tapped, now: now)
                 }
             }
+
+            // After the take, so a bush picked on this very frame is gone
+            // on this very frame rather than one late.
+            forageNodes.reconcile(pickedAt: driver.pickedAt, now: now)
 
             campfire.setNight(isNight)
             SkyController.apply(timeOfDay: clock.timeOfDay(at: now),

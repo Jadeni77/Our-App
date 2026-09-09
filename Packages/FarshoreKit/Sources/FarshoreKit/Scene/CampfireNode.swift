@@ -91,6 +91,16 @@ public final class CampfireNode: SCNNode {
     /// fixed brightness.
     public func setNight(_ isNight: Bool) {
         fireLightNode.light?.intensity = isNight ? Self.nightIntensity : Self.dayIntensity
+        // **Shadows only after dark.** An `.omni` caster needs an
+        // omnidirectional shadow map — a materially different cost from the
+        // sun's single deferred directional one next door in `IslandLook` —
+        // and by day this light runs at 150 against a sun at 2400, so it
+        // was paying for a map that contributes almost nothing for 72% of
+        // the cycle. F12's headroom (p95 17.20 ms of a 33.3 ms budget) was
+        // measured with no props and one caster, and the owner's device is
+        // off-limits, so the honest move is to not spend budget nobody has
+        // re-measured.
+        fireLightNode.light?.castsShadow = isNight
     }
 
     /// A low stone ring the logs sit inside — reads as a fire pit even before

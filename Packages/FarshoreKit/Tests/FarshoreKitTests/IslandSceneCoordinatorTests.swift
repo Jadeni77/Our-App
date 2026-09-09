@@ -136,6 +136,129 @@ struct IslandSceneCoordinatorTests {
         #expect(coordinator.driver.pickedAt[bush.id] != nil)
     }
 
+    /// **A picked bush has to actually vanish.**
+    ///
+    /// The node and its id map were built for this in Task 4 and nothing
+    /// ever called them, which no suite noticed because the scene layer
+    /// deliberately has no tests of its own — the reasoning being that it
+    /// only draws facts the rules already pin. That reasoning is sound for
+    /// *what a bush looks like* and wrong for *whether it is drawn at all*:
+    /// nothing in `Rules/` can tell you the picture went missing. On an
+    /// island with no meters, a bush that sits there for fifteen minutes
+    /// while the action button silently refuses to appear is not a cosmetic
+    /// bug, it is unexplainable.
+    @Test func aPickedBushDisappearsAndComesBackWhenItRegrows() throws {
+        let terrain = try island()
+        let coordinator = makeCoordinator(terrain)
+        let renderer = frames()
+
+        let bush = try #require(forage(on: terrain).first { $0.kind == .berries })
+        #expect(coordinator.forageNodes.isHidden(id: bush.id) == false)
+
+        coordinator.player.place(x: bush.x, z: bush.z, on: terrain)
+        coordinator.renderer(renderer, updateAtTime: 1)
+        let request = tap(bush)
+        coordinator.write { $0.take = request }
+        coordinator.renderer(renderer, updateAtTime: 2)
+
+        #expect(coordinator.driver.pickedAt[bush.id] != nil)
+        #expect(coordinator.forageNodes.isHidden(id: bush.id) == true)
+
+        // And it comes back on its own. Availability is derived from a
+        // timestamp, not stored (F2/F5), so regrowth fires no event — which
+        // is exactly why this is reconciled every frame rather than hung
+        // off the take.
+        coordinator.forageNodes.reconcile(
+            pickedAt: coordinator.driver.pickedAt,
+            now: Date().addingTimeInterval(ForageField.regrowthSeconds + 1))
+        #expect(coordinator.forageNodes.isHidden(id: bush.id) == false)
+    }
+
+    /// **Everything the player can see reaches them through two lines.**
+    ///
+    /// The vignettes, the action button, the first-time card and the
+    /// blackout are all driven by `survivalState`/`offer` being pushed out
+    /// of the render loop. Delete that push and the game is silently a
+    /// walking simulator that can never die — with a completely green
+    /// suite, because the tests above read the driver directly and every
+    /// view in the package is untested by design.
+    ///
+    /// One main-queue turnaround is awaited because the push is
+    /// deliberately `async`: the render callback cannot afford to block on
+    /// the main run loop, so the value lands a hop later.
+    @Test func theDriversAnswersReachSwiftUI() async throws {
+        let terrain = try island()
+        let renderer = frames()
+
+        final class Box: @unchecked Sendable {
+            var state = SurvivalState.rested
+            var offer: ForagePoint?
+        }
+        let box = Box()
+        let bush = try #require(forage(on: terrain).first { $0.kind == .berries })
+
+        let coordinator = IslandSceneView.Coordinator(
+            terrain: terrain,
+            survivalState: Binding(get: { box.state }, set: { box.state = $0 }),
+            offer: Binding(get: { box.offer }, set: { box.offer = $0 }))
+
+        coordinator.player.place(x: bush.x, z: bush.z, on: terrain)
+        coordinator.renderer(renderer, updateAtTime: 1)
+        coordinator.driver.step(playerX: bush.x, playerZ: bush.z, playerHeight: 100,
+                                dt: 1_800, isNight: false, now: Date())
+        coordinator.renderer(renderer, updateAtTime: 2)
+
+        // Let the pushed-out values land.
+        await Task.yield()
+        try await Task.sleep(for: .milliseconds(50))
+
+        #expect(box.offer?.id == bush.id)
+        #expect(box.state == coordinator.driver.state)
+        #expect(box.state.water < 1)
+    }
+
+    /// **Time you spent away is not a night you lived through.**
+    ///
+    /// The needs already refuse to charge for a backgrounded gap, because
+    /// they are stepped by a capped `dt`. The day has to refuse too, or F3
+    /// — "night runs only while someone is playing" — holds for hunger and
+    /// thirst and quietly fails for nightfall, which is the one that
+    /// doubles your warmth drain.
+    @Test func timeSpentAwayDoesNotAdvanceTheDay() throws {
+        let terrain = try island()
+        let coordinator = makeCoordinator(terrain)
+        let renderer = frames()
+
+        coordinator.renderer(renderer, updateAtTime: 1)
+        let before = coordinator.clock.startedAt
+
+        // A ninety-second gap: the phone rang.
+        coordinator.renderer(renderer, updateAtTime: 91)
+
+        // All of it was skipped except the one capped frame that was
+        // actually simulated, so the day advanced by 0.1s of play rather
+        // than by a minute and a half of not playing.
+        let skipped = coordinator.clock.startedAt.timeIntervalSince(before)
+        #expect(abs(skipped - (90 - IslandSceneView.Coordinator.maxFrameSeconds)) < 0.0001)
+    }
+
+    /// The other half: an ordinary frame must NOT push the clock. A "fix"
+    /// that advanced the start on every frame would freeze the day at dawn
+    /// forever and still pass the test above.
+    @Test func ordinaryFramesLetTheDayRun() throws {
+        let terrain = try island()
+        let coordinator = makeCoordinator(terrain)
+        let renderer = frames()
+
+        coordinator.renderer(renderer, updateAtTime: 1)
+        let before = coordinator.clock.startedAt
+
+        for frame in 2...30 {
+            coordinator.renderer(renderer, updateAtTime: 1 + Double(frame) / 30.0)
+        }
+        #expect(coordinator.clock.startedAt == before)
+    }
+
     /// **"You woke at the fire, at dawn" is a promise the copy makes, so
     /// it is pinned exactly rather than approximately.**
     ///

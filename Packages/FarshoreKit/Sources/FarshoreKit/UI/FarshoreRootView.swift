@@ -101,7 +101,19 @@ public struct FarshoreRootView: View {
                 // clears one frame after `wake` revives the driver rather
                 // than the instant the tap lands.
                 if survivalState.isDead {
-                    BlackoutView { wakeRequest += 1 }
+                    BlackoutView {
+                        wakeRequest += 1
+                        // Whatever card was up when the player went out is
+                        // dropped rather than revealed. It blocks input but
+                        // does not stop the drain, so reading one slowly —
+                        // or setting the phone down mid-card — is a normal
+                        // way to die; surfacing "your mouth is dry" to a
+                        // player who has just woken `.rested` would be a
+                        // lesson arriving after it stopped being true.
+                        // Left UNTAUGHT deliberately, so the need still
+                        // gets a real card the next time it bites.
+                        cardNeed = nil
+                    }
                 }
             } else if failed {
                 // Fail soft, never a dead end (principle 7).

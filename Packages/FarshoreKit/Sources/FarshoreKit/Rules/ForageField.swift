@@ -112,7 +112,7 @@ public enum ForageField {
                                      in terrain: Terrain,
                                      using random: inout SeededRandom,
                                      into result: inout [ForagePoint]) {
-        let extent = Double(terrain.field.width - 1) * terrain.definition.cellSize
+        let extent = terrain.extent
         var placed = 0
         var attempts = 0
         // Bounded so a pathological island cannot hang the loop. Falling short

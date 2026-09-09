@@ -44,10 +44,42 @@ struct ForageFieldTests {
 
     @Test func everythingIsInsideTheIsland() throws {
         let terrain = try island()
-        let extent = Double(terrain.field.width) * terrain.definition.cellSize
+        // `terrain.extent`, not a bound recomputed here. The version of
+        // this test that wrote `width` (rather than `width - 1`) was a full
+        // cell looser than the placer it was checking, so it pinned nothing
+        // about which convention was in force.
+        let extent = terrain.extent
         for point in ForageField.points(in: terrain, berries: 40, springs: 6) {
             #expect(point.x >= 0 && point.x <= extent)
             #expect(point.z >= 0 && point.z <= extent)
+        }
+    }
+
+    /// **The same bound, on ground with no sea to hide behind.**
+    ///
+    /// `everythingIsInsideTheIsland` runs on the real heightmap, where the
+    /// outer ring is water — so `height > seaLevel` rejects every candidate
+    /// near the edge long before the extent bound is consulted, and I could
+    /// not construct a change to the placer's extent that made that test
+    /// fail. It is subsumed by `nothingIsPlacedBelowSeaLevel`, which is a
+    /// polite way of saying it was not testing what its name claims.
+    ///
+    /// Flat ground entirely above water removes the guard that was doing
+    /// the work, and leaves the extent as the only thing keeping points on
+    /// the map.
+    @Test func placementRespectsTheExtentWithNoSeaToStopIt() {
+        let n = 65
+        let terrain = Terrain(field: HeightField(width: n, depth: n,
+                                                 samples: [UInt8](repeating: 128, count: n * n)),
+                              definition: IslandDefinition(assetName: "flat", cellSize: 1,
+                                                           heightScale: 100, seaLevel: 0))
+        let points = ForageField.points(in: terrain,
+                                        berries: ForageField.berriesPerIsland,
+                                        springs: ForageField.springsPerIsland)
+        #expect(points.count == ForageField.berriesPerIsland + ForageField.springsPerIsland)
+        for point in points {
+            #expect(point.x >= 0 && point.x <= terrain.extent)
+            #expect(point.z >= 0 && point.z <= terrain.extent)
         }
     }
 

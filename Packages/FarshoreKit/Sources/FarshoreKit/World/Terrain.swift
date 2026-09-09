@@ -19,6 +19,32 @@ public struct Terrain: Sendable {
         self.definition = definition
     }
 
+    /// How far the island reaches, in metres, from the origin corner.
+    ///
+    /// **`width - 1`, not `width`, and it lives here so that only has to be
+    /// got right once.** The heightmap is a grid of *vertices*, not of
+    /// tiles: 512 samples describe 511 cells, so the last sample sits at
+    /// `511 * cellSize`. Asking for anything beyond that samples off the
+    /// end of the field.
+    ///
+    /// This is the "one decision, two literals" defect wearing its least
+    /// visible costume — an *expression* rather than a number, which a grep
+    /// for repeated literals slides straight past. Three places had already
+    /// written it three different ways (the forage placer with the `- 1`,
+    /// the coordinator's spawn point without it, a test's bound without it
+    /// either), disagreeing by half a cell and agreeing with nothing. Slice
+    /// 3's placements and slice 6's shared world would each have picked one
+    /// of the three.
+    public var extent: Double {
+        Double(field.width - 1) * definition.cellSize
+    }
+
+    /// The middle of the island — where the player lands and where the
+    /// campfire burns. Derived from `extent` so it cannot drift from it.
+    public var centre: (x: Double, z: Double) {
+        (x: extent / 2, z: extent / 2)
+    }
+
     public var chunkCountX: Int {
         Int(ceil(Double(field.width - 1) / Double(ChunkGrid.cellsPerChunk)))
     }

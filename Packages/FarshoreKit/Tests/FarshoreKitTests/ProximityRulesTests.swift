@@ -29,9 +29,15 @@ struct ProximityRulesTests {
         #expect(ProximityRules.isNearFire(playerX: r, playerZ: 0, fireX: 0, fireZ: 0) == false)
     }
 
-    @Test func belowSeaLevelIsInTheSea() {
+    /// The boundary itself, for the same reason the fire's is pinned: this
+    /// one gates a 6× warmth drain off a height sampled from real terrain,
+    /// so a player standing exactly at the waterline either freezes six
+    /// times faster or does not, and "whichever the `<` happened to be"
+    /// is not an answer. Exclusive — at sea level you are dry.
+    @Test func belowSeaLevelIsInTheSeaAndTheWaterlineItselfIsDry() {
         #expect(ProximityRules.isInSea(playerHeight: 1.0, seaLevel: 3.0))
         #expect(ProximityRules.isInSea(playerHeight: 5.0, seaLevel: 3.0) == false)
+        #expect(ProximityRules.isInSea(playerHeight: 3.0, seaLevel: 3.0) == false)
     }
 
     @Test func theNearestPointInReachIsTheOneOffered() {

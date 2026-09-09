@@ -31,6 +31,13 @@ public enum ProximityRules {
         hypot(playerX - fireX, playerZ - fireZ) < fireWarmthRadius
     }
 
+    /// **Exclusive: standing exactly at sea level is dry**, the same side
+    /// the fire's boundary falls on. Stated because this gates a 6× warmth
+    /// drain from a height sampled off real terrain, so which side the
+    /// boundary belongs to is the difference between a shoreline you can
+    /// stand on and one that quietly kills you — and because a boundary
+    /// nobody wrote down is a boundary a later reader will assume the other
+    /// way round.
     public static func isInSea(playerHeight: Double, seaLevel: Double) -> Bool {
         playerHeight < seaLevel
     }
